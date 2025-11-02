@@ -1,0 +1,3 @@
+[submodule "E3SM"]
+	path = E3SM
+	url = https://github.com/katherinefrields/E3SM.git

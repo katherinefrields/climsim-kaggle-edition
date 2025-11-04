@@ -419,13 +419,13 @@ def main(cfg: DictConfig) -> float:
                 residual = (target - output)
                 
                 #move this to diffusion model later
-                x_profile = residual[:,:data.input_profile_num*data.vertical_level_num]
-                x_scalar = residual[:,data.input_profile_num*data.vertical_level_num:]
+                x_profile = residual[:,:data.input_profile_num*60]
+                x_scalar = residual[:,data.input_profile_num*60:]
 
                 # reshape x_profile to (batch, input_profile_num, levels)
-                x_profile = x_profile.reshape(-1, data.input_profile_num, data.vertical_level_num)
+                x_profile = x_profile.reshape(-1, data.input_profile_num, 60)
                 # broadcast x_scalar to (batch, input_scalar_num, levels)
-                x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, data.vertical_level_num)
+                x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, 60)
 
                 #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
                 x = torch.cat((x_profile, x_scalar), dim=1)
@@ -501,13 +501,13 @@ def main(cfg: DictConfig) -> float:
                 residual = (target - output)
                 
                 #move this to diffusion model later
-                x_profile = residual[:,:data.input_profile_num*data.vertical_level_num]
-                x_scalar = residual[:,data.input_profile_num*data.vertical_level_num:]
+                x_profile = residual[:,:data.input_profile_num*60]
+                x_scalar = residual[:,data.input_profile_num*60:]
 
                 # reshape x_profile to (batch, input_profile_num, levels)
-                x_profile = x_profile.reshape(-1, data.input_profile_num, data.vertical_level_num)
+                x_profile = x_profile.reshape(-1, data.input_profile_num, 60)
                 # broadcast x_scalar to (batch, input_scalar_num, levels)
-                x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, data.vertical_level_num)
+                x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, 60)
 
                 #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
                 x = torch.cat((x_profile, x_scalar), dim=1)

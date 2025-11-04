@@ -142,6 +142,7 @@ class Linear(torch.nn.Module):
         return x
     
 #ADDED BY KATHERINE FRIELDS
+
 class Conv1d(torch.nn.Module):
     def __init__(
         self,
@@ -156,7 +157,7 @@ class Conv1d(torch.nn.Module):
         init_weight: float = 1.0,
         init_bias: float = 0.0,
         fused_conv_bias: bool = False,
-        amp_mode: bool = False,
+        amp_mode: bool = False,#current is not implementing resampling
     ):
         if up and down:
             raise ValueError("Both 'up' and 'down' cannot be true at the same time.")
@@ -1013,7 +1014,7 @@ class UNetBlock(torch.nn.Module):
         else:
             self.attn = None
         # A hook to migrate legacy attention module
-        self.register_load_state_dict_pre_hook(self._migrate_attention_module)
+        self._register_load_state_dict_pre_hook(self._migrate_attention_module)
 
     def forward(self, x, emb):
         with (

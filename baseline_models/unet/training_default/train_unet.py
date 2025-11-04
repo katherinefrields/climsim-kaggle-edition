@@ -185,6 +185,7 @@ def main(cfg: DictConfig) -> float:
         #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
         #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
         #starting with unconditional
+        img_channels= data.target_profile_num * 60 + data.target_scalar_num,
         img_in_channels= data.target_profile_num * 60 + data.target_scalar_num,
         img_out_channels=data.target_profile_num * 60 + data.target_scalar_num,# predicting tendency output variables residuals
         label_dim=0,               # not class-conditional

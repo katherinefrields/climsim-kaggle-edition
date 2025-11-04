@@ -946,7 +946,8 @@ class UNetBlock(torch.nn.Module):
             kernel=3,
             up=up,
             down=down,
-            resample_filter=resample_filter,
+            #deleted from conv1d for now
+            #resample_filter=resample_filter,
             fused_conv_bias=fused_conv_bias,
             amp_mode=amp_mode,
             **init,

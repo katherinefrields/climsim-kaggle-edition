@@ -432,7 +432,19 @@ def main(cfg: DictConfig) -> float:
                 
                 x = x.to(device)
                 
-                predicted_residual = res_model(x)
+                #set the sigma based on parameters -- CHANGE THIS LATER
+                P_mean = -1.2
+                P_std = 1.2
+
+                # Batch size
+                batch_size = x.shape[0]
+
+                # Sample log-normal σ
+                sigma = torch.exp(
+                    P_mean + P_std * torch.randn(batch_size, device=device)
+                )
+
+                predicted_residual = res_model(x,sigma)
                 res_loss = criterion(predicted_residual, residual)
                 
                 #CHANGE THIS LATER
@@ -514,7 +526,13 @@ def main(cfg: DictConfig) -> float:
                 
                 x = x.to(device)
                 
-                predicted_residual = res_model(x)
+                #CHANGE THIS LATER
+                # Sample log-normal σ
+                sigma = torch.exp(
+                    P_mean + P_std * torch.randn(batch_size, device=device)
+                )
+                
+                predicted_residual = res_model(x, sigma)
                 
                 res_loss = criterion(predicted_residual, residual)
                 

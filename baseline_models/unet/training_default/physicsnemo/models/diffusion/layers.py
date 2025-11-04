@@ -133,15 +133,10 @@ class Linear(torch.nn.Module):
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
             if self.weight is not None and self.weight.dtype != x.dtype:
-                weight = self.weight.to(x.dtype)
+                weight = self.weight.to(x.dtype, device=x.device)
             if self.bias is not None and self.bias.dtype != x.dtype:
-                bias = self.bias.to(x.dtype)
+                bias = self.bias.to(x.dtype, device=x.device)
                 
-         # ADDED CODE
-        if weight.device != x.device:
-            weight = weight.to(x.device)
-        if bias is not None and bias.device != x.device:
-            bias = bias.to(x.device)
         
         x = x @ weight.t()
         if self.bias is not None:
@@ -320,9 +315,9 @@ class Conv2d(torch.nn.Module):
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
             if self.weight is not None and self.weight.dtype != x.dtype:
-                weight = self.weight.to(x.dtype)
+                weight = self.weight.to(x.dtype, device=x.device)
             if self.bias is not None and self.bias.dtype != x.dtype:
-                bias = self.bias.to(x.dtype)
+                bias = self.bias.to(x.dtype, device=x.device)
             if (
                 self.resample_filter is not None
                 and self.resample_filter.dtype != x.dtype
@@ -601,9 +596,9 @@ class GroupNorm(torch.nn.Module):
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
             if weight.dtype != x.dtype:
-                weight = self.weight.to(x.dtype)
+                weight = self.weight.to(x.dtype, device=x.device)
             if bias.dtype != x.dtype:
-                bias = self.bias.to(x.dtype)
+                bias = self.bias.to(x.dtype, device=x.device)
 
         if self.training:
             # Use default torch implementation of GroupNorm for training

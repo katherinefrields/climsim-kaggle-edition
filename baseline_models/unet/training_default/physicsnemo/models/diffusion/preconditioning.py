@@ -106,7 +106,7 @@ class EDMPrecond(Module):
         sigma_min=0.0,
         sigma_max=float("inf"),
         sigma_data=0.5,
-        model_type="DhariwalUNet1D",
+        model_type="DhariwalUNet",
         img_in_channels=None,
         img_out_channels=None,
         **model_kwargs,

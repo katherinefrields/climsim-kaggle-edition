@@ -312,10 +312,11 @@ class DhariwalUNet(Module):
         return x
 '''
 
+#MODIFIED TO HAVE 1D INSTEAD OF 2D
 # NOTE: this module can actually be replicated as a special case of the
 # SongUnet class (with very minior extension of the SongUnet class). We should
 # consider inheriting the more general SongUnet class here.
-class DhariwalUNet1D(Module):
+class DhariwalUNet(Module):
     r"""
     This architecture is a diffusion backbone for 2D image generation. It
     reimplements the `ADM architecture <https://arxiv.org/abs/2105.05233>`_, a U-Net variant, with optional

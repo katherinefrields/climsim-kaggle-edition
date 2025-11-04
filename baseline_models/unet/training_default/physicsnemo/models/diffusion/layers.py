@@ -195,10 +195,11 @@ class Conv1d(torch.nn.Module):
         b = self.bias
         
          # ADDED CODE
-        if weight.device != x.device:
-            weight = weight.to(x.device)
-        if bias is not None and bias.device != x.device:
-            bias = bias.to(x.device)
+        if w.device != x.device:
+            w = w.to(x.device)
+            
+        if b.device != b.device:
+            b = b.to(x.device)
             
         if self.up:
             x = torch.nn.functional.conv_transpose1d(

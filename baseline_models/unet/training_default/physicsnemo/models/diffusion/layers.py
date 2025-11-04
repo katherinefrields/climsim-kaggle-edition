@@ -136,6 +136,13 @@ class Linear(torch.nn.Module):
                 weight = self.weight.to(x.dtype)
             if self.bias is not None and self.bias.dtype != x.dtype:
                 bias = self.bias.to(x.dtype)
+                
+         # ADDED CODE
+        if weight.device != x.device:
+            weight = weight.to(x.device)
+        if bias is not None and bias.device != x.device:
+            bias = bias.to(x.device)
+        
         x = x @ weight.t()
         if self.bias is not None:
             x = x.add_(bias)
@@ -187,6 +194,13 @@ class Conv1d(torch.nn.Module):
     def forward(self, x):
         w = self.weight
         b = self.bias
+        
+         # ADDED CODE
+        if weight.device != x.device:
+            weight = weight.to(x.device)
+        if bias is not None and bias.device != x.device:
+            bias = bias.to(x.device)
+            
         if self.up:
             x = torch.nn.functional.conv_transpose1d(
                 x, w, bias=b, stride=2, padding=w.shape[-1] // 2
@@ -577,6 +591,13 @@ class GroupNorm(torch.nn.Module):
 
     def forward(self, x):
         weight, bias = self.weight, self.bias
+        
+         # ADDED CODE
+        if weight.device != x.device:
+            weight = weight.to(x.device)
+        if bias is not None and bias.device != x.device:
+            bias = bias.to(x.device)
+            
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
             if weight.dtype != x.dtype:

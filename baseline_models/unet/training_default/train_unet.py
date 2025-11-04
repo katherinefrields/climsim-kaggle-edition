@@ -419,11 +419,11 @@ def main(cfg: DictConfig) -> float:
                 residual = (target - output)
                 
                 #move this to diffusion model later
-                x_profile = residual[:,:data.input_profile_num*60]
-                x_scalar = residual[:,data.input_profile_num*60:]
+                x_profile = residual[:,:data.target_profile_num*60]
+                x_scalar = residual[:,data.target_profile_num*60:]
 
                 # reshape x_profile to (batch, input_profile_num, levels)
-                x_profile = x_profile.reshape(-1, data.input_profile_num, 60)
+                x_profile = x_profile.reshape(-1, data.target_profile_num, 60)
                 # broadcast x_scalar to (batch, input_scalar_num, levels)
                 x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, 60)
 
@@ -501,11 +501,11 @@ def main(cfg: DictConfig) -> float:
                 residual = (target - output)
                 
                 #move this to diffusion model later
-                x_profile = residual[:,:data.input_profile_num*60]
-                x_scalar = residual[:,data.input_profile_num*60:]
+                x_profile = residual[:,:data.target_profile_num*60]
+                x_scalar = residual[:,data.target_profile_num*60:]
 
                 # reshape x_profile to (batch, input_profile_num, levels)
-                x_profile = x_profile.reshape(-1, data.input_profile_num, 60)
+                x_profile = x_profile.reshape(-1, data.target_profile_num, 60)
                 # broadcast x_scalar to (batch, input_scalar_num, levels)
                 x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, 60)
 

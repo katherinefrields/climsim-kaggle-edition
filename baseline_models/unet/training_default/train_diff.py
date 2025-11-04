@@ -17,7 +17,7 @@ from modulus.launch.logging import (
     initialize_mlflow,
 )
 from climsim_utils.data_utils import *
-from physicsnemo.models.diffusion.preconditioning import EDMPrecond
+
 from climsim_datasets import TrainingDataset, ValidationDataset
 from unet import Unet
 from wrap_model import WrappedModel
@@ -179,28 +179,6 @@ def main(cfg: DictConfig) -> float:
         resample_filter = resample_filter,
     ).to(dist.device)
 
-
-    res_model = EDMPrecond(
-        img_resolution=60,         # vertical levels
-        #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
-        #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
-        #starting with unconditional
-        img_in_channels= data.target_profile_num * 60 + data.target_scalar_num,
-        img_out_channels=data.target_profile_num * 60 + data.target_scalar_num,# predicting tendency output variables residuals
-        label_dim=0,               # not class-conditional
-        use_fp16=False,
-        sigma_min=0.002,
-        sigma_max=80,
-        sigma_data=0.5,
-        model_type="DhariwalUNet",  # or another backbone
-        model_kwargs=dict(
-            channel_mult=[1, 2, 4, 8],
-            num_blocks=2,
-            dropout=0.1,
-        ),
-    )
-
-
     if len(cfg.restart_path) > 0:
         print("Restarting from checkpoint: " + cfg.restart_path)
         if dist.distributed:
@@ -232,45 +210,23 @@ def main(cfg: DictConfig) -> float:
             )
         torch.cuda.current_stream().wait_stream(ddps)
 
-    # create deterministic optimizer
+    # create optimizer
     if cfg.optimizer == 'Adam':
-        deterministic_optimizer = optim.Adam(model.parameters(), lr=cfg.learning_rate)
+        optimizer = optim.Adam(model.parameters(), lr=cfg.learning_rate)
     elif cfg.optimizer == 'AdamW':
-        deterministic_optimizer = optim.AdamW(model.parameters(), lr=cfg.learning_rate)
+        optimizer = optim.AdamW(model.parameters(), lr=cfg.learning_rate)
     else:
         raise ValueError('Optimizer not implemented')
-    
-    # create resodia; optimizer
-    if cfg.optimizer == 'Adam':
-        res_optimizer = optim.Adam(res_model.parameters(), lr=cfg.learning_rate)
-    elif cfg.optimizer == 'AdamW':
-        res_optimizer = optim.AdamW(res_model.parameters(), lr=cfg.learning_rate)
-    else:
-        raise ValueError('Optimizer not implemented')
-    
-    
     
     # create scheduler
     if cfg.scheduler_name == 'step':
-        scheduler = optim.lr_scheduler.StepLR(deterministic_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
     elif cfg.scheduler_name == 'plateau':
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(deterministic_optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
     elif cfg.scheduler_name == 'cosine':
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(deterministic_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
     else:
         raise ValueError('Scheduler not implemented')
-    
-
-    # create residual scheduler
-    if cfg.scheduler_name == 'step':
-        scheduler = optim.lr_scheduler.StepLR(res_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
-    elif cfg.scheduler_name == 'plateau':
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(res_optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
-    elif cfg.scheduler_name == 'cosine':
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(res_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
-    else:
-        raise ValueError('Scheduler not implemented')
-    
     
     # create loss function
     if cfg.loss == 'MSE':
@@ -348,7 +304,7 @@ def main(cfg: DictConfig) -> float:
 
     @StaticCaptureTraining(
         model=model,
-        optim=deterministic_optimizer,
+        optim=optimizer,
         # cuda_graph_warmup=11,
     )
     def training_step(model, data_input, target):
@@ -414,50 +370,7 @@ def main(cfg: DictConfig) -> float:
                 # else:
                 #     loss = criterion(output, target)
                 # loss.backward()
-                
-                
-                deterministic_loss = training_step(model, data_input, target)
-                
-                
-                #DIFFUSION RESIDUAL PREDICTION
-                residual = (target - output)
-                
-                #move this to diffusion model later
-                x_profile = residual[:,:data.input_profile_num*data.vertical_level_num]
-                x_scalar = residual[:,data.input_profile_num*data.vertical_level_num:]
-
-                # reshape x_profile to (batch, input_profile_num, levels)
-                x_profile = x_profile.reshape(-1, data.input_profile_num, data.vertical_level_num)
-                # broadcast x_scalar to (batch, input_scalar_num, levels)
-                x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, data.vertical_level_num)
-
-                #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-                x = torch.cat((x_profile, x_scalar), dim=1)
-                
-                x = x.to(device)
-                
-                predicted_residual = res_model(x)
-                
-                
-                res_loss = criterion(predicted_residual, residual)
-                
-                #CHANGE THIS LATER
-                #CHANGE THIS LATER
-                #CHANGE THIS LATER
-                loss = deterministic_loss + res_loss
-                
-                deterministic_optimizer.zero_grad()
-                loss.backward()
-                deterministic_optimizer.step()
-                
-                
-                res_optimizer.zero_grad()
-                res_loss.backward()
-                res_optimizer.step()
-                
-                
-
-                
+                loss = training_step(model, data_input, target)
                 # max_grad = max(p.grad.abs().max() for p in model.parameters() if p.grad is not None)
                 # # Initialize a list to store the L2 norms of each parameter's gradient
                 # l2_norms = []
@@ -497,38 +410,10 @@ def main(cfg: DictConfig) -> float:
                 #     target[:,120:120+cfg.strato_lev] = 0
                 #     target[:,180:180+cfg.strato_lev] = 0
                 # Move data to the device
-                
-                #UNET DETERMINISTIC PREDICTION
                 data_input, target = data_input.to(device), target.to(device)
+
                 output = eval_step_forward(model, data_input)
-                deterministic_loss = criterion(output, target)
-                
-                #DIFFUSION RESIDUAL PREDICTION
-                residual = (target - output)
-                
-                #move this to diffusion model later
-                x_profile = residual[:,:data.input_profile_num*data.vertical_level_num]
-                x_scalar = residual[:,data.input_profile_num*data.vertical_level_num:]
-
-                # reshape x_profile to (batch, input_profile_num, levels)
-                x_profile = x_profile.reshape(-1, data.input_profile_num, data.vertical_level_num)
-                # broadcast x_scalar to (batch, input_scalar_num, levels)
-                x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, data.vertical_level_num)
-
-                #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-                x = torch.cat((x_profile, x_scalar), dim=1)
-                
-                x = x.to(device)
-                
-                predicted_residual = res_model(x)
-                
-                res_loss = criterion(predicted_residual, residual)
-                
-                #CHANGE THIS LATER
-                #CHANGE THIS LATER
-                #CHANGE THIS LATER
-                loss = deterministic_loss + res_loss
-                
+                loss = criterion(output, target)
                 val_loss += loss.item() * data_input.size(0)
                 num_samples_processed += data_input.size(0)
 

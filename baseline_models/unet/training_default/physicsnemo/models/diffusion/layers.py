@@ -140,6 +140,63 @@ class Linear(torch.nn.Module):
         if self.bias is not None:
             x = x.add_(bias)
         return x
+    
+#ADDED BY KATHERINE FRIELDS
+class Conv1d(torch.nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel: int,
+        bias: bool = True,
+        up: bool = False,
+        down: bool = False,
+        fused_resample: bool = False,
+        init_mode: str = "kaiming_normal",
+        init_weight: float = 1.0,
+        init_bias: float = 0.0,
+        fused_conv_bias: bool = False,
+        amp_mode: bool = False,
+    ):
+        if up and down:
+            raise ValueError("Both 'up' and 'down' cannot be true at the same time.")
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.up = up
+        self.down = down
+        self.fused_resample = fused_resample
+        self.fused_conv_bias = fused_conv_bias
+        self.amp_mode = amp_mode
+
+        init_kwargs = dict(
+            mode=init_mode,
+            fan_in=in_channels * kernel,
+            fan_out=out_channels * kernel,
+        )
+        self.weight = torch.nn.Parameter(
+            weight_init([out_channels, in_channels, kernel], **init_kwargs) * init_weight
+        )
+        self.bias = (
+            torch.nn.Parameter(weight_init([out_channels], **init_kwargs) * init_bias)
+            if bias
+            else None
+        )
+
+    def forward(self, x):
+        w = self.weight
+        b = self.bias
+        if self.up:
+            x = torch.nn.functional.conv_transpose1d(
+                x, w, bias=b, stride=2, padding=w.shape[-1] // 2
+            )
+        elif self.down:
+            x = torch.nn.functional.conv1d(
+                x, w, bias=b, stride=2, padding=w.shape[-1] // 2
+            )
+        else:
+            x = torch.nn.functional.conv1d(x, w, bias=b, padding=w.shape[-1] // 2)
+        return x
 
 
 class Conv2d(torch.nn.Module):
@@ -688,7 +745,7 @@ class Attention(torch.nn.Module):
             use_apex_gn=use_apex_gn,
             amp_mode=amp_mode,
         )
-        self.qkv = Conv2d(
+        self.qkv = Conv1d(
             in_channels=out_channels,
             out_channels=out_channels * 3,
             kernel=1,
@@ -696,7 +753,7 @@ class Attention(torch.nn.Module):
             amp_mode=amp_mode,
             **(init_attn if init_attn is not None else init),
         )
-        self.proj = Conv2d(
+        self.proj = Conv1d(
             in_channels=out_channels,
             out_channels=out_channels,
             kernel=1,
@@ -706,7 +763,7 @@ class Attention(torch.nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x1: torch.Tensor = self.qkv(self.norm(x))
+        '''x1: torch.Tensor = self.qkv(self.norm(x))
 
         # # NOTE: V1.0.1 implementation
         # q, k, v = x1.reshape(
@@ -730,6 +787,27 @@ class Attention(torch.nn.Module):
         attn = attn.transpose(-1, -2)
 
         x: torch.Tensor = self.proj(attn.reshape(*x.shape)).add_(x)
+        return x'''
+        x_norm = self.norm(x)
+        x1 = self.qkv(x_norm)  # [B, 3*C, L]
+
+        B, C3, L = x1.shape
+        C = C3 // 3
+        C_head = C // self.num_heads
+
+        q, k, v = x1.view(B, self.num_heads, 3 * C_head, L).chunk(3, dim=2)  # [B,H,C_head,L]
+
+        # scaled dot-product attention expects [B,H,L,C_head]
+        q = q.permute(0, 1, 3, 2)
+        k = k.permute(0, 1, 3, 2)
+        v = v.permute(0, 1, 3, 2)
+
+        attn = torch.nn.functional.scaled_dot_product_attention(
+            q, k, v, scale=1 / math.sqrt(C_head)
+        )
+
+        attn = attn.permute(0, 1, 3, 2).reshape(B, C, L)  # merge heads
+        x = self.proj(attn).add_(x)
         return x
 
 
@@ -862,7 +940,7 @@ class UNetBlock(torch.nn.Module):
             act=act,
             amp_mode=amp_mode,
         )
-        self.conv0 = Conv2d(
+        self.conv0 = Conv1d(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel=3,
@@ -894,7 +972,7 @@ class UNetBlock(torch.nn.Module):
                 act=act,
                 amp_mode=amp_mode,
             )
-        self.conv1 = Conv2d(
+        self.conv1 = Conv1d(
             in_channels=out_channels,
             out_channels=out_channels,
             kernel=3,
@@ -944,7 +1022,7 @@ class UNetBlock(torch.nn.Module):
         ):
             orig = x
             x = self.conv0(self.norm0(x))
-            params = self.affine(emb).unsqueeze(2).unsqueeze(3)
+            params = self.affine(emb).unsqueeze(2)
             _validate_amp(self.amp_mode)
             if not self.amp_mode:
                 if params.dtype != x.dtype:

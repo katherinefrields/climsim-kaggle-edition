@@ -188,17 +188,12 @@ def main(cfg: DictConfig) -> float:
         img_channels= data.target_profile_num * 60 + data.target_scalar_num,
         img_in_channels= data.target_profile_num * 60 + data.target_scalar_num,
         img_out_channels=data.target_profile_num * 60 + data.target_scalar_num,# predicting tendency output variables residuals
-        label_dim=0,               # not class-conditional
+        #label_dim=0,               # not class-conditional
         use_fp16=False,
-        sigma_min=0.002,
-        sigma_max=80,
-        sigma_data=0.5,
+        #sigma_min=0.002,
+        #sigma_max=80,
+        #sigma_data=0.5,
         model_type="DhariwalUNet",  # or another backbone
-        model_kwargs=dict(
-            channel_mult=[1, 2, 4, 8],
-            num_blocks=2,
-            dropout=0.1,
-        ),
     )
 
 

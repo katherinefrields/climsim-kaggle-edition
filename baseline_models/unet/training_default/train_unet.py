@@ -411,8 +411,8 @@ def main(cfg: DictConfig) -> float:
                 #     loss = criterion(output, target)
                 # loss.backward()
                 
-                
-                deterministic_loss = training_step(model, data_input, target)
+                output = model(data_input)
+                deterministic_loss = criterion(output, target)
                 
                 
                 #DIFFUSION RESIDUAL PREDICTION
@@ -433,8 +433,6 @@ def main(cfg: DictConfig) -> float:
                 x = x.to(device)
                 
                 predicted_residual = res_model(x)
-                
-                
                 res_loss = criterion(predicted_residual, residual)
                 
                 #CHANGE THIS LATER

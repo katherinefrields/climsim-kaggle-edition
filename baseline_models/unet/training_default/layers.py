@@ -25,8 +25,7 @@ import numpy as np
 import torch
 from torch.nn.functional import silu
 
-#from modulus.models.diffusion import weight_init
-from baseline_models.unet.training_default.physicsnemo.models.diffusion.utils import weight_init
+from modulus.models.diffusion import weight_init
 
 class Linear(torch.nn.Module):
     """

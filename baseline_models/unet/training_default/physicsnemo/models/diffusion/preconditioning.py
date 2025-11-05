@@ -148,7 +148,7 @@ class EDMPrecond(Module):
     ):
         #=====Cast to floats=====
         x = x.to(torch.float32)
-        sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
+        sigma = sigma.to(torch.float32).reshape(-1, 1, 1)
         
         #=====Class Conditioning=====
         class_labels = (

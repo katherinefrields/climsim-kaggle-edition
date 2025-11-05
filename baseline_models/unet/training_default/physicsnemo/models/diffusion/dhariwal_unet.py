@@ -561,6 +561,7 @@ class DhariwalUNet(Module):
         for block in self.enc.values():
             x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
             skips.append(x)
+            print(f'{x.shape} after encoder block {block}')
 
         # Decoder.
         for block in self.dec.values():

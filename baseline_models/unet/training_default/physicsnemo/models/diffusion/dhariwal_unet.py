@@ -554,6 +554,7 @@ class DhariwalUNet(Module):
             emb = emb + self.map_label(tmp)
         emb = silu(emb)
 
+        print(f'shape of x to DhariwalUNet: {x.shape}')
         # Encoder.
         skips = []
         for block in self.enc.values():

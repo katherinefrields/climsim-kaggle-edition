@@ -193,7 +193,7 @@ class Conv1d(torch.nn.Module):
     def forward(self, x):
         w = self.weight
         b = self.bias
-        
+        print(f'shape of x to Conv1d: {x.shape}')
          # ADDED CODE
         if w.device != x.device:
             w = w.to(x.device)

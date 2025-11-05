@@ -1019,7 +1019,7 @@ class UNetBlock(torch.nn.Module):
         if out_channels != in_channels or up or down:
             kernel = 1 if resample_proj or out_channels != in_channels else 0
             fused_conv_bias = fused_conv_bias if kernel != 0 else False
-            self.skip = Conv2d(
+            self.skip = Conv1d(
                 in_channels=in_channels,
                 out_channels=out_channels,
                 kernel=kernel,

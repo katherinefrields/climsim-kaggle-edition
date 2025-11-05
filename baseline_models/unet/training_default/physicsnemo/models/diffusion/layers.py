@@ -198,7 +198,7 @@ class Conv1d(torch.nn.Module):
         if w.device != x.device:
             w = w.to(x.device)
             
-        if b.device != b.device:
+        if b.device != x.device:
             b = b.to(x.device)
         w = w.to(x.dtype)
         b = b.to(x.dtype)

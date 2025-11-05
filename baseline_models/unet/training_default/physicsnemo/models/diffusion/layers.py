@@ -200,6 +200,9 @@ class Conv1d(torch.nn.Module):
             
         if b.device != b.device:
             b = b.to(x.device)
+        w = w.to(x.dtype)
+        b = b.to(x.dtype)
+        
             
         if self.up:
             x = torch.nn.functional.conv_transpose1d(

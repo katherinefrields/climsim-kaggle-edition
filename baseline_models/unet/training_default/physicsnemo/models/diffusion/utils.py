@@ -62,12 +62,12 @@ def weight_init(shape: tuple, mode: str, fan_in: int, fan_out: int):
     if mode == "xavier_normal":
         return np.sqrt(2 / (fan_in + fan_out)) * torch.randn(*shape)
     if mode == "kaiming_uniform":
-        if fan_in == 0:
-            return np.sqrt(3 / 1) * (torch.rand(*shape) * 2 - 1)
+        #if fan_in == 0:
+        #    return np.sqrt(3 / 1) * (torch.rand(*shape) * 2 - 1)
         return np.sqrt(3 / fan_in) * (torch.rand(*shape) * 2 - 1)
     if mode == "kaiming_normal":
-        if fan_in == 0:
-            return np.sqrt(1 / 1) * torch.randn(*shape)
+        #if fan_in == 0:
+        #    return np.sqrt(1 / 1) * torch.randn(*shape)
         return np.sqrt(1 / fan_in) * torch.randn(*shape)
     raise ValueError(f'Invalid init mode "{mode}"')
 

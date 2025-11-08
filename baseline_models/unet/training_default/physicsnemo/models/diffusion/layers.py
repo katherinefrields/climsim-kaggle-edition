@@ -1056,6 +1056,7 @@ class UNetBlock(torch.nn.Module):
             if self.profile_mode
             else contextlib.nullcontext()
         ):
+            print(f'running unet block down = {self.down}')
             orig = x
             x = self.conv0(self.norm0(x))
             params = self.affine(emb).unsqueeze(2)

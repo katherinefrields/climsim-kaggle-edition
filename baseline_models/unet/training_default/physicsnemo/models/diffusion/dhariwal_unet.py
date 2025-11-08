@@ -569,5 +569,6 @@ class DhariwalUNet(Module):
             if x.shape[1] != block.in_channels:
                 x = torch.cat([x, skips.pop()], dim=1)
             x = block(x, emb)
+            print(f'{x.shape} after decoder block {block}')
         x = self.out_conv(silu(self.out_norm(x)))
         return x

@@ -194,6 +194,9 @@ def main(cfg: DictConfig) -> float:
         #sigma_max=80,
         #sigma_data=0.5,
         model_type="DhariwalUNet",  # or another backbone
+        #model_channels = cfg.model_channels,#used for score unet
+        
+        
     )
 
 

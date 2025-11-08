@@ -482,6 +482,7 @@ class DhariwalUNet(Module):
             if level == 0:
                 cin = cout
                 cout = model_channels * mult
+                #each conv padding is the square root of the dimension
                 self.enc[f"{res}x{res}_conv"] = Conv1d(
                     in_channels=cin, out_channels=cout, kernel=3, **init
                 )

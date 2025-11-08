@@ -1071,6 +1071,8 @@ class UNetBlock(torch.nn.Module):
             x = self.conv1(
                 torch.nn.functional.dropout(x, p=self.dropout, training=self.training)
             )
+            
+            print(f'current shape of x before unet skip {x.shape}. Shape of skip layer {orig.shape}')
             x = x.add_(self.skip(orig) if self.skip is not None else orig)
             x = x * self.skip_scale
 

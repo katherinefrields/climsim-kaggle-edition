@@ -821,6 +821,7 @@ class Attention(torch.nn.Module):
 
         x: torch.Tensor = self.proj(attn.reshape(*x.shape)).add_(x)
         return x'''
+        print("x before attention:", x.shape)
         x_norm = self.norm(x)
         x1 = self.qkv(x_norm)  # [B, 3*C, L]
 
@@ -841,6 +842,7 @@ class Attention(torch.nn.Module):
 
         attn = attn.permute(0, 1, 3, 2).reshape(B, C, L)  # merge heads
         x = self.proj(attn).add_(x)
+        print("attn after reshape:", x.shape)
         return x
 
 

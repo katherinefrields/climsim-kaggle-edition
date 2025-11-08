@@ -443,8 +443,10 @@ def main(cfg: DictConfig) -> float:
                 sigma = torch.exp(
                     P_mean + P_std * torch.randn(batch_size, device=device)
                 )
+                
+                padded_output = torch.nn.functional.pad(x, (4,0), "constant", 0.0)
 
-                predicted_residual = res_model(x,sigma)
+                predicted_residual = res_model(padded_output,sigma)
                 res_loss = criterion(predicted_residual, residual)
                 
                 #CHANGE THIS LATER

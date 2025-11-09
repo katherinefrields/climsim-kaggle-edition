@@ -616,10 +616,10 @@ def main(cfg: DictConfig) -> float:
                     #ckpt_path_res = os.path.join(save_path_ckpt_res, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}_res.mdlus')
                     if dist.distributed:
                         model.module.save(ckpt_path)
-                        save_checkpoint(save_path_ckpt_res, model = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
+                        save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     else:
                         model.save(ckpt_path)
-                        save_checkpoint(save_path_ckpt_res, model = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
+                        save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     top_checkpoints.append((current_metric, ckpt_path))
                     top_res_checkpoints.append((current_metric, epoch+1))
                     # Sort and keep top 5 based on max/min goal at the beginning
@@ -664,7 +664,7 @@ def main(cfg: DictConfig) -> float:
                         scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1]).to(device)
         #model_res = load_checkpoint(path = top_res_checkpoints[0][1]).to(device)
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
-        save_checkpoint(save_path_res, model = model_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
+        save_checkpoint(save_path_res, models = model_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
         #save_checkpoint(path = save_file_res, model = model_res, optimizer=res_optimizer,scheduler = residual_scheduler)
         
         # convert the model to torchscript

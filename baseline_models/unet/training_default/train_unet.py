@@ -606,8 +606,8 @@ def main(cfg: DictConfig) -> float:
                     ckpt_path = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}.mdlus')
                     ckpt_path_res = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}_res.mdlus')
                     if dist.distributed:
-                        model.modules.save(ckpt_path)
-                        res_model.module.save(ckpt_path_res)
+                        model.save(ckpt_path)
+                        res_model.save(ckpt_path_res)
                     else:
                         model.save(ckpt_path)
                         res_model.save(ckpt_path_res)

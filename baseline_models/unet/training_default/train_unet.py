@@ -104,9 +104,9 @@ def main(cfg: DictConfig) -> float:
                                 shuffle=False if dist.distributed else True,
                                 sampler=train_sampler,
                                 drop_last=True,
-                                persistent_workers=True,# TEMPORARILY ADDED FOR DEBUGGING
+                                #persistent_workers=True,# TEMPORARILY ADDED FOR DEBUGGING
                                 pin_memory=torch.cuda.is_available(),
-                                num_workers=cfg.num_workers)
+                                num_workers=0)
 
     val_dataset = ValidationDataset(val_input_path = cfg.val_input_path,
                                     val_target_path = cfg.val_target_path,

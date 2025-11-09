@@ -566,7 +566,7 @@ def main(cfg: DictConfig) -> float:
                 current_val_loss_avg = val_loss / num_samples_processed
                 val_loop.set_postfix(loss=current_val_loss_avg)
                 current_step += 1
-                del data_input, target, output
+                del data_input, target, output, residual, predicted_residual
                     
             
             # if dist.rank == 0:

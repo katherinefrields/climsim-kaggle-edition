@@ -694,7 +694,7 @@ def main(cfg: DictConfig) -> float:
         #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
         #starting with unconditional
         img_channels= data.target_profile_num  + data.target_scalar_num,)
-        load_checkpoint(path = save_file_res, models = model_inf_res, optimizer=res_optimizer,
+        load_checkpoint(path = save_path_res, models = model_inf_res, optimizer=res_optimizer,
                         scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1])
         model_inf_res.to(device)
         scripted_model_res = torch.jit.script(model_inf_res)

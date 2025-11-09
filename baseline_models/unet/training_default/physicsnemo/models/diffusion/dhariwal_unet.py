@@ -442,7 +442,7 @@ class DhariwalUNet(Module):
             init=init,
             init_zero=init_zero,
             #fused_resample = True,
-            #resample_proj=True, ##LOOK INTO WHAT THIS MEANS, I CHANGED IT SO THAT THE SKIP LAYER KERNEL != 0
+            resample_proj=True, ##LOOK INTO WHAT THIS MEANS, I CHANGED IT SO THAT THE SKIP LAYER KERNEL != 0
         )
 
         # Mapping.

@@ -515,7 +515,7 @@ class Conv1d(torch.nn.Module):
         if bias is not None:
             bias = bias.to(device=x.device)
             
-        print(f'shape of x to Conv1d: {x.shape}')
+        
          # ADDED CODE
         
         
@@ -523,18 +523,22 @@ class Conv1d(torch.nn.Module):
         b = bias if bias is not None else None
         f = resample_filter if resample_filter is not None else None
         
-        if w.device != x.device:
+        if w!= None and w.device != x.device:
             w = w.to(x.device)
-        if b.device != x.device:
+        if b!= None and b.device != x.device:
             b = b.to(x.device)
         if f != None and f.device != x.device:
             f = f.to(x.device)
-            
-        w = w.to(x.dtype)
-        b = b.to(x.dtype)
+        
+        if w!= None:    
+            w = w.to(x.dtype)
+        if b!= None:
+            b = b.to(x.dtype)
         
         if f != None:
             f = f.to(x.dtype)
+        
+        print(f'shape of x to Conv1d: {x.shape}, up = {self.up}, down = {self.down}, f = None is { f is None}')
         
         w_pad = w.shape[-1] // 2 if w is not None else 0
         f_pad = (f.shape[-1] - 1) // 2 if f is not None else 0

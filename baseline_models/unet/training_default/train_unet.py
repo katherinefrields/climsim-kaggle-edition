@@ -16,6 +16,11 @@ from modulus.launch.logging import (
     RankZeroLoggingWrapper,
     initialize_mlflow,
 )
+from physicsnemo.launch.utils import (
+    load_checkpoint,
+    save_checkpoint,
+    get_checkpoint_dir,
+)
 from climsim_utils.data_utils import *
 from physicsnemo.models.diffusion.preconditioning import EDMPrecond
 from climsim_datasets import TrainingDataset, ValidationDataset
@@ -601,8 +606,8 @@ def main(cfg: DictConfig) -> float:
                     ckpt_path = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}.mdlus')
                     ckpt_path_res = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}_res.mdlus')
                     if dist.distributed:
-                        model.module.save(ckpt_path)
-                        res_model.save(ckpt_path_res)
+                        model.modules.save(ckpt_path)
+                        res_model.module.save(ckpt_path_res)
                     else:
                         model.save(ckpt_path)
                         res_model.save(ckpt_path_res)
@@ -645,7 +650,7 @@ def main(cfg: DictConfig) -> float:
         model.save(save_file)
         
         save_file_res = os.path.join(save_path, 'diff_model.mdlus')
-        res_model.save(save_file_res)
+        save_checkpoint(path = save_file_res, model = scripted_model_res,optimizer=res_optimizer,scheduler = residual_scheduler)
         
         # convert the model to torchscript
         device = torch.device("cpu")
@@ -660,6 +665,8 @@ def main(cfg: DictConfig) -> float:
         scripted_model_res = scripted_model_res.eval()
         save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
         scripted_model_res.save(save_file_torch_res)
+        
+        
         
         
         # wrap model

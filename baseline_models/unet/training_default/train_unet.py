@@ -450,7 +450,7 @@ def main(cfg: DictConfig) -> float:
                 padded_output = torch.nn.functional.pad(x, (4,0), "constant", 0.0)
 
                 predicted_residual = res_model(padded_output,sigma)
-                res_loss = criterion(predicted_residual, residual)
+                res_loss = criterion(predicted_residual, padded_output)
                 
                 #CHANGE THIS LATER
                 #CHANGE THIS LATER

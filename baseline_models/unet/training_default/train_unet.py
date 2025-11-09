@@ -419,7 +419,9 @@ def main(cfg: DictConfig) -> float:
                 
                 
                 #DIFFUSION RESIDUAL PREDICTION
-                residual = (target - output.detach())
+                with torch.no_grad():
+                    residual = target - output
+                #residual = (target - output.detach())
                 
                 #move this to diffusion model later
                 x_profile = residual[:,:data.target_profile_num*60]
@@ -493,7 +495,12 @@ def main(cfg: DictConfig) -> float:
                 train_loop.set_description(f'Epoch {epoch+1}')
                 train_loop.set_postfix(loss=deterministic_loss.item())
                 print(f'Current step is {current_step}')
+                print(torch.cuda.memory_summary())
                 current_step += 1
+                
+                #added by Katherine to prevent segfault for DEBUGGING
+                torch.cuda.synchronize()
+                torch.cuda.empty_cache()
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
             
             # model.eval()
@@ -517,7 +524,9 @@ def main(cfg: DictConfig) -> float:
                 deterministic_loss = criterion(output, target)
                 
                 #DIFFUSION RESIDUAL PREDICTION
-                residual = (target - output.detach())
+                with torch.no_grad():
+                    residual = target - output
+                #residual = (target - output.detach())
                 
                 #move this to diffusion model later
                 x_profile = residual[:,:data.target_profile_num*60]

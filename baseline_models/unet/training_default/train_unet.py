@@ -419,7 +419,7 @@ def main(cfg: DictConfig) -> float:
                 
                 
                 #DIFFUSION RESIDUAL PREDICTION
-                residual = (target - output.detatch())
+                residual = (target - output.detach())
                 
                 #move this to diffusion model later
                 x_profile = residual[:,:data.target_profile_num*60]
@@ -516,7 +516,7 @@ def main(cfg: DictConfig) -> float:
                 deterministic_loss = criterion(output, target)
                 
                 #DIFFUSION RESIDUAL PREDICTION
-                residual = (target - output)
+                residual = (target - output.detach())
                 
                 #move this to diffusion model later
                 x_profile = residual[:,:data.target_profile_num*60]
@@ -537,10 +537,11 @@ def main(cfg: DictConfig) -> float:
                 sigma = torch.exp(
                     P_mean + P_std * torch.randn(batch_size, device=device)
                 )
+                padded_output = torch.nn.functional.pad(x, (4,0), "constant", 0.0)
                 
-                predicted_residual = res_model(x, sigma)
+                predicted_residual = res_model(padded_output, sigma)
                 
-                res_loss = criterion(predicted_residual, residual)
+                res_loss = criterion(predicted_residual, padded_output)
                 
                 #CHANGE THIS LATER
                 #CHANGE THIS LATER

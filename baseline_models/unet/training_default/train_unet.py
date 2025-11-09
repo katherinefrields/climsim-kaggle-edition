@@ -736,9 +736,11 @@ def main(cfg: DictConfig) -> float:
                 scripted_model.save(save_path_torch)
                 print('save path for ckpt torchscript:', save_path_torch)
                 
-                save_path_torch = os.path.join(mdlus_directory, filename.replace('.mdlus', '.pt'))
-                scripted_model_res.save(save_path_torch)
-                print('save path for ckpt torchscript:', save_path_torch)
+                #save_path_torch = os.path.join(mdlus_directory, filename.replace('.mdlus', '.pt'))
+                #save_checkpoint(save_path, models = model_inf_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
+                
+                #scripted_model_res.save(save_path_torch)
+                #print('save path for ckpt torchscript:', save_path_torch)
                 
                 # wrap model
                 device = torch.device("cuda")

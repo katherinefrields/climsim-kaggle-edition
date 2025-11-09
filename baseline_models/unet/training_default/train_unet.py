@@ -106,7 +106,7 @@ def main(cfg: DictConfig) -> float:
                                 drop_last=True,
                                 #persistent_workers=True,# TEMPORARILY ADDED FOR DEBUGGING
                                 #pin_memory=torch.cuda.is_available(),# TEMPORARILY DISABLED FOR DEBUGGING
-                                num_workers=0)
+                                num_workers=4)
 
     val_dataset = ValidationDataset(val_input_path = cfg.val_input_path,
                                     val_target_path = cfg.val_target_path,

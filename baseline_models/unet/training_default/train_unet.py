@@ -669,7 +669,7 @@ def main(cfg: DictConfig) -> float:
         model.save(save_file)
         
         
-        load_checkpoint(path = save_path_res, model = EDMPrecond, optimizer=res_optimizer,
+        load_checkpoint(path = save_path_res, models = EDMPrecond, optimizer=res_optimizer,
                         scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1]).to(device)
         #model_res = load_checkpoint(path = top_res_checkpoints[0][1]).to(device)
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')

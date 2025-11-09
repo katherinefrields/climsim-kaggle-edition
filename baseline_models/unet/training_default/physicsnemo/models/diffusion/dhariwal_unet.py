@@ -564,6 +564,7 @@ class DhariwalUNet(Module):
             skips.append(x)
             print(f'{x.shape} after encoder block {block}')
 
+        print(f'decoder blocks are : {self.dec.values()}')
         # Decoder.
         for block in self.dec.values():
             if x.shape[1] != block.in_channels:

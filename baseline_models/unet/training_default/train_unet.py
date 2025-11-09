@@ -700,8 +700,8 @@ def main(cfg: DictConfig) -> float:
         data.save_norm(save_path, True)
         logger.info("saved input/output normalizations and model to: " + save_path)
 
-        mdlus_directory = os.path.join(save_path_ckpt, 'ckpt')
-        wrapped_directory = os.path.join(save_path_wrapped, 'wrapped')
+        mdlus_directory = os.path.join(save_path_unet, 'ckpt')
+        wrapped_directory = os.path.join(save_path_unet, 'wrapped')
         for filename in os.listdir(mdlus_directory):
             print(filename)
             if filename.endswith(".mdlus"):

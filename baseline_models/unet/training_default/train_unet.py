@@ -251,22 +251,22 @@ def main(cfg: DictConfig) -> float:
     
     # create scheduler
     if cfg.scheduler_name == 'step':
-        scheduler = optim.lr_scheduler.StepLR(deterministic_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
+        deterministic_scheduler = optim.lr_scheduler.StepLR(deterministic_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
     elif cfg.scheduler_name == 'plateau':
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(deterministic_optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
+        deterministic_scheduler = optim.lr_scheduler.ReduceLROnPlateau(deterministic_optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
     elif cfg.scheduler_name == 'cosine':
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(deterministic_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
+        deterministic_scheduler = optim.lr_scheduler.CosineAnnealingLR(deterministic_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
     else:
         raise ValueError('Scheduler not implemented')
     
 
     # create residual scheduler
     if cfg.scheduler_name == 'step':
-        scheduler = optim.lr_scheduler.StepLR(res_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
+        residual_scheduler = optim.lr_scheduler.StepLR(res_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
     elif cfg.scheduler_name == 'plateau':
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(res_optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
+        residual_scheduler = optim.lr_scheduler.ReduceLROnPlateau(res_optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
     elif cfg.scheduler_name == 'cosine':
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(res_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
+        residual_scheduler = optim.lr_scheduler.CosineAnnealingLR(res_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
     else:
         raise ValueError('Scheduler not implemented')
     
@@ -463,12 +463,12 @@ def main(cfg: DictConfig) -> float:
                 deterministic_optimizer.zero_grad()
                 deterministic_loss.backward()
                 deterministic_optimizer.step()
-                
+                deterministic_scheduler.step()
                 
                 res_optimizer.zero_grad()
                 res_loss.backward()
                 res_optimizer.step()
-                
+                residual_scheduler.step()
                 
 
                 
@@ -499,7 +499,7 @@ def main(cfg: DictConfig) -> float:
                 current_step += 1
                 
                 #added by Katherine to prevent segfault for DEBUGGING
-                torch.cuda.synchronize()
+                #torch.cuda.synchronize()
                 torch.cuda.empty_cache()
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
             

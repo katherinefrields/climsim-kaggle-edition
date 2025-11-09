@@ -578,6 +578,8 @@ class Conv1d(torch.nn.Module):
                         #x = torch.nn.functional.conv1d(x, w, padding=w_pad)
                 else:
                     x = torch.nn.functional.conv1d(x, w, padding=w_pad)
+        else:
+            x = torch.nn.functional.conv1d(x, w, padding=w_pad)
         if b is not None and not self.fused_conv_bias:
             x = x.add_(b.reshape(1, -1, 1))
         return x

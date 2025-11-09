@@ -331,14 +331,22 @@ def main(cfg: DictConfig) -> float:
     
     if dist.rank == 0:
         save_path = os.path.join(cfg.save_path, cfg.expname) #cfg.save_path + cfg.expname
-        save_path_ckpt = os.path.join(save_path, 'ckpt')
-        save_path_wrapped = os.path.join(save_path, 'wrapped')
+        save_path_unet = os.path.join(save_path, 'unet_model')
+        save_path_res = os.path.join(save_path, 'diff_model')
+        
+        save_path_ckpt = os.path.join(save_path_unet, 'ckpt')
+        save_path_wrapped = os.path.join(save_path_unet, 'wrapped')
+        
+        save_path_ckpt_res = os.path.join(save_path_res, 'ckpt')
         if not os.path.exists(save_path):
             os.makedirs(save_path)
         if not os.path.exists(save_path_ckpt):
             os.makedirs(save_path_ckpt)
         if not os.path.exists(save_path_wrapped):
             os.makedirs(save_path_wrapped)
+        if not os.path.exists(save_path_ckpt_res):
+            os.makedirs(save_path_ckpt_res)
+            
     
     if dist.world_size > 1:
         torch.distributed.barrier()
@@ -604,15 +612,16 @@ def main(cfg: DictConfig) -> float:
                 #print('debug: is_better', is_better, current_metric, top_checkpoints)
                 if len(top_checkpoints) == 0 or is_better:
                     ckpt_path = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}.mdlus')
-                    ckpt_path_res = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}_res.mdlus')
+                    
+                    #ckpt_path_res = os.path.join(save_path_ckpt_res, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}_res.mdlus')
                     if dist.distributed:
                         model.module.save(ckpt_path)
-                        res_model.save(ckpt_path_res)
+                        res_model.save_checkpoint(save_path_ckpt_res, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     else:
                         model.save(ckpt_path)
-                        res_model.save(ckpt_path_res)
+                        save_checkpoint(save_path_ckpt_res, model = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     top_checkpoints.append((current_metric, ckpt_path))
-                    top_res_checkpoints.append((current_metric, ckpt_path_res))
+                    top_res_checkpoints.append((current_metric, epoch+1))
                     # Sort and keep top 5 based on max/min goal at the beginning
                     if cfg.top_ckpt_mode == 'min':
                         top_checkpoints.sort(key=lambda x: x[0], reverse=False)
@@ -627,8 +636,9 @@ def main(cfg: DictConfig) -> float:
                         print(f"Removing worst checkpoint: {worst_ckpt[1]}")
                         if worst_ckpt[1] is not None:
                             os.remove(worst_ckpt[1])
-                        if worst_res_ckpt[1] is not None:
-                            os.remove(worst_res_ckpt[1])
+                        #if worst_res_ckpt[1] is not None:
+                        #    os.remove(worst_res_ckpt[1])
+                        #ADD THIS BACK LATER
                             
             if cfg.scheduler_name == 'plateau':
                 deterministic_scheduler.step(current_val_loss_avg)
@@ -649,9 +659,13 @@ def main(cfg: DictConfig) -> float:
         save_file = os.path.join(save_path, 'unet_model.mdlus')
         model.save(save_file)
         
-        model_res = load_checkpoint(path = top_res_checkpoints[0][1]).to(device)
-        save_file_res = os.path.join(save_path, 'diff_model.mdlus')
-        save_checkpoint(path = save_file_res, model = model_res, optimizer=res_optimizer,scheduler = residual_scheduler)
+        model_res = EDMPrecond()
+        load_checkpoint(path = save_path_res, model = model_res, optimizer=res_optimizer,
+                        scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1]).to(device)
+        #model_res = load_checkpoint(path = top_res_checkpoints[0][1]).to(device)
+        save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
+        save_checkpoint(save_path_res, model = model_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
+        #save_checkpoint(path = save_file_res, model = model_res, optimizer=res_optimizer,scheduler = residual_scheduler)
         
         # convert the model to torchscript
         device = torch.device("cpu")
@@ -661,10 +675,11 @@ def main(cfg: DictConfig) -> float:
         save_file_torch = os.path.join(save_path, 'unet_model.pt')
         scripted_model.save(save_file_torch)
         
-        model_inf_res = modulus.Module.from_checkpoint(save_file_res).to(device)
+        model_inf_res = load_checkpoint(path = save_file_res, model = model_res, optimizer=res_optimizer,
+                        scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1]).to(device)
         scripted_model_res = torch.jit.script(model_inf_res)
         scripted_model_res = scripted_model_res.eval()
-        save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
+        save_file_torch_res = os.path.join(save_file_res, 'diff_model.pt')
         scripted_model_res.save(save_file_torch_res)
         
         
@@ -685,8 +700,8 @@ def main(cfg: DictConfig) -> float:
         data.save_norm(save_path, True)
         logger.info("saved input/output normalizations and model to: " + save_path)
 
-        mdlus_directory = os.path.join(save_path, 'ckpt')
-        wrapped_directory = os.path.join(save_path, 'wrapped')
+        mdlus_directory = os.path.join(save_path_ckpt, 'ckpt')
+        wrapped_directory = os.path.join(save_path_wrapped, 'wrapped')
         for filename in os.listdir(mdlus_directory):
             print(filename)
             if filename.endswith(".mdlus"):

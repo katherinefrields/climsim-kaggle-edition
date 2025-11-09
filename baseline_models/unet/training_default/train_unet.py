@@ -317,8 +317,10 @@ def main(cfg: DictConfig) -> float:
 
     if cfg.top_ckpt_mode == 'min':
         top_checkpoints = [(float('inf'), None)] * num_top_ckpts
+        top_res_checkpoints = [(float('inf'), None)] * num_top_ckpts
     elif cfg.top_ckpt_mode == 'max':
         top_checkpoints = [(-float('inf'), None)] * num_top_ckpts
+        top_res_checkpoints = [(-float('inf'), None)] * num_top_ckpts
     else:
         raise ValueError('Unknown top_ckpt_mode')
     
@@ -597,22 +599,31 @@ def main(cfg: DictConfig) -> float:
                 #print('debug: is_better', is_better, current_metric, top_checkpoints)
                 if len(top_checkpoints) == 0 or is_better:
                     ckpt_path = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}.mdlus')
+                    ckpt_path_res = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}_res.mdlus')
                     if dist.distributed:
                         model.module.save(ckpt_path)
+                        res_model.module.save(ckpt_path_res)
                     else:
                         model.save(ckpt_path)
+                        res_model.save(ckpt_path_res)
                     top_checkpoints.append((current_metric, ckpt_path))
+                    top_res_checkpoints.append((current_metric, ckpt_path_res))
                     # Sort and keep top 5 based on max/min goal at the beginning
                     if cfg.top_ckpt_mode == 'min':
                         top_checkpoints.sort(key=lambda x: x[0], reverse=False)
+                        top_res_checkpoints.sort(key=lambda x: x[0], reverse=False)
                     elif cfg.top_ckpt_mode == 'max':
                         top_checkpoints.sort(key=lambda x: x[0], reverse=True)
+                        top_res_checkpoints.sort(key=lambda x: x[0], reverse=True)
                     # delete the worst checkpoint
                     if len(top_checkpoints) > num_top_ckpts:
                         worst_ckpt = top_checkpoints.pop()
+                        worst_res_ckpt = top_res_checkpoints.pop()
                         print(f"Removing worst checkpoint: {worst_ckpt[1]}")
                         if worst_ckpt[1] is not None:
                             os.remove(worst_ckpt[1])
+                        if worst_res_ckpt[1] is not None:
+                            os.remove(worst_res_ckpt[1])
                             
             if cfg.scheduler_name == 'plateau':
                 deterministic_scheduler.step(current_val_loss_avg)
@@ -630,15 +641,27 @@ def main(cfg: DictConfig) -> float:
         model = modulus.Module.from_checkpoint(top_checkpoints[0][1]).to(device)
 
         # Save the model
-        save_file = os.path.join(save_path, 'model.mdlus')
+        save_file = os.path.join(save_path, 'unet_model.mdlus')
         model.save(save_file)
+        
+        save_file_res = os.path.join(save_path, 'diff_model.mdlus')
+        res_model.save(save_file_res)
+        
         # convert the model to torchscript
         device = torch.device("cpu")
         model_inf = modulus.Module.from_checkpoint(save_file).to(device)
         scripted_model = torch.jit.script(model_inf)
         scripted_model = scripted_model.eval()
-        save_file_torch = os.path.join(save_path, 'model.pt')
+        save_file_torch = os.path.join(save_path, 'unet_model.pt')
         scripted_model.save(save_file_torch)
+        
+        model_inf_res = modulus.Module.from_checkpoint(save_file_res).to(device)
+        scripted_model_res = torch.jit.script(model_inf_res)
+        scripted_model_res = scripted_model_res.eval()
+        save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
+        scripted_model_res.save(save_file_torch_res)
+        
+        
         # wrap model
         device = torch.device("cuda")
         wrapped_model = WrappedModel(original_model = model_inf,
@@ -646,7 +669,7 @@ def main(cfg: DictConfig) -> float:
                                      input_div = torch.tensor(input_div, dtype=torch.float32).to(device),
                                      out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
                                      qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
-        save_file_wrapped = os.path.join(save_path, 'wrapped_model.pt')
+        save_file_wrapped = os.path.join(save_path, 'wrapped_unet_model.pt')
         scripted_model_wrapped = torch.jit.script(wrapped_model)
         scripted_model_wrapped = scripted_model_wrapped.eval()
         scripted_model_wrapped.save(save_file_wrapped)
@@ -668,6 +691,10 @@ def main(cfg: DictConfig) -> float:
                 # Save the TorchScript model
                 save_path_torch = os.path.join(mdlus_directory, filename.replace('.mdlus', '.pt'))
                 scripted_model.save(save_path_torch)
+                print('save path for ckpt torchscript:', save_path_torch)
+                
+                save_path_torch = os.path.join(mdlus_directory, filename.replace('.mdlus', '.pt'))
+                scripted_model_res.save(save_path_torch)
                 print('save path for ckpt torchscript:', save_path_torch)
                 
                 # wrap model

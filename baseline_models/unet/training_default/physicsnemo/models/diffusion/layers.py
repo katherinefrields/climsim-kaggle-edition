@@ -1183,6 +1183,8 @@ class UNetBlock(torch.nn.Module):
             act=act,
             amp_mode=amp_mode,
         )
+        self.up = up
+        self.down=down
         #downs or upsamples
         self.conv0 = Conv1d(
             in_channels=in_channels,

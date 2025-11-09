@@ -1310,7 +1310,7 @@ class UNetBlock(torch.nn.Module):
             raise AttributeError(f"Attribute '{name}' is reserved and cannot be set.")
         super().__setattr__(name, value)
 
-    @staticmethod
+    #@staticmethod
     def _migrate_attention_module(
         module,
         state_dict,

@@ -492,6 +492,7 @@ def main(cfg: DictConfig) -> float:
                 # Update the progress bar description with the current loss
                 train_loop.set_description(f'Epoch {epoch+1}')
                 train_loop.set_postfix(loss=loss.item())
+                print(f'Current step is {current_step}')
                 current_step += 1
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
             

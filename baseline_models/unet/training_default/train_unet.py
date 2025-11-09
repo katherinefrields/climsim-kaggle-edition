@@ -104,6 +104,7 @@ def main(cfg: DictConfig) -> float:
                                 shuffle=False if dist.distributed else True,
                                 sampler=train_sampler,
                                 drop_last=True,
+                                persistent_workers=True,# TEMPORARILY ADDED FOR DEBUGGING
                                 pin_memory=torch.cuda.is_available(),
                                 num_workers=cfg.num_workers)
 
@@ -364,14 +365,14 @@ def main(cfg: DictConfig) -> float:
         if dist.distributed:
             train_sampler.set_epoch(epoch)
         # idx_train_loader = epoch % len(train_input_path)
-        # if epoch >0:
+            if epoch >0:
         #     #free the memory of previously defined train_dataset and train_loader
-        #     del train_dataset.inputs
-        #     del train_dataset.targets
-        #     del train_dataset
-        #     del train_loader
-        #     torch.cuda.empty_cache()
-        #     gc.collect()
+                del train_dataset.inputs
+                del train_dataset.targets
+                del train_dataset
+                del train_loader
+                torch.cuda.empty_cache()
+                gc.collect()
         # logger.info(f"Training epoch {epoch+1}/{cfg.epochs} with train_input_path: {train_input_path[idx_train_loader]}")
         # train_dataset = climsim_dataset(train_input_path[idx_train_loader], train_target_path[idx_train_loader], \
         #                                 input_sub, input_div, out_scale, cfg.qinput_prune, cfg.output_prune, \
@@ -496,12 +497,12 @@ def main(cfg: DictConfig) -> float:
                 train_loop.set_description(f'Epoch {epoch+1}')
                 train_loop.set_postfix(loss=deterministic_loss.item())
                 print(f'Current step is {current_step}')
-                print(torch.cuda.memory_summary())
+                #print(torch.cuda.memory_summary())
                 current_step += 1
                 del data_input, target, output, residual, predicted_residual, padded_output
                 
-                torch.distributed.barrier()
-                torch.cuda.synchronize()
+                #torch.distributed.barrier()
+                #torch.cuda.synchronize()
                 #added by Katherine to prevent segfault for DEBUGGING
                 #torch.cuda.synchronize()
                 #torch.cuda.empty_cache()
@@ -610,9 +611,9 @@ def main(cfg: DictConfig) -> float:
                             os.remove(worst_ckpt[1])
                             
             if cfg.scheduler_name == 'plateau':
-                scheduler.step(current_val_loss_avg)
+                deterministic_scheduler.step(current_val_loss_avg)
             else:
-                scheduler.step()
+                deterministic_scheduler.err.step()
             
             if dist.world_size > 1:
                 torch.distributed.barrier()

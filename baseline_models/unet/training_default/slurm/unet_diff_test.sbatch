@@ -10,8 +10,8 @@
 #SBATCH --image=nvcr.io/nvidia/modulus/modulus:24.01
 #SBATCH --mail-user=frieldskatherine@uci.edu
 #SBATCH --mail-type=ALL
-##SBATCH --output=out_%j.out
-##SBATCH --error=eo_%j.err
+#SBATCH --output=out_%j.out
+#SBATCH --error=eo_%j.err
 
 cmd="python train_unet.py --config-name=config_seed_7_diff_test"
 

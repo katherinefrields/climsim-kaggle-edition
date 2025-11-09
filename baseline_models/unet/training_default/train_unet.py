@@ -689,7 +689,7 @@ def main(cfg: DictConfig) -> float:
         save_file_torch = os.path.join(save_path, 'unet_model.pt')
         scripted_model.save(save_file_torch)
         
-        model_inf_res = load_checkpoint(path = save_file_res, model = model_res, optimizer=res_optimizer,
+        model_inf_res = load_checkpoint(path = save_file_res, models = model_res, optimizer=res_optimizer,
                         scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1]).to(device)
         scripted_model_res = torch.jit.script(model_inf_res)
         scripted_model_res = scripted_model_res.eval()

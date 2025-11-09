@@ -497,7 +497,7 @@ def main(cfg: DictConfig) -> float:
                 print(f'Current step is {current_step}')
                 print(torch.cuda.memory_summary())
                 current_step += 1
-                del data_input, target, output
+                del data_input, target, output, residual, predicted_residual, padded_output
                 
                 #added by Katherine to prevent segfault for DEBUGGING
                 #torch.cuda.synchronize()

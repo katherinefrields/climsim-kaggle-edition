@@ -402,6 +402,7 @@ def main(cfg: DictConfig) -> float:
                 #     target[:,60:60+cfg.strato_lev] = 0
                 #     target[:,120:120+cfg.strato_lev] = 0
                 #     target[:,180:180+cfg.strato_lev] = 0
+                print(f'starting step {current_step} of epoch {epoch+1}')
                 data_input, target = data_input.to(device), target.to(device)
                 # optimizer.zero_grad()
                 # output = model(data_input)
@@ -499,6 +500,8 @@ def main(cfg: DictConfig) -> float:
                 current_step += 1
                 del data_input, target, output, residual, predicted_residual, padded_output
                 
+                torch.distributed.barrier()
+                torch.cuda.synchronize()
                 #added by Katherine to prevent segfault for DEBUGGING
                 #torch.cuda.synchronize()
                 #torch.cuda.empty_cache()

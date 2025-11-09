@@ -549,6 +549,10 @@ def main(cfg: DictConfig) -> float:
                 
                 #CHANGE THIS LATER
                 # Sample log-normal σ
+                #set the sigma based on parameters -- CHANGE THIS LATER
+                P_mean = -1.2
+                P_std = 1.2
+                batch_size = x.shape[0]
                 sigma = torch.exp(
                     P_mean + P_std * torch.randn(batch_size, device=device)
                 )
@@ -612,8 +616,10 @@ def main(cfg: DictConfig) -> float:
                             
             if cfg.scheduler_name == 'plateau':
                 deterministic_scheduler.step(current_val_loss_avg)
+                residual_scheduler.step(current_val_loss_avg)
             else:
                 deterministic_scheduler.err.step()
+                residual_scheduler.err.step()
             
             if dist.world_size > 1:
                 torch.distributed.barrier()

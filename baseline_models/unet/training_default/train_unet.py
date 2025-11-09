@@ -649,8 +649,9 @@ def main(cfg: DictConfig) -> float:
         save_file = os.path.join(save_path, 'unet_model.mdlus')
         model.save(save_file)
         
+        model_res = load_checkpoint(path = top_res_checkpoints[0][1], model = res_model).to(device)
         save_file_res = os.path.join(save_path, 'diff_model.mdlus')
-        save_checkpoint(path = save_file_res, model = scripted_model_res,optimizer=res_optimizer,scheduler = residual_scheduler)
+        save_checkpoint(path = save_file_res, model = model_res, optimizer=res_optimizer,scheduler = residual_scheduler)
         
         # convert the model to torchscript
         device = torch.device("cpu")

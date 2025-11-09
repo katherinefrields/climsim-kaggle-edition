@@ -441,7 +441,8 @@ class DhariwalUNet(Module):
             dropout=dropout,
             init=init,
             init_zero=init_zero,
-            resample_proj=True, ##LOOK INTO WHAT THIS MEANS, I CHANGED IT SO THAT THE SKIP LAYER KERNEL != 0
+            #fused_resample = True,
+            #resample_proj=True, ##LOOK INTO WHAT THIS MEANS, I CHANGED IT SO THAT THE SKIP LAYER KERNEL != 0
         )
 
         # Mapping.

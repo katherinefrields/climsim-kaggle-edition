@@ -193,9 +193,7 @@ def main(cfg: DictConfig) -> float:
         #sigma_min=0.002,
         #sigma_max=80,
         #sigma_data=0.5,
-        
         model_type="DhariwalUNet",  # or another backbone
-        fused_resample=True,
         #model_channels = cfg.model_channels,#used for score unet
         
         

@@ -26,7 +26,11 @@ from torch.cuda.amp import GradScaler
 from torch.optim.lr_scheduler import _LRScheduler
 
 import physicsnemo
-from physicsnemo.distributed import DistributedManager
+#from physicsnemo.distributed import DistributedManager
+from torch.nn.parallel import DistributedDataParallel
+from modulus.distributed import DistributedManager
+from torch.utils.data.distributed import DistributedSampler
+
 from physicsnemo.launch.logging import PythonLogger
 from physicsnemo.utils.capture import _StaticCapture
 from physicsnemo.utils.filesystem import LOCAL_CACHE, _download_cached

@@ -106,7 +106,7 @@ def main(cfg: DictConfig) -> float:
                                 drop_last=True,
                                 #persistent_workers=True,# TEMPORARILY ADDED FOR DEBUGGING
                                 pin_memory=torch.cuda.is_available(),
-                                num_workers=0)
+                                num_workers=4)
 
     val_dataset = ValidationDataset(val_input_path = cfg.val_input_path,
                                     val_target_path = cfg.val_target_path,
@@ -465,12 +465,12 @@ def main(cfg: DictConfig) -> float:
                 deterministic_optimizer.zero_grad()
                 deterministic_loss.backward()
                 deterministic_optimizer.step()
-                deterministic_scheduler.step()
+                #deterministic_scheduler.step()
                 
                 res_optimizer.zero_grad()
                 res_loss.backward()
                 res_optimizer.step()
-                residual_scheduler.step()
+                #residual_scheduler.step()
                 
 
                 

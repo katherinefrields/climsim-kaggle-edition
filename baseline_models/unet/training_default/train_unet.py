@@ -690,7 +690,8 @@ def main(cfg: DictConfig) -> float:
         scripted_model.save(save_file_torch)
         
         model_inf_res = load_checkpoint(path = save_file_res, models = model_res, optimizer=res_optimizer,
-                        scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1]).to(device)
+                        scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1])
+        model_inf_res.to(device)
         scripted_model_res = torch.jit.script(model_inf_res)
         scripted_model_res = scripted_model_res.eval()
         save_file_torch_res = os.path.join(save_file_res, 'diff_model.pt')

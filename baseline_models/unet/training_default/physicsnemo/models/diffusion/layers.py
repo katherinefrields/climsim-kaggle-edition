@@ -147,7 +147,7 @@ class Linear(torch.nn.Module):
             x = x.add_(bias)
         return x
     
-#ADDED BY KATHERINE FRIELDS
+'''#ADDED BY KATHERINE FRIELDS
 
 class Conv1d(torch.nn.Module):
     def __init__(
@@ -215,9 +215,9 @@ class Conv1d(torch.nn.Module):
         else:
             x = torch.nn.functional.conv1d(x, w, bias=b, padding=w.shape[-1] // 2)
         return x
-
-
-class Conv2d(torch.nn.Module):
+'''
+#Conv2d edited to 1d based on unet modificaitons 
+class Conv1d(torch.nn.Module):
     """
     A custom 2D convolutional layer implementation with support for up-sampling,
     down-sampling, and custom weight and bias initializations. The layer's weights
@@ -298,12 +298,12 @@ class Conv2d(torch.nn.Module):
         self.amp_mode = amp_mode
         init_kwargs = dict(
             mode=init_mode,
-            fan_in=in_channels * kernel * kernel,
-            fan_out=out_channels * kernel * kernel,
+            fan_in=in_channels * kernel ,
+            fan_out=out_channels * kernel,
         )
         self.weight = (
             torch.nn.Parameter(
-                weight_init([out_channels, in_channels, kernel, kernel], **init_kwargs)
+                weight_init([out_channels, in_channels, kernel], **init_kwargs)
                 * init_weight
             )
             if kernel
@@ -315,7 +315,7 @@ class Conv2d(torch.nn.Module):
             else None
         )
         f = torch.as_tensor(resample_filter, dtype=torch.float32)
-        f = f.ger(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
+        f = f.unsqueeze(0).unsqueeze(1) / f.sum()
         self.register_buffer("resample_filter", f if up or down else None)
 
     def forward(self, x):
@@ -341,63 +341,68 @@ class Conv2d(torch.nn.Module):
         f = resample_filter if resample_filter is not None else None
         w_pad = w.shape[-1] // 2 if w is not None else 0
         f_pad = (f.shape[-1] - 1) // 2 if f is not None else 0
-
-        if self.fused_resample and self.up and w is not None:
-            x = torch.nn.functional.conv_transpose2d(
-                x,
-                f.mul(4).tile([self.in_channels, 1, 1, 1]),
-                groups=self.in_channels,
-                stride=2,
-                padding=max(f_pad - w_pad, 0),
-            )
-            if self.fused_conv_bias:
-                x = torch.nn.functional.conv2d(
-                    x, w, padding=max(w_pad - f_pad, 0), bias=b
-                )
-            else:
-                x = torch.nn.functional.conv2d(x, w, padding=max(w_pad - f_pad, 0))
-        elif self.fused_resample and self.down and w is not None:
-            x = torch.nn.functional.conv2d(x, w, padding=w_pad + f_pad)
-            if self.fused_conv_bias:
-                x = torch.nn.functional.conv2d(
+        # Adjust convolution operations based on the existence of f
+        if f is not None:
+            if self.fused_resample and self.up and w is not None:
+                x = torch.nn.functional.conv_transpose1d(
                     x,
-                    f.tile([self.out_channels, 1, 1, 1]),
-                    groups=self.out_channels,
-                    stride=2,
-                    bias=b,
-                )
-            else:
-                x = torch.nn.functional.conv2d(
-                    x,
-                    f.tile([self.out_channels, 1, 1, 1]),
-                    groups=self.out_channels,
-                    stride=2,
-                )
-        else:
-            if self.up:
-                x = torch.nn.functional.conv_transpose2d(
-                    x,
-                    f.mul(4).tile([self.in_channels, 1, 1, 1]),
+                    f.repeat(self.in_channels, 1, 1) * 2,
                     groups=self.in_channels,
                     stride=2,
-                    padding=f_pad,
+                    padding=max(f_pad - w_pad, 0),
                 )
-            if self.down:
-                x = torch.nn.functional.conv2d(
-                    x,
-                    f.tile([self.in_channels, 1, 1, 1]),
-                    groups=self.in_channels,
-                    stride=2,
-                    padding=f_pad,
-                )
-            if w is not None:  # ask in corrdiff channel whether w will ever be none
                 if self.fused_conv_bias:
-                    x = torch.nn.functional.conv2d(x, w, padding=w_pad, bias=b)
+                    x = torch.nn.functional.conv1d(
+                        x, w, padding=max(w_pad - f_pad, 0), bias=b
+                    )
                 else:
-                    x = torch.nn.functional.conv2d(x, w, padding=w_pad)
+                    x = torch.nn.functional.conv1d(x, w, padding=max(w_pad - f_pad, 0))
+            elif self.fused_resample and self.down and w is not None:
+                x = torch.nn.functional.conv1d(x, w, padding=w_pad + f_pad)
+                if self.fused_conv_bias:
+                    x = torch.nn.functional.conv1d(
+                        x,
+                        f.repeat(self.out_channels, 1, 1),
+                        groups=self.out_channels,
+                        stride=2,
+                        bias=b,
+                    )
+                else:
+                    x = torch.nn.functional.conv1d(
+                        x,
+                        f.repeat(self.out_channels, 1, 1),
+                        groups=self.out_channels,
+                        stride=2,
+                    )
+            else:
+                if self.up:
+                    x = torch.nn.functional.conv_transpose1d(
+                        x,
+                        f.repeat(self.in_channels, 1, 1) * 2,
+                        groups=self.in_channels,
+                        stride=2,
+                        padding=f_pad,
+                    )
+                if self.down:
+                    x = torch.nn.functional.conv1d(
+                        x,
+                        f.repeat(self.in_channels, 1, 1),
+                        groups=self.in_channels,
+                        stride=2,
+                        padding=f_pad,
+                    )
+                if w is not None:  # ask in corrdiff channel whether w will ever be none
+                    if self.fused_conv_bias:
+                        x = torch.nn.functional.conv1d(x, w, padding=w_pad, bias=b)
+                    #maybe add this??
+                    #else:
+                        #x = torch.nn.functional.conv1d(x, w, padding=w_pad)
+                else:
+                    x = torch.nn.functional.conv1d(x, w, padding=w_pad)
         if b is not None and not self.fused_conv_bias:
-            x = x.add_(b.reshape(1, -1, 1, 1))
+            x = x.add_(b.reshape(1, -1, 1))
         return x
+
 
 
 def _compute_groupnorm_groups(
@@ -983,7 +988,7 @@ class UNetBlock(torch.nn.Module):
             up=up,
             down=down,
             #deleted from conv1d for now
-            #resample_filter=resample_filter,
+            resample_filter=resample_filter,
             fused_conv_bias=fused_conv_bias,
             amp_mode=amp_mode,
             **init,
@@ -1020,8 +1025,8 @@ class UNetBlock(torch.nn.Module):
 
         self.skip = None
         if out_channels != in_channels or up or down:
-            kernel = 3 #try not setting kernel = 0 for skip layers
-            #kernel = 1 if resample_proj or out_channels != in_channels else 0
+            #kernel = 3 #try not setting kernel = 0 for skip layers
+            kernel = 1 if resample_proj or out_channels != in_channels else 0
             fused_conv_bias = fused_conv_bias if kernel != 0 else False
             self.skip = Conv1d(
                 in_channels=in_channels,
@@ -1029,7 +1034,7 @@ class UNetBlock(torch.nn.Module):
                 kernel=kernel,
                 up=up,
                 down=down,
-                #resample_filter=resample_filter,
+                resample_filter=resample_filter,
                 fused_conv_bias=fused_conv_bias,
                 amp_mode=amp_mode,
                 **init,

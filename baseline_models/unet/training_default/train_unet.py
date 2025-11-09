@@ -203,7 +203,7 @@ def main(cfg: DictConfig) -> float:
         #model_channels = cfg.model_channels,#used for score unet
         
         
-    )
+    ).to(dist.device)
 
 
     if len(cfg.restart_path) > 0:
@@ -231,6 +231,15 @@ def main(cfg: DictConfig) -> float:
                 device_ids=[dist.local_rank],  # Set the device_id to be
                                                # the local rank of this process on
                                                # this node
+                output_device=dist.device,
+                broadcast_buffers=dist.broadcast_buffers,
+                find_unused_parameters=dist.find_unused_parameters,
+            )
+            model_res= DistributedDataParallel(
+                res_model,
+                device_ids=[dist.local_rank],  # Set the device_id to be
+                                               # the local rank of this process on
+                                               # sthis node
                 output_device=dist.device,
                 broadcast_buffers=dist.broadcast_buffers,
                 find_unused_parameters=dist.find_unused_parameters,

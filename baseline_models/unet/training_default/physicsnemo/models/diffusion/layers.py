@@ -650,7 +650,7 @@ def get_group_norm(
     min_channels_per_group: int = 4,
     eps: float = 1e-5,
     use_apex_gn: bool = False,
-    act: str | None = None,
+    act: str = None,
     amp_mode: bool = False,
 ) -> torch.nn.Module:
     """
@@ -692,7 +692,7 @@ def get_group_norm(
     if use_apex_gn and not _is_apex_available:
         raise ValueError("'apex' is not installed, set `use_apex_gn=False`")
 
-    act: str | None = act.lower() if act else act
+    act: str = act.lower() if act else act
     if use_apex_gn:
         # adjust number of groups to be consistent with GroupNorm
         num_groups: int = _compute_groupnorm_groups(
@@ -775,7 +775,7 @@ class GroupNorm(torch.nn.Module):
         eps: float = 1e-5,
         use_apex_gn: bool = False,
         fused_act: bool = False,
-        act: str | None = None,
+        act: str = None,
         amp_mode: bool = False,
     ):
         super().__init__()
@@ -1139,7 +1139,7 @@ class UNetBlock(torch.nn.Module):
         up: bool = False,
         down: bool = False,
         attention: bool = False,
-        num_heads: int | None = None,
+        num_heads: int = None,
         channels_per_head: int = 64,
         dropout: float = 0.0,
         skip_scale: float = 1.0,
@@ -1388,8 +1388,8 @@ class PositionalEmbedding(torch.nn.Module):
         endpoint: bool = False,
         amp_mode: bool = False,
         learnable: bool = False,
-        freq_embed_dim: int | None = None,
-        mlp_hidden_dim: int | None = None,
+        freq_embed_dim: int  = None,
+        mlp_hidden_dim: int  = None,
         embed_fn: Literal["cos_sin", "np_sin_cos"] = "cos_sin",
     ):
         super().__init__()

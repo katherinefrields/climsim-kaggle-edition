@@ -514,10 +514,26 @@ class Conv1d(torch.nn.Module):
             weight = weight.to(device=x.device)
         if bias is not None:
             bias = bias.to(device=x.device)
+            
+        print(f'shape of x to Conv1d: {x.shape}')
+         # ADDED CODE
+        
         
         w = weight if weight is not None else None
         b = bias if bias is not None else None
         f = resample_filter if resample_filter is not None else None
+        
+        if w.device != x.device:
+            w = w.to(x.device)
+        if b.device != x.device:
+            b = b.to(x.device)
+        if f.device != x.device:
+            f = f.to(x.device)
+            
+        w = w.to(x.dtype)
+        b = b.to(x.dtype)
+        f = f.to(x.dtype)
+        
         w_pad = w.shape[-1] // 2 if w is not None else 0
         f_pad = (f.shape[-1] - 1) // 2 if f is not None else 0
         # Adjust convolution operations based on the existence of f

@@ -455,10 +455,10 @@ def main(cfg: DictConfig) -> float:
                 #CHANGE THIS LATER
                 #CHANGE THIS LATER
                 #CHANGE THIS LATER
-                loss = deterministic_loss + res_loss
+                #loss = deterministic_loss + res_loss
                 
                 deterministic_optimizer.zero_grad()
-                loss.backward()
+                deterministic_loss.backward()
                 deterministic_optimizer.step()
                 
                 

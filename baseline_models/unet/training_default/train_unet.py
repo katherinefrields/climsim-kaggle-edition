@@ -618,8 +618,8 @@ def main(cfg: DictConfig) -> float:
                 deterministic_scheduler.step(current_val_loss_avg)
                 residual_scheduler.step(current_val_loss_avg)
             else:
-                deterministic_scheduler.err.step()
-                residual_scheduler.err.step()
+                deterministic_scheduler.step()
+                residual_scheduler.step()
             
             if dist.world_size > 1:
                 torch.distributed.barrier()

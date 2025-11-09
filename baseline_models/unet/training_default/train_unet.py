@@ -500,7 +500,7 @@ def main(cfg: DictConfig) -> float:
                 
                 #added by Katherine to prevent segfault for DEBUGGING
                 #torch.cuda.synchronize()
-                torch.cuda.empty_cache()
+                #torch.cuda.empty_cache()
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
             
             # model.eval()

@@ -527,12 +527,14 @@ class Conv1d(torch.nn.Module):
             w = w.to(x.device)
         if b.device != x.device:
             b = b.to(x.device)
-        if f.device != x.device:
+        if f != None and f.device != x.device:
             f = f.to(x.device)
             
         w = w.to(x.dtype)
         b = b.to(x.dtype)
-        f = f.to(x.dtype)
+        
+        if f != None:
+            f = f.to(x.dtype)
         
         w_pad = w.shape[-1] // 2 if w is not None else 0
         f_pad = (f.shape[-1] - 1) // 2 if f is not None else 0

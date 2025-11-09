@@ -558,7 +558,7 @@ class DhariwalUNet(Module):
         emb = silu(emb)
 
         print(f'shape of x to DhariwalUNet: {x.shape}')
-        print(f'encoder blocks are : {self.enc.values()}')
+        print(f'encoder blocks are (up,down): {[(s.up, s.down) for s in self.enc.values()]}')
         # Encoder.
         skips = []
         for block in self.enc.values():
@@ -566,7 +566,7 @@ class DhariwalUNet(Module):
             skips.append(x)
             print(f'{x.shape} after encoder block {block}')
 
-        print(f'decoder blocks are : {self.dec.values()}')
+        print(f'encoder blocks are (up,down): {[(s.up, s.down) for s in self.dec.values()]}')
         # Decoder.
         for block in self.dec.values():
             if x.shape[1] != block.in_channels:

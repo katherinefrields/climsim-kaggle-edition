@@ -308,17 +308,22 @@ standard_unet_zonal_dUdt_r2 = {seed: get_coeff(actual_target[:,:,240:300], stand
 standard_unet_zonal_dVdt_r2 = {seed: get_coeff(actual_target[:,:,300:360], standard_unet_preds_1[:,:,300:360]) }
 
 
-with open(os.path.join(standard_save_path, "zonal", "standard_unet_zonal_dTdt_r2.pkl"), "wb") as f:
+zonal_folder_path = os.path.join(standard_save_path, "zonal")
+
+# Create the folder (and any parent dirs) if it doesn't exist
+os.makedirs(zonal_folder_path, exist_ok=True)
+
+with open(os.path.join(zonal_folder_path, "standard_unet_zonal_dTdt_r2.pkl"), "wb") as f:
     pickle.dump(standard_unet_zonal_dTdt_r2, f)
-with open(os.path.join(standard_save_path, "zonal", "standard_unet_zonal_dQvdt_r2.pkl"), "wb") as f:
+with open(os.path.join(zonal_folder_path, "standard_unet_zonal_dQvdt_r2.pkl"), "wb") as f:
     pickle.dump(standard_unet_zonal_dQvdt_r2, f)
-with open(os.path.join(standard_save_path, "zonal", "standard_unet_zonal_dQldt_r2.pkl"), "wb") as f:
+with open(os.path.join(zonal_folder_path, "standard_unet_zonal_dQldt_r2.pkl"), "wb") as f:
     pickle.dump(standard_unet_zonal_dQldt_r2, f)
-with open(os.path.join(standard_save_path, "zonal", "standard_unet_zonal_dQidt_r2.pkl"), "wb") as f:
+with open(os.path.join(zonal_folder_path, "standard_unet_zonal_dQidt_r2.pkl"), "wb") as f:
     pickle.dump(standard_unet_zonal_dQidt_r2, f)
-with open(os.path.join(standard_save_path, "zonal", "standard_unet_zonal_dUdt_r2.pkl"), "wb") as f:
+with open(os.path.join(zonal_folder_path, "standard_unet_zonal_dUdt_r2.pkl"), "wb") as f:
     pickle.dump(standard_unet_zonal_dUdt_r2, f)
-with open(os.path.join(standard_save_path, "zonal", "standard_unet_zonal_dVdt_r2.pkl"), "wb") as f:
+with open(os.path.join(zonal_folder_path, "standard_unet_zonal_dVdt_r2.pkl"), "wb") as f:
     pickle.dump(standard_unet_zonal_dVdt_r2, f)
     
 del standard_unet_preds_1

@@ -286,12 +286,7 @@ def show_r2(target, preds):
     return r2_scores, r2_scores_capped
 
 print('Calculating standard r2')
-standard_unet_r2 = {seed: show_r2(actual_target, standard_unet_preds_1['unet'](seed)) for seed in seeds}
-standard_squeezeformer_r2 = {seed: show_r2(actual_target, standard_unet_preds_1['squeezeformer'](seed)) for seed in seeds}
-standard_pure_resLSTM_r2 = {seed: show_r2(actual_target, standard_unet_preds_1['pure_resLSTM'](seed)) for seed in seeds}
-standard_pao_model_r2 = {seed: show_r2(actual_target, standard_unet_preds_1['pao_model'](seed)) for seed in seeds}
-standard_convnext_r2 = {seed: show_r2(actual_target, standard_unet_preds_1['convnext'](seed)) for seed in seeds}
-standard_encdec_lstm_r2 = {seed: show_r2(actual_target, standard_unet_preds_1['encdec_lstm'](seed)) for seed in seeds}
+standard_unet_r2 = {seed: show_r2(actual_target, standard_unet_preds_1) for seed in seeds}
 
 with open(os.path.join(standard_save_path, "standard_unet_r2.pkl"), "wb") as f:
     pickle.dump(standard_unet_r2, f)
@@ -304,13 +299,13 @@ def get_coeff(target, pred):
     coeff[mask] = 1.0 * (rss[mask] == 0) 
     return coeff
 
-
-standard_unet_zonal_dTdt_r2 = {seed: get_coeff(actual_target[:,:,:60], standard_unet_preds_1['unet'](seed)[:,:,:60]) for seed in seeds}
-standard_unet_zonal_dQvdt_r2 = {seed: get_coeff(actual_target[:,:,60:120], standard_unet_preds_1['unet'](seed)[:,:,60:120]) for seed in seeds}
-standard_unet_zonal_dQldt_r2 = {seed: get_coeff(actual_target[:,:,120:180], standard_unet_preds_1['unet'](seed)[:,:,120:180]) for seed in seeds}
-standard_unet_zonal_dQidt_r2 = {seed: get_coeff(actual_target[:,:,180:240], standard_unet_preds_1['unet'](seed)[:,:,180:240]) for seed in seeds}
-standard_unet_zonal_dUdt_r2 = {seed: get_coeff(actual_target[:,:,240:300], standard_unet_preds_1['unet'](seed)[:,:,240:300]) for seed in seeds}
-standard_unet_zonal_dVdt_r2 = {seed: get_coeff(actual_target[:,:,300:360], standard_unet_preds_1['unet'](seed)[:,:,300:360]) for seed in seeds}
+seed =7
+standard_unet_zonal_dTdt_r2 = {seed: get_coeff(actual_target[:,:,:60], standard_unet_preds_1[:,:,:60])}
+standard_unet_zonal_dQvdt_r2 = {seed: get_coeff(actual_target[:,:,60:120], standard_unet_preds_1[:,:,60:120]) }
+standard_unet_zonal_dQldt_r2 = {seed: get_coeff(actual_target[:,:,120:180], standard_unet_preds_1[:,:,120:180]) }
+standard_unet_zonal_dQidt_r2 = {seed: get_coeff(actual_target[:,:,180:240], standard_unet_preds_1[:,:,180:240]) }
+standard_unet_zonal_dUdt_r2 = {seed: get_coeff(actual_target[:,:,240:300], standard_unet_preds_1[:,:,240:300]) }
+standard_unet_zonal_dVdt_r2 = {seed: get_coeff(actual_target[:,:,300:360], standard_unet_preds_1[:,:,300:360]) }
 
 
 with open(os.path.join(standard_save_path, "zonal", "standard_unet_zonal_dTdt_r2.pkl"), "wb") as f:

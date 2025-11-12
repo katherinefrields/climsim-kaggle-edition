@@ -269,7 +269,7 @@ seeds = [7]
 np.savez(os.path.join(standard_save_path, 'standard_unet_preds.npz'), 
          seed_7 = standard_unet_preds_1)
 
-del standard_unet_preds_1
+
 gc.collect()
 
 
@@ -320,3 +320,5 @@ with open(os.path.join(standard_save_path, "zonal", "standard_unet_zonal_dUdt_r2
     pickle.dump(standard_unet_zonal_dUdt_r2, f)
 with open(os.path.join(standard_save_path, "zonal", "standard_unet_zonal_dVdt_r2.pkl"), "wb") as f:
     pickle.dump(standard_unet_zonal_dVdt_r2, f)
+    
+del standard_unet_preds_1

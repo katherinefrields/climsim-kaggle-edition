@@ -71,7 +71,7 @@ input_clip_rhonly: True
 # training settings
 seed: 7
 restart_path: ''
-save_path: '/global/homes/k/kfrields/scratch/hugging/E3SM-MMF_saved_models/diffusion_models/'
+save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
 expname: 'diff_test'
 num_workers: 32
 batch_size: 1024

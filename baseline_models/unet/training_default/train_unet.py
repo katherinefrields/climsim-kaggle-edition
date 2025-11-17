@@ -721,8 +721,8 @@ def main(cfg: DictConfig) -> float:
         
         
         for name, val in vars(res_model_reload).items():
+            print("checking for string attributes")
             if isinstance(val, str):
-                print("checking for string attributes")
                 print("STRING ATTR:", name, "=", val)
         
         # convert the model to torchscript

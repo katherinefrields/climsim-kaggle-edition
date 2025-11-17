@@ -668,17 +668,18 @@ def main(cfg: DictConfig) -> float:
         save_file = os.path.join(save_path, 'unet_model.mdlus')
         model.save(save_file)
         
-        model_res = EDMPrecond(img_resolution=60,         # vertical levels
-        #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
-        #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
-        #starting with unconditional
-        img_channels= data.target_profile_num  + data.target_scalar_num,)
+        
+        #load res model from checkpoint
+        model_res = EDMPrecond(img_resolution=60, img_channels= data.target_profile_num  + data.target_scalar_num,)
         load_checkpoint(path = save_path_res, models = model_res, optimizer=res_optimizer,
                         scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1])
         model_res.to(device)
         #model_res = load_checkpoint(path = top_res_checkpoints[0][1]).to(device)
+        
+        #save res model mdulus file
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
-        save_checkpoint(save_path_res, models = model_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
+        model_res.save(save_file_res)
+        #save_checkpoint(save_path_res, models = model_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
         #save_checkpoint(path = save_file_res, model = model_res, optimizer=res_optimizer,scheduler = residual_scheduler)
         
         # convert the model to torchscript
@@ -689,7 +690,15 @@ def main(cfg: DictConfig) -> float:
         save_file_torch = os.path.join(save_path, 'unet_model.pt')
         scripted_model.save(save_file_torch)
         
-        model_inf_res =  EDMPrecond(img_resolution=60,         # vertical levels
+        
+        # convert the model to torchscript
+        model_inf_res = modulus.Module.from_checkpoint(save_file_res).to(device)
+        scripted_model_res = torch.jit.script(model_inf_res)
+        scripted_model_res = scripted_model_res.eval()
+        save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
+        scripted_model.save(save_file_torch_res)
+        
+        '''model_inf_res =  EDMPrecond(img_resolution=60,         # vertical levels
         #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
         #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
         #starting with unconditional
@@ -702,7 +711,7 @@ def main(cfg: DictConfig) -> float:
         #save_file_torch_res = os.path.join(save_file_res, 'diff_model.pt')
         #scripted_model_res.save(save_file_torch_res)
         save_checkpoint(save_path, models = model_inf_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
-        
+        '''
         
         
         # wrap model

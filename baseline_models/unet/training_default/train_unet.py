@@ -720,6 +720,10 @@ def main(cfg: DictConfig) -> float:
         scripted_model.save(save_file_torch)
         
         
+        for name, val in vars(res_model_reload).items():
+            if isinstance(val, str):
+                print("STRING ATTR:", name, "=", val)
+        
         # convert the model to torchscript
         #model_inf_res = modulus.Module.load(save_file_res).to(device)
         scripted_model_res = torch.jit.script(res_model_reload)

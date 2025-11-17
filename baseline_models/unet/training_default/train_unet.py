@@ -693,7 +693,7 @@ def main(cfg: DictConfig) -> float:
         
         ).to(dist.device)
         
-        model_res = res_model_reload.load(top_res_checkpoints[0][1])
+        
         # model_res = modulus.Module.from_checkpoint(top_res_checkpoints[0][1]).to(device)
         #model_res = EDMPrecond(img_resolution=60, img_channels= data.target_profile_num  + data.target_scalar_num,)
         #load_checkpoint(path = save_path_res, models = model_res, optimizer=res_optimizer,
@@ -702,10 +702,14 @@ def main(cfg: DictConfig) -> float:
         #model_res = load_checkpoint(path = top_res_checkpoints[0][1]).to(device)
         
         #save res model mdulus file
-        save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
-        model_res.save(save_file_res)
+        
         #save_checkpoint(save_path_res, models = model_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
         #save_checkpoint(path = save_file_res, model = model_res, optimizer=res_optimizer,scheduler = residual_scheduler)
+        from physicsnemo.models.module import load as load_module
+        model_res = res_model_reload.load_module(top_res_checkpoints[0][1])
+        save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
+        model_res.save(save_file_res)
+        
         
         # convert the model to torchscript
         device = torch.device("cpu")

@@ -706,9 +706,9 @@ def main(cfg: DictConfig) -> float:
         #save_checkpoint(save_path_res, models = model_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
         #save_checkpoint(path = save_file_res, model = model_res, optimizer=res_optimizer,scheduler = residual_scheduler)
         from physicsnemo.models.module import Module
-        model_res = Module.load(res_model_reload,top_res_checkpoints[0][1])
+        Module.load(res_model_reload,top_res_checkpoints[0][1])
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
-        model_res.save(save_file_res)
+        Module.save(res_model_reload, save_file_res)
         
         
         # convert the model to torchscript

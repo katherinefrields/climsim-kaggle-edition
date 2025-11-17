@@ -721,8 +721,8 @@ def main(cfg: DictConfig) -> float:
         
         
         # convert the model to torchscript
-        model_inf_res = modulus.Module.load(save_file_res).to(device)
-        scripted_model_res = torch.jit.script(model_inf_res)
+        #model_inf_res = modulus.Module.load(save_file_res).to(device)
+        scripted_model_res = torch.jit.script(res_model_reload)
         scripted_model_res = scripted_model_res.eval()
         save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
         modulus.Module.save(scripted_model, save_file_torch_res)

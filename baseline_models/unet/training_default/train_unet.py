@@ -724,7 +724,7 @@ def main(cfg: DictConfig) -> float:
             print("checking for string attributes")
             if isinstance(val, str):
                 print("STRING ATTR:", name, "=", val)
-                
+        '''      
         def remove_all_annotations(module):
             """
             Recursively remove type annotations from a nn.Module instance and all its submodules.
@@ -753,14 +753,16 @@ def main(cfg: DictConfig) -> float:
                             remove_all_annotations(item)
             
                         
-        remove_all_annotations(res_model_reload)
+        remove_all_annotations(res_model_reload)'''
         
         # convert the model to torchscript
         #model_inf_res = modulus.Module.load(save_file_res).to(device)
-        scripted_model_res = torch.jit.script(res_model_reload)
+        '''scripted_model_res = torch.jit.script(res_model_reload)
         scripted_model_res = scripted_model_res.eval()
         save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
-        modulus.Module.save(scripted_model, save_file_torch_res)
+        modulus.Module.save(scripted_model, save_file_torch_res)'''
+        save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
+        torch.save(res_model_reload, save_file_torch_res)
         
         '''model_inf_res =  EDMPrecond(img_resolution=60,         # vertical levels
         #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count

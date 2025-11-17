@@ -670,10 +670,11 @@ def main(cfg: DictConfig) -> float:
         
         
         #load res model from checkpoint
-        model_res = EDMPrecond(img_resolution=60, img_channels= data.target_profile_num  + data.target_scalar_num,)
-        load_checkpoint(path = save_path_res, models = model_res, optimizer=res_optimizer,
-                        scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1])
-        model_res.to(device)
+        model_res = modulus.Module.from_checkpoint(top_res_checkpoints[0][1]).to(device)
+        #model_res = EDMPrecond(img_resolution=60, img_channels= data.target_profile_num  + data.target_scalar_num,)
+        #load_checkpoint(path = save_path_res, models = model_res, optimizer=res_optimizer,
+        #                scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1])
+        #model_res.to(device)
         #model_res = load_checkpoint(path = top_res_checkpoints[0][1]).to(device)
         
         #save res model mdulus file

@@ -753,7 +753,7 @@ def main(cfg: DictConfig) -> float:
                             remove_all_annotations(item)
             
                         
-                remove_all_annotations(res_model_reload)
+        remove_all_annotations(res_model_reload)
         
         # convert the model to torchscript
         #model_inf_res = modulus.Module.load(save_file_res).to(device)

@@ -633,7 +633,7 @@ def main(cfg: DictConfig) -> float:
                         model_res.module.save(ckpt_res_path)
                         #save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     top_checkpoints.append((current_metric, ckpt_path))
-                    top_res_checkpoints.append((current_metric, epoch+1))
+                    top_res_checkpoints.append((current_metric,ckpt_res_path))
                     # Sort and keep top 5 based on max/min goal at the beginning
                     if cfg.top_ckpt_mode == 'min':
                         top_checkpoints.sort(key=lambda x: x[0], reverse=False)

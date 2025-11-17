@@ -621,14 +621,17 @@ def main(cfg: DictConfig) -> float:
                 #print('debug: is_better', is_better, current_metric, top_checkpoints)
                 if len(top_checkpoints) == 0 or is_better:
                     ckpt_path = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}.mdlus')
+                    ckpt_res_path = os.path.join(save_path_ckpt_res, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}.mdlus')
                     
                     #ckpt_path_res = os.path.join(save_path_ckpt_res, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}_res.mdlus')
                     if dist.distributed:
                         model.module.save(ckpt_path)
-                        save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
+                        model_res.module.save(ckpt_res_path)
+                        #save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     else:
                         model.save(ckpt_path)
-                        save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
+                        model_res.module.save(ckpt_res_path)
+                        #save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     top_checkpoints.append((current_metric, ckpt_path))
                     top_res_checkpoints.append((current_metric, epoch+1))
                     # Sort and keep top 5 based on max/min goal at the beginning

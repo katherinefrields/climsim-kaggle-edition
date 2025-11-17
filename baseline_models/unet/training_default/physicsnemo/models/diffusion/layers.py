@@ -1390,7 +1390,7 @@ class PositionalEmbedding(torch.nn.Module):
         learnable: bool = False,
         freq_embed_dim: int  = None,
         mlp_hidden_dim: int  = None,
-        embed_fn: Literal["cos_sin", "np_sin_cos"] = "cos_sin",
+        embed_fn: str = "cos_sin",
     ):
         super().__init__()
         self.num_channels = num_channels

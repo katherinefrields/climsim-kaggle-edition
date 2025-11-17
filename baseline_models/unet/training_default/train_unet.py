@@ -728,7 +728,7 @@ def main(cfg: DictConfig) -> float:
         def remove_all_annotations(module):
             """
             Recursively remove type annotations from a nn.Module instance and all its submodules.
-            This works for torch.jit.script.
+            Safe for modules with dynamically created attributes.
             """
             # Remove annotations from the class
             cls = module.__class__
@@ -743,21 +743,17 @@ def main(cfg: DictConfig) -> float:
             for child in module.children():
                 remove_all_annotations(child)
 
-            # For Modulus modules, also remove from any contained submodules (ModuleList / ModuleDict)
-            for attr_name in dir(module):
-                attr = getattr(module, attr_name)
-                try:
-                    if isinstance(attr, torch.nn.Module):
-                        remove_all_annotations(attr)
-                    elif isinstance(attr, (list, tuple)):
-                        for item in attr:
-                            if isinstance(item, torch.nn.Module):
-                                remove_all_annotations(item)
-                except Exception:
-                    pass  # skip anything that causes errors
-    
-                
-        remove_all_annotations(res_model_reload)
+            # Safely remove annotations from instance attributes
+            for attr_name, attr_value in vars(module).items():
+                if isinstance(attr_value, torch.nn.Module):
+                    remove_all_annotations(attr_value)
+                elif isinstance(attr_value, (list, tuple)):
+                    for item in attr_value:
+                        if isinstance(item, torch.nn.Module):
+                            remove_all_annotations(item)
+            
+                        
+                remove_all_annotations(res_model_reload)
         
         # convert the model to torchscript
         #model_inf_res = modulus.Module.load(save_file_res).to(device)

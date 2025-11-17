@@ -724,6 +724,17 @@ def main(cfg: DictConfig) -> float:
             print("checking for string attributes")
             if isinstance(val, str):
                 print("STRING ATTR:", name, "=", val)
+                
+        
+        def remove_module_annotations(module):
+            """Recursively remove annotations from nn.Module instance and its submodules."""
+            cls = module.__class__
+            if hasattr(cls, "__annotations__"):
+                cls.__annotations__ = {}
+            for child in module.children():
+                remove_module_annotations(child)
+                
+        remove_module_annotations(res_model_reload)
         
         # convert the model to torchscript
         #model_inf_res = modulus.Module.load(save_file_res).to(device)

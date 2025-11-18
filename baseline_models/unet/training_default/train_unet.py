@@ -237,7 +237,7 @@ def main(cfg: DictConfig) -> float:
                 broadcast_buffers=dist.broadcast_buffers,
                 find_unused_parameters=dist.find_unused_parameters,
             )
-            model_res= DistributedDataParallel(
+            res_model= DistributedDataParallel(
                 res_model,
                 device_ids=[dist.local_rank],  # Set the device_id to be
                                                # the local rank of this process on

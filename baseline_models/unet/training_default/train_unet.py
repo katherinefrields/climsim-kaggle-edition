@@ -542,7 +542,7 @@ def main(cfg: DictConfig) -> float:
                 with torch.no_grad():
                     residual = target - output
                 #residual = (target - output.detach())
-                
+                condition_input = output.detach()
                 
                 residual = residual.to(device)
                 
@@ -558,7 +558,7 @@ def main(cfg: DictConfig) -> float:
                     P_mean + P_std * torch.randn(batch_size, device=device)
                 )
                 
-                predicted_residual = res_model(residual,sigma)
+                predicted_residual = res_model(residual,sigma, condition = condition_input)
                 
                 res_loss = criterion(predicted_residual,residual)
             

@@ -665,27 +665,6 @@ def main(cfg: DictConfig) -> float:
         
         #load res model from checkpoint
         print(f'loading res model from checkpoint: {top_res_checkpoints[0][1]}')
-        res_model_reload = EDMPrecond(
-        img_resolution=data.seq_resolution,         # vertical levels
-        #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
-        #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
-        #starting with unconditional
-        input_profile_num = data.target_profile_num,
-        input_scalar_num = data.target_scalar_num,
-        img_channels= data.target_profile_num  + data.target_scalar_num,
-        img_in_channels= data.target_profile_num  + data.target_scalar_num,
-        img_out_channels=data.target_profile_num  + data.target_scalar_num,# predicting tendency output variables residuals
-        #label_dim=0,               # not class-conditional
-        use_fp16=False,
-        #sigma_min=0.002,
-        #sigma_max=80,
-        #sigma_data=0.5,
-        model_type="DhariwalUNet",  # or another backbone
-        #model_channels = cfg.model_channels,#used for score unet
-        
-        
-        ).to(dist.device)
-        
         
         # model_res = modulus.Module.from_checkpoint(top_res_checkpoints[0][1]).to(device)
         #model_res = EDMPrecond(img_resolution=60, img_channels= data.target_profile_num  + data.target_scalar_num,)

@@ -451,7 +451,7 @@ def main(cfg: DictConfig) -> float:
                     residual = target - output
                 #residual = (target - output.detach())
                 
-                condition_input = output.detatch()
+                condition_input = output.detach()
                
                 residual = residual.to(device)
                 

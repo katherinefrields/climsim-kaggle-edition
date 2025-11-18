@@ -603,11 +603,11 @@ def main(cfg: DictConfig) -> float:
                     #ckpt_path_res = os.path.join(save_path_ckpt_res, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}_res.mdlus')
                     if dist.distributed:
                         model.module.save(ckpt_path)
-                        model_res.module.save(ckpt_res_path)
+                        res_model.module.save(ckpt_res_path)
                         #save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     else:
                         model.save(ckpt_path)
-                        model_res.save(ckpt_res_path)
+                        res_model.save(ckpt_res_path)
                         #save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     top_checkpoints.append((current_metric, ckpt_path))
                     top_res_checkpoints.append((current_metric,ckpt_res_path))

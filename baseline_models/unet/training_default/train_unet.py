@@ -225,6 +225,8 @@ def main(cfg: DictConfig) -> float:
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to
     # check this.
+    
+    dist.find_unused_parameters = True
     if dist.distributed:
         ddps = torch.cuda.Stream()
         with torch.cuda.stream(ddps):

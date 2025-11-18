@@ -468,7 +468,7 @@ def main(cfg: DictConfig) -> float:
                 P_std = 1.2
 
                 # Batch size
-                batch_size = x.shape[0]
+                batch_size = residual.shape[0]
 
                 # Sample log-normal σ
                 sigma = torch.exp(

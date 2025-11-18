@@ -538,7 +538,7 @@ class Conv1d(torch.nn.Module):
         if f != None:
             f = f.to(x.dtype)
         
-        print(f'shape of x to Conv1d: {x.shape}, up = {self.up}, down = {self.down}, f = None is { f is None}')
+        #print(f'shape of x to Conv1d: {x.shape}, up = {self.up}, down = {self.down}, f = None is { f is None}')
         
         w_pad = w.shape[-1] // 2 if w is not None else 0
         f_pad = (f.shape[-1] - 1) // 2 if f is not None else 0

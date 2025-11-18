@@ -466,7 +466,7 @@ def main(cfg: DictConfig) -> float:
                     P_mean + P_std * torch.randn(batch_size, device=device)
                 )
                 
-                predicted_residual = res_model(residual,sigma)
+                predicted_residual = res_model(residual,sigma, condition = output)
                 
                 res_loss = criterion(predicted_residual,residual)
                 

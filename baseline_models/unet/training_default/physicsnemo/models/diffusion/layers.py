@@ -837,16 +837,16 @@ class GroupNorm(torch.nn.Module):
         else:
             # Use custom GroupNorm implementation that supports channels last
             # memory layout for inference
-            x = rearrange(x, "b (g c) h w -> b g c h w", g=self.num_groups)
+            x = rearrange(x, "b (g c) h -> b g c h", g=self.num_groups)
 
-            mean = x.mean(dim=[2, 3, 4], keepdim=True)
-            var = x.var(dim=[2, 3, 4], keepdim=True)
+            mean = x.mean(dim=[2, 3], keepdim=True)
+            var = x.var(dim=[2, 3], keepdim=True)
 
             x = (x - mean) * (var + self.eps).rsqrt()
-            x = rearrange(x, "b g c h w -> b (g c) h w")
+            x = rearrange(x, "b g c h -> b (g c) h")
 
-            weight = rearrange(weight, "c -> 1 c 1 1")
-            bias = rearrange(bias, "c -> 1 c 1 1")
+            weight = rearrange(weight, "c -> 1 c 1")
+            bias = rearrange(bias, "c -> 1 c 1")
             x = x * weight + bias
 
         if self.act_fn is not None:

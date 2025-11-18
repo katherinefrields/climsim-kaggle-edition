@@ -557,33 +557,25 @@ def main(cfg: DictConfig) -> float:
                     residual = target - output
                 #residual = (target - output.detach())
                 
-                #move this to diffusion model later
-                x_profile = residual[:,:data.target_profile_num*60]
-                x_scalar = residual[:,data.target_profile_num*60:]
-
-                # reshape x_profile to (batch, input_profile_num, levels)
-                x_profile = x_profile.reshape(-1, data.target_profile_num, 60)
-                # broadcast x_scalar to (batch, input_scalar_num, levels)
-                x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, 60)
-
-                #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-                x = torch.cat((x_profile, x_scalar), dim=1)
                 
-                x = x.to(device)
+                residual = residual.to(device)
                 
-                #CHANGE THIS LATER
-                # Sample log-normal σ
                 #set the sigma based on parameters -- CHANGE THIS LATER
                 P_mean = -1.2
                 P_std = 1.2
-                batch_size = x.shape[0]
+
+                # Batch size
+                batch_size = residual.shape[0]
+
+                # Sample log-normal σ
                 sigma = torch.exp(
                     P_mean + P_std * torch.randn(batch_size, device=device)
                 )
                 
-                predicted_residual = res_model(x, sigma)
+                predicted_residual = res_model(residual,sigma)
                 
-                res_loss = criterion(predicted_residual, x)
+                res_loss = criterion(predicted_residual,residual)
+            
                 
                 #CHANGE THIS LATER
                 #CHANGE THIS LATER

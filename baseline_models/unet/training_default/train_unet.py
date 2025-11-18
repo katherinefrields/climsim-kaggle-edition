@@ -187,7 +187,7 @@ def main(cfg: DictConfig) -> float:
 
 
     res_model = EDMPrecond(
-        img_resolution=64,         # vertical levels
+        img_resolution=data.seq_resolution,         # vertical levels
         #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
         #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
         #starting with unconditional
@@ -666,10 +666,12 @@ def main(cfg: DictConfig) -> float:
         #load res model from checkpoint
         print(f'loading res model from checkpoint: {top_res_checkpoints[0][1]}')
         res_model_reload = EDMPrecond(
-        img_resolution=60,         # vertical levels
+        img_resolution=data.seq_resolution,         # vertical levels
         #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
         #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
         #starting with unconditional
+        input_profile_num = data.target_profile_num,
+        input_scalar_num = data.target_scalar_num,
         img_channels= data.target_profile_num  + data.target_scalar_num,
         img_in_channels= data.target_profile_num  + data.target_scalar_num,
         img_out_channels=data.target_profile_num  + data.target_scalar_num,# predicting tendency output variables residuals
@@ -697,7 +699,8 @@ def main(cfg: DictConfig) -> float:
         #save_checkpoint(save_path_res, models = model_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
         #save_checkpoint(path = save_file_res, model = model_res, optimizer=res_optimizer,scheduler = residual_scheduler)
         from physicsnemo.models.module import Module
-        Module.load(res_model_reload,top_res_checkpoints[0][1])
+        res_model_reload = Module.from_checkpoint(top_res_checkpoints[0][1])
+        #Module.load(res_model_reload,top_res_checkpoints[0][1])
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
         Module.save(res_model_reload, save_file_res)
         

@@ -451,18 +451,7 @@ def main(cfg: DictConfig) -> float:
                     residual = target - output
                 #residual = (target - output.detach())
                 
-                '''#move this to diffusion model later
-                x_profile = residual[:,:data.target_profile_num*60]
-                x_scalar = residual[:,data.target_profile_num*60:]
-
-                # reshape x_profile to (batch, input_profile_num, levels)
-                x_profile = x_profile.reshape(-1, data.target_profile_num, 60)
-                # broadcast x_scalar to (batch, input_scalar_num, levels)
-                x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, 60)
-
-                #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-                x = torch.cat((x_profile, x_scalar), dim=1)
-                '''
+               
                 residual = residual.to(device)
                 
                 #set the sigma based on parameters -- CHANGE THIS LATER
@@ -525,11 +514,7 @@ def main(cfg: DictConfig) -> float:
                 current_step += 1
                 del data_input, target, output, residual, predicted_residual
                 
-                #torch.distributed.barrier()
-                #torch.cuda.synchronize()
-                #added by Katherine to prevent segfault for DEBUGGING
-                #torch.cuda.synchronize()
-                #torch.cuda.empty_cache()
+                
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
             
             # model.eval()
@@ -666,20 +651,9 @@ def main(cfg: DictConfig) -> float:
         #load res model from checkpoint
         print(f'loading res model from checkpoint: {top_res_checkpoints[0][1]}')
         
-        # model_res = modulus.Module.from_checkpoint(top_res_checkpoints[0][1]).to(device)
-        #model_res = EDMPrecond(img_resolution=60, img_channels= data.target_profile_num  + data.target_scalar_num,)
-        #load_checkpoint(path = save_path_res, models = model_res, optimizer=res_optimizer,
-        #                scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1])
-        #model_res.to(device)
-        #model_res = load_checkpoint(path = top_res_checkpoints[0][1]).to(device)
-        
-        #save res model mdulus file
-        
-        #save_checkpoint(save_path_res, models = model_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
-        #save_checkpoint(path = save_file_res, model = model_res, optimizer=res_optimizer,scheduler = residual_scheduler)
         from physicsnemo.models.module import Module
         res_model_reload = Module.from_checkpoint(top_res_checkpoints[0][1])
-        #Module.load(res_model_reload,top_res_checkpoints[0][1])
+        
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
         Module.save(res_model_reload, save_file_res)
         
@@ -693,65 +667,10 @@ def main(cfg: DictConfig) -> float:
         scripted_model.save(save_file_torch)
         
         
-        for name, val in vars(res_model_reload).items():
-            print("checking for string attributes")
-            if isinstance(val, str):
-                print("STRING ATTR:", name, "=", val)
-        '''      
-        def remove_all_annotations(module):
-            """
-            Recursively remove type annotations from a nn.Module instance and all its submodules.
-            Safe for modules with dynamically created attributes.
-            """
-            # Remove annotations from the class
-            cls = module.__class__
-            if hasattr(cls, "__annotations__"):
-                cls.__annotations__ = {}
-
-            # Remove annotations from the instance itself
-            if hasattr(module, "__annotations__"):
-                module.__annotations__ = {}
-
-            # Recursively apply to all children
-            for child in module.children():
-                remove_all_annotations(child)
-
-            # Safely remove annotations from instance attributes
-            for attr_name, attr_value in vars(module).items():
-                if isinstance(attr_value, torch.nn.Module):
-                    remove_all_annotations(attr_value)
-                elif isinstance(attr_value, (list, tuple)):
-                    for item in attr_value:
-                        if isinstance(item, torch.nn.Module):
-                            remove_all_annotations(item)
-            
-                        
-        remove_all_annotations(res_model_reload)'''
-        
-        # convert the model to torchscript
-        #model_inf_res = modulus.Module.load(save_file_res).to(device)
-        '''scripted_model_res = torch.jit.script(res_model_reload)
-        scripted_model_res = scripted_model_res.eval()
-        save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
-        modulus.Module.save(scripted_model, save_file_torch_res)'''
         save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
         torch.save(res_model_reload, save_file_torch_res)
         
-        '''model_inf_res =  EDMPrecond(img_resolution=60,         # vertical levels
-        #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
-        #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
-        #starting with unconditional
-        img_channels= data.target_profile_num  + data.target_scalar_num,)
-        load_checkpoint(path = save_path_res, models = model_inf_res, optimizer=res_optimizer,
-                        scheduler = residual_scheduler, epoch = top_res_checkpoints[0][1])
-        model_inf_res.to(device)
-        #scripted_model_res = torch.jit.script(model_inf_res)
-        #scripted_model_res = scripted_model_res.eval()
-        #save_file_torch_res = os.path.join(save_file_res, 'diff_model.pt')
-        #scripted_model_res.save(save_file_torch_res)
-        save_checkpoint(save_path, models = model_inf_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
-        '''
-        
+    
         
         # wrap model
         device = torch.device("cuda")

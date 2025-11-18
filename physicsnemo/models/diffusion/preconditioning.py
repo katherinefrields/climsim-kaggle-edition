@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023 - 2025 NVIDIA CORPORATION & AFFILIATES.
+#SPDX-FileCopyrightText: Copyright (c) 2023 - 2025 NVIDIA CORPORATION & AFFILIATES.
 # SPDX-FileCopyrightText: All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -131,12 +131,11 @@ class EDMPrecond(Module):
         self.sigma_max = sigma_max
         self.sigma_data = sigma_data
 
-        self.input_profile_num = input_profile_num, # number of input profile variables
-        self.input_scalar_num = input_scalar_num, # number of input scalar variables
-        self.vertical_level_num = vertical_level_num,
-        
-        padding = img_resolution - vertical_level_num
-        self.input_padding = (padding,0)
+        self.input_profile_num = input_profile_num # number of input profile variables
+        self.input_scalar_num = input_scalar_num # number of input scalar variables
+        self.vertical_level_num = vertical_level_num
+
+        self.input_padding = (img_resolution - vertical_level_num,0)
         
         model_class = getattr(network_module, model_type)
         self.model = model_class(
@@ -168,10 +167,10 @@ class EDMPrecond(Module):
         x_scalar = x[:,self.input_profile_num*self.vertical_level_num:]
         
         # reshape x_profile to (batch, input_profile_num, levels)
-        x_profile = x_profile.reshape(-1, self.input_profile_num, *self.vertical_level_num)
+        x_profile = x_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
         
         # broadcast x_scalar to (batch, input_scalar_num, levels)
-        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, *self.vertical_level_num)
+        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
         
         #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
         x = torch.cat((x_profile, x_scalar), dim=1)
@@ -221,15 +220,20 @@ class EDMPrecond(Module):
             )
         D_x = c_skip * x + c_out * F_x.to(torch.float32)
         
-        y_profile = D_x[:,:self.input_profile_num,self.input_padding[0]:-self.input_padding[1]]
-        y_scalar = D_x[:,self.input_profile_num:,self.input_padding[0]:-self.input_padding[1]]
+        print(f'D_x shape is {D_x.shape}')
+
+        y_profile = D_x[:,:self.input_profile_num,self.input_padding[0]:]
+        y_scalar = D_x[:,self.input_profile_num:,self.input_padding[0]:]
         
+        print(f'y_profile shape is {y_profile.shape}')
+        print(f'y_scalar shape is {y_scalar.shape}')
+
         y_scalar = y_scalar.mean(dim=2)
         y_profile = y_profile.reshape(-1, self.input_profile_num*self.vertical_level_num)
-        
+        print(f'before concat y_profile shape is {y_profile.shape} and y_scalar shape is {y_scalar.shape}')
         y = torch.cat((y_profile, y_scalar), dim=1)
         
-        return D_x
+        return y
 
     @staticmethod
     def round_sigma(sigma: Union[float, List, torch.Tensor]):

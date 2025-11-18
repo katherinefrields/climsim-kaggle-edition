@@ -191,6 +191,8 @@ def main(cfg: DictConfig) -> float:
         #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
         #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
         #starting with unconditional
+        input_profile_num = data.target_profile_num,
+        input_scalar_num = data.target_scalar_num,
         img_channels= data.target_profile_num  + data.target_scalar_num,
         img_in_channels= data.target_profile_num  + data.target_scalar_num,
         img_out_channels=data.target_profile_num  + data.target_scalar_num,# predicting tendency output variables residuals
@@ -477,7 +479,7 @@ def main(cfg: DictConfig) -> float:
                 
                 predicted_residual = res_model(residual,sigma)
                 
-                res_loss = criterion(predicted_residual, padded_output)
+                res_loss = criterion(predicted_residual,residual)
                 
                 #CHANGE THIS LATER
                 #CHANGE THIS LATER
@@ -521,7 +523,7 @@ def main(cfg: DictConfig) -> float:
                 print(f'Current step is {current_step}')
                 #print(torch.cuda.memory_summary())
                 current_step += 1
-                del data_input, target, output, residual, predicted_residual, padded_output
+                del data_input, target, output, residual, predicted_residual
                 
                 #torch.distributed.barrier()
                 #torch.cuda.synchronize()
@@ -595,7 +597,7 @@ def main(cfg: DictConfig) -> float:
                 current_val_loss_avg = val_loss / num_samples_processed
                 val_loop.set_postfix(loss=current_val_loss_avg)
                 current_step += 1
-                del data_input, target, output, residual, predicted_residual, padded_output
+                del data_input, target, output, residual, predicted_residual
                     
             
             # if dist.rank == 0:

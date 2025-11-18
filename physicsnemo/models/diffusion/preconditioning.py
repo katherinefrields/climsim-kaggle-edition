@@ -193,7 +193,7 @@ class EDMPrecond(Module):
         #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
         condition_cat = torch.cat((condition_profile, condition_scalar), dim=1)
         
-        condition_cat = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
+        condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
         
                 
         #=====Class Conditioning=====

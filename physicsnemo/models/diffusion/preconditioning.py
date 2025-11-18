@@ -103,7 +103,7 @@ class EDMPrecond(Module):
         img_channels,
         input_profile_num: int = 9, # number of input profile variables
         input_scalar_num: int = 17, # number of input scalar variables
-        vertical_level_num = 60,
+        vertical_level_num:int = 60,
         label_dim=0,
         use_fp16=False,
         sigma_min=0.0,
@@ -134,7 +134,9 @@ class EDMPrecond(Module):
         self.input_profile_num = input_profile_num, # number of input profile variables
         self.input_scalar_num = input_scalar_num, # number of input scalar variables
         self.vertical_level_num = vertical_level_num,
-        self.input_padding = (self.img_resolution-self.vertical_level_num,0)
+        
+        padding = img_resolution - vertical_level_num
+        self.input_padding = (padding,0)
         
         model_class = getattr(network_module, model_type)
         self.model = model_class(

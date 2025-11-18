@@ -557,21 +557,21 @@ class DhariwalUNet(Module):
             emb = emb + self.map_label(tmp)
         emb = silu(emb)
 
-        print(f'shape of x to DhariwalUNet: {x.shape}')
-        print(f'encoder blocks are (up,down): {[(s.up, s.down) for s in self.enc.values()]}')
+        #print(f'shape of x to DhariwalUNet: {x.shape}')
+        #print(f'encoder blocks are (up,down): {[(s.up, s.down) for s in self.enc.values()]}')
         # Encoder.
         skips = []
         for block in self.enc.values():
             x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
             skips.append(x)
-            print(f'{x.shape} after encoder block {block}')
+            #print(f'{x.shape} after encoder block {block}')
 
-        print(f'decoder blocks are (up,down): {[(s.up, s.down) for s in self.dec.values()]}')
+        #print(f'decoder blocks are (up,down): {[(s.up, s.down) for s in self.dec.values()]}')
         # Decoder.
         for block in self.dec.values():
             if x.shape[1] != block.in_channels:
                 x = torch.cat([x, skips.pop()], dim=1)
             x = block(x, emb)
-            print(f'{x.shape} after decoder block {block}')
+            #print(f'{x.shape} after decoder block {block}')
         x = self.out_conv(silu(self.out_norm(x)))
         return x

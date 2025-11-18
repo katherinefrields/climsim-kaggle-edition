@@ -187,7 +187,7 @@ def main(cfg: DictConfig) -> float:
 
 
     res_model = EDMPrecond(
-        img_resolution=60,         # vertical levels
+        img_resolution=64,         # vertical levels
         #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
         #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
         #starting with unconditional
@@ -449,7 +449,7 @@ def main(cfg: DictConfig) -> float:
                     residual = target - output
                 #residual = (target - output.detach())
                 
-                #move this to diffusion model later
+                '''#move this to diffusion model later
                 x_profile = residual[:,:data.target_profile_num*60]
                 x_scalar = residual[:,data.target_profile_num*60:]
 
@@ -460,8 +460,8 @@ def main(cfg: DictConfig) -> float:
 
                 #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
                 x = torch.cat((x_profile, x_scalar), dim=1)
-                
-                x = x.to(device)
+                '''
+                residual = residual.to(device)
                 
                 #set the sigma based on parameters -- CHANGE THIS LATER
                 P_mean = -1.2
@@ -475,9 +475,7 @@ def main(cfg: DictConfig) -> float:
                     P_mean + P_std * torch.randn(batch_size, device=device)
                 )
                 
-                padded_output = torch.nn.functional.pad(x, (4,0), "constant", 0.0)
-
-                predicted_residual = res_model(padded_output,sigma)
+                predicted_residual = res_model(residual,sigma)
                 
                 res_loss = criterion(predicted_residual, padded_output)
                 
@@ -580,11 +578,10 @@ def main(cfg: DictConfig) -> float:
                 sigma = torch.exp(
                     P_mean + P_std * torch.randn(batch_size, device=device)
                 )
-                padded_output = torch.nn.functional.pad(x, (4,0), "constant", 0.0)
                 
-                predicted_residual = res_model(padded_output, sigma)
+                predicted_residual = res_model(x, sigma)
                 
-                res_loss = criterion(predicted_residual, padded_output)
+                res_loss = criterion(predicted_residual, x)
                 
                 #CHANGE THIS LATER
                 #CHANGE THIS LATER

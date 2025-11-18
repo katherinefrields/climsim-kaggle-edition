@@ -101,6 +101,9 @@ class EDMPrecond(Module):
         self,
         img_resolution,
         img_channels,
+        input_profile_num: int = 9, # number of input profile variables
+        input_scalar_num: int = 17, # number of input scalar variables
+        vertical_level_num = 60,
         label_dim=0,
         use_fp16=False,
         sigma_min=0.0,
@@ -128,6 +131,11 @@ class EDMPrecond(Module):
         self.sigma_max = sigma_max
         self.sigma_data = sigma_data
 
+        self.input_profile_num = input_profile_num, # number of input profile variables
+        self.input_scalar_num = input_scalar_num, # number of input scalar variables
+        self.vertical_level_num = vertical_level_num,
+        self.input_padding = (self.img_resolution-self.vertical_level_num,0)
+        
         model_class = getattr(network_module, model_type)
         self.model = model_class(
             img_resolution=img_resolution,
@@ -150,6 +158,25 @@ class EDMPrecond(Module):
         x = x.to(torch.float32)
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1)
         
+        #=====Reshape Input=====
+        #levels are without padding
+        #currently x(batch, target_profile_num*levels+target_scalar_num)
+        
+        x_profile = x[:,:self.input_profile_num*self.vertical_level_num]
+        x_scalar = x[:,self.input_profile_num*self.vertical_level_num:]
+        
+        # reshape x_profile to (batch, input_profile_num, levels)
+        x_profile = x_profile.reshape(-1, self.input_profile_num, *self.vertical_level_num)
+        
+        # broadcast x_scalar to (batch, input_scalar_num, levels)
+        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, *self.vertical_level_num)
+        
+        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
+        x = torch.cat((x_profile, x_scalar), dim=1)
+        
+        x = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
+        
+                
         #=====Class Conditioning=====
         class_labels = (
             None
@@ -191,6 +218,15 @@ class EDMPrecond(Module):
                 f"Expected the dtype to be {dtype}, but got {F_x.dtype} instead."
             )
         D_x = c_skip * x + c_out * F_x.to(torch.float32)
+        
+        y_profile = D_x[:,:self.input_profile_num,self.input_padding[0]:-self.input_padding[1]]
+        y_scalar = D_x[:,self.input_profile_num:,self.input_padding[0]:-self.input_padding[1]]
+        
+        y_scalar = y_scalar.mean(dim=2)
+        y_profile = y_profile.reshape(-1, self.input_profile_num*self.vertical_level_num)
+        
+        y = torch.cat((y_profile, y_scalar), dim=1)
+        
         return D_x
 
     @staticmethod

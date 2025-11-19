@@ -226,7 +226,7 @@ def main(cfg: DictConfig) -> float:
     # The `distributed` property of DistributedManager can be used to
     # check this.
     
-    dist.find_unused_parameters = True
+    
     if dist.distributed:
         ddps = torch.cuda.Stream()
         with torch.cuda.stream(ddps):
@@ -245,8 +245,11 @@ def main(cfg: DictConfig) -> float:
                                                # the local rank of this process on
                                                # sthis node
                 output_device=dist.device,
+                bucket_cap_mb=35,
+                gradient_as_bucket_view=True,
                 broadcast_buffers=dist.broadcast_buffers,
-                find_unused_parameters=dist.find_unused_parameters,
+                find_unused_parameters=True,
+                static_graph=True,
             )
         torch.cuda.current_stream().wait_stream(ddps)
 

@@ -32,6 +32,8 @@ from modulus.distributed import DistributedManager
 from torch.utils.data.distributed import DistributedSampler
 import os, gc
 import random
+from conflictfree.grad_operator import ConFIG_update
+from conflictfree.utils import get_gradient_vector,apply_gradient_vector
 
 @hydra.main(version_base="1.2", config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> float:
@@ -253,25 +255,44 @@ def main(cfg: DictConfig) -> float:
             )
         torch.cuda.current_stream().wait_stream(ddps)
 
-    # create deterministic optimizer
+    #joint optimizer
     if cfg.optimizer == 'Adam':
+        joint_optimizer = optim.Adam(model.parameters() + res_model.parameters(), lr=cfg.learning_rate)
+    elif cfg.optimizer == 'AdamW':
+        joint_optimizer = optim.AdamW(model.parameters() + res_model.parameters(), lr=cfg.learning_rate)
+    else:
+        raise ValueError('Optimizer not implemented')
+    
+    
+    # create deterministic optimizer
+    '''if cfg.optimizer == 'Adam':
         deterministic_optimizer = optim.Adam(model.parameters(), lr=cfg.learning_rate)
     elif cfg.optimizer == 'AdamW':
         deterministic_optimizer = optim.AdamW(model.parameters(), lr=cfg.learning_rate)
     else:
-        raise ValueError('Optimizer not implemented')
+        raise ValueError('Optimizer not implemented')'''
     
-    # create resodia; optimizer
+    '''# create resodia; optimizer
     if cfg.optimizer == 'Adam':
         res_optimizer = optim.Adam(res_model.parameters(), lr=cfg.learning_rate)
     elif cfg.optimizer == 'AdamW':
         res_optimizer = optim.AdamW(res_model.parameters(), lr=cfg.learning_rate)
     else:
-        raise ValueError('Optimizer not implemented')
+        raise ValueError('Optimizer not implemented')'''
     
     
     
     # create scheduler
+    if cfg.scheduler_name == 'step':
+        joint_scheduler = optim.lr_scheduler.StepLR(joint_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
+    elif cfg.scheduler_name == 'plateau':
+        joint_scheduler = optim.lr_scheduler.ReduceLROnPlateau(joint_optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
+    elif cfg.scheduler_name == 'cosine':
+        joint_scheduler = optim.lr_scheduler.CosineAnnealingLR(joint_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
+    else:
+        raise ValueError('Scheduler not implemented')
+    
+    '''# create scheduler
     if cfg.scheduler_name == 'step':
         deterministic_scheduler = optim.lr_scheduler.StepLR(deterministic_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
     elif cfg.scheduler_name == 'plateau':
@@ -279,10 +300,10 @@ def main(cfg: DictConfig) -> float:
     elif cfg.scheduler_name == 'cosine':
         deterministic_scheduler = optim.lr_scheduler.CosineAnnealingLR(deterministic_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
     else:
-        raise ValueError('Scheduler not implemented')
+        raise ValueError('Scheduler not implemented')'''
     
 
-    # create residual scheduler
+    '''# create residual scheduler
     if cfg.scheduler_name == 'step':
         residual_scheduler = optim.lr_scheduler.StepLR(res_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
     elif cfg.scheduler_name == 'plateau':
@@ -290,7 +311,7 @@ def main(cfg: DictConfig) -> float:
     elif cfg.scheduler_name == 'cosine':
         residual_scheduler = optim.lr_scheduler.CosineAnnealingLR(res_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
     else:
-        raise ValueError('Scheduler not implemented')
+        raise ValueError('Scheduler not implemented')'''
     
     
     # create loss function
@@ -379,7 +400,12 @@ def main(cfg: DictConfig) -> float:
 
     @StaticCaptureTraining(
         model=model,
-        optim=deterministic_optimizer,
+        optim=joint_optimizer,
+        # cuda_graph_warmup=11,
+    )
+    @StaticCaptureTraining(
+        model=res_model,
+        optim=joint_optimizer,
         # cuda_graph_warmup=11,
     )
     def training_step(model, data_input, target):
@@ -481,14 +507,24 @@ def main(cfg: DictConfig) -> float:
                 #CHANGE THIS LATER
                 #loss = deterministic_loss + res_loss
                 
-                deterministic_optimizer.zero_grad()
+                joint_optimizer.zero_grad()
+                
                 deterministic_loss.backward()
-                deterministic_optimizer.step()
+                deterministic_grad = get_gradient_vector(model)
+                
+                res_loss.backward()
+                res_grad = get_gradient_vector(res_model)
+                
+                g_config=ConFIG_update([deterministic_grad, res_grad])
+                apply_gradient_vector(model,g_config)
+                apply_gradient_vector(res_model,g_config)
+                
+                joint_optimizer.step()
                 #deterministic_scheduler.step()
                 
-                res_optimizer.zero_grad()
-                res_loss.backward()
-                res_optimizer.step()
+                #res_optimizer.zero_grad()
+                #res_loss.backward()
+                #res_optimizer.step()
                 #residual_scheduler.step()
                 
 
@@ -511,14 +547,14 @@ def main(cfg: DictConfig) -> float:
                 # scheduler.step()
                 #launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy()})
                 #if dist.rank == 0:
-                launchlog.log_minibatch({"loss_train": deterministic_loss.detach().cpu().numpy(), "lr": deterministic_optimizer.param_groups[0]["lr"]})
+                launchlog.log_minibatch({"loss_train": deterministic_loss.detach().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"]})
                 # Update the progress bar description with the current loss
                 train_loop.set_description(f'Epoch {epoch+1}')
                 train_loop.set_postfix(loss=deterministic_loss.item())
                 print(f'Current step is {current_step}')
                 #print(torch.cuda.memory_summary())
                 current_step += 1
-                del data_input, target, output, residual, predicted_residual
+                del data_input, target, output, residual, predicted_residual, deterministic_grad, res_grad, g_config
                 
                 
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
@@ -633,13 +669,19 @@ def main(cfg: DictConfig) -> float:
                         #if worst_res_ckpt[1] is not None:
                         #    os.remove(worst_res_ckpt[1])
                         #ADD THIS BACK LATER
-                            
             if cfg.scheduler_name == 'plateau':
+                joint_scheduler.step(current_val_loss_avg)
+                #residual_scheduler.step(current_val_loss_avg)
+            else:
+                joint_scheduler.step()
+                #residual_scheduler.step()
+                      
+            '''if cfg.scheduler_name == 'plateau':
                 deterministic_scheduler.step(current_val_loss_avg)
-                residual_scheduler.step(current_val_loss_avg)
+                #residual_scheduler.step(current_val_loss_avg)
             else:
                 deterministic_scheduler.step()
-                residual_scheduler.step()
+                #residual_scheduler.step()'''
             
             if dist.world_size > 1:
                 torch.distributed.barrier()

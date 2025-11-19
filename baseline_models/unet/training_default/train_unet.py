@@ -469,7 +469,7 @@ def main(cfg: DictConfig) -> float:
                 # loss.backward()
                 
                 output = model(data_input)
-                deterministic_loss = criterion(output, target)
+                
                 
                 
                 #DIFFUSION RESIDUAL PREDICTION
@@ -557,7 +557,7 @@ def main(cfg: DictConfig) -> float:
                     """
                     Applies a gradient vector to the network's parameters.
                     Please only use this function when you are sure that the length of `grad_vec` is the same of your network's parameters.
-                    This happens when you use `get_gradient_vector` with `none_grad_mode` set to 'zero'.
+                git     This happens when you use `get_gradient_vector` with `none_grad_mode` set to 'zero'.
                     Or, the 'none_grad_mode' is 'skip' but all of the parameters in your network is involved in the loss calculation.
 
                     Args:
@@ -599,9 +599,7 @@ def main(cfg: DictConfig) -> float:
 
                     """
                     if none_grad_mode == "zero" and zero_grad_mode == "pad_value":
-                        network1_len = len(network1.parameters())
-                        joint_apply_gradient_vector_para_based(network1, grad_vec[:network1_len])
-                        joint_apply_gradient_vector_para_based(network2, grad_vec[network1_len:])
+                        joint_apply_gradient_vector_para_based(network2, grad_vec[network1.parameters().numl():])
                     with torch.no_grad():
                         start = 0
                         for par in network1.parameters():
@@ -642,7 +640,10 @@ def main(cfg: DictConfig) -> float:
                                 start = end
                         
                 
+                
                 predicted_residual = res_model(residual,sigma)
+                
+                deterministic_loss = criterion(output, target)
                 res_loss = criterion(predicted_residual,residual)
                 
                 joint_optimizer.zero_grad()

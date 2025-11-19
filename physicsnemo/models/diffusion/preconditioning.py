@@ -140,7 +140,7 @@ class EDMPrecond(Module):
         model_class = getattr(network_module, model_type)
         self.model = model_class(
             img_resolution=img_resolution,
-            in_channels=img_in_channels*2,
+            in_channels=img_in_channels,
             out_channels=img_out_channels,
             label_dim=label_dim,
             **model_kwargs,

@@ -180,21 +180,21 @@ class EDMPrecond(Module):
         #=====Reshape Condition=====
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
-        
-        condition_profile = condition[:,:self.input_profile_num*self.vertical_level_num]
-        condition_scalar = condition[:,self.input_profile_num*self.vertical_level_num:]
-        
-        # reshape x_profile to (batch, input_profile_num, levels)
-        condition_profile = condition_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
-        
-        # broadcast x_scalar to (batch, input_scalar_num, levels)
-        condition_scalar = condition_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
-        
-        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-        condition_cat = torch.cat((condition_profile, condition_scalar), dim=1)
-        
-        condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
-        
+        if condition != None:
+            condition_profile = condition[:,:self.input_profile_num*self.vertical_level_num]
+            condition_scalar = condition[:,self.input_profile_num*self.vertical_level_num:]
+            
+            # reshape x_profile to (batch, input_profile_num, levels)
+            condition_profile = condition_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+            
+            # broadcast x_scalar to (batch, input_scalar_num, levels)
+            condition_scalar = condition_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+            
+            #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
+            condition_cat = torch.cat((condition_profile, condition_scalar), dim=1)
+            
+            condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
+            
                 
         #=====Class Conditioning=====
         class_labels = (

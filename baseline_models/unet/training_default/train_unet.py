@@ -403,11 +403,6 @@ def main(cfg: DictConfig) -> float:
         optim=joint_optimizer,
         # cuda_graph_warmup=11,
     )
-    @StaticCaptureTraining(
-        model=res_model,
-        optim=joint_optimizer,
-        # cuda_graph_warmup=11,
-    )
     def training_step(model, data_input, target):
         output = model(data_input)
         loss = criterion(output, target)

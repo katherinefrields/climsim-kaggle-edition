@@ -504,7 +504,7 @@ def main(cfg: DictConfig) -> float:
                 
                 joint_optimizer.zero_grad()
                 
-                deterministic_loss.backward()
+                deterministic_loss.backward(retain_graph=True)
                 deterministic_grad = get_gradient_vector(model)
                 
                 res_loss.backward()

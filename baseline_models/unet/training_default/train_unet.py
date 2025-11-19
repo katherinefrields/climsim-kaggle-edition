@@ -255,34 +255,34 @@ def main(cfg: DictConfig) -> float:
             )
         torch.cuda.current_stream().wait_stream(ddps)
 
-    '''#joint optimizer
+    #joint optimizer
     if cfg.optimizer == 'Adam':
         joint_optimizer = optim.Adam(list(model.parameters()) + list(res_model.parameters()), lr=cfg.learning_rate)
     elif cfg.optimizer == 'AdamW':
         joint_optimizer = optim.AdamW(list(model.parameters()) + list(res_model.parameters()), lr=cfg.learning_rate)
     else:
-        raise ValueError('Optimizer not implemented')'''
+        raise ValueError('Optimizer not implemented')
     
     
     # create deterministic optimizer
-    if cfg.optimizer == 'Adam':
+    '''if cfg.optimizer == 'Adam':
         deterministic_optimizer = optim.Adam(model.parameters(), lr=cfg.learning_rate)
     elif cfg.optimizer == 'AdamW':
         deterministic_optimizer = optim.AdamW(model.parameters(), lr=cfg.learning_rate)
     else:
-        raise ValueError('Optimizer not implemented')
+        raise ValueError('Optimizer not implemented')'''
     
-    # create resodia; optimizer
+    '''# create resodia; optimizer
     if cfg.optimizer == 'Adam':
         res_optimizer = optim.Adam(res_model.parameters(), lr=cfg.learning_rate)
     elif cfg.optimizer == 'AdamW':
         res_optimizer = optim.AdamW(res_model.parameters(), lr=cfg.learning_rate)
     else:
-        raise ValueError('Optimizer not implemented')
+        raise ValueError('Optimizer not implemented')'''
     
     
     
-    '''# create scheduler
+    # create scheduler
     if cfg.scheduler_name == 'step':
         joint_scheduler = optim.lr_scheduler.StepLR(joint_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
     elif cfg.scheduler_name == 'plateau':
@@ -290,9 +290,9 @@ def main(cfg: DictConfig) -> float:
     elif cfg.scheduler_name == 'cosine':
         joint_scheduler = optim.lr_scheduler.CosineAnnealingLR(joint_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
     else:
-        raise ValueError('Scheduler not implemented')'''
+        raise ValueError('Scheduler not implemented')
     
-    # create scheduler
+    '''# create scheduler
     if cfg.scheduler_name == 'step':
         deterministic_scheduler = optim.lr_scheduler.StepLR(deterministic_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
     elif cfg.scheduler_name == 'plateau':
@@ -300,10 +300,10 @@ def main(cfg: DictConfig) -> float:
     elif cfg.scheduler_name == 'cosine':
         deterministic_scheduler = optim.lr_scheduler.CosineAnnealingLR(deterministic_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
     else:
-        raise ValueError('Scheduler not implemented')
+        raise ValueError('Scheduler not implemented')'''
     
 
-    # create residual scheduler
+    '''# create residual scheduler
     if cfg.scheduler_name == 'step':
         residual_scheduler = optim.lr_scheduler.StepLR(res_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
     elif cfg.scheduler_name == 'plateau':
@@ -311,7 +311,7 @@ def main(cfg: DictConfig) -> float:
     elif cfg.scheduler_name == 'cosine':
         residual_scheduler = optim.lr_scheduler.CosineAnnealingLR(res_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
     else:
-        raise ValueError('Scheduler not implemented')
+        raise ValueError('Scheduler not implemented')'''
     
     
     # create loss function
@@ -400,7 +400,12 @@ def main(cfg: DictConfig) -> float:
 
     @StaticCaptureTraining(
         model=model,
-        optim=deterministic_optimizer,
+        optim=joint_optimizer,
+        # cuda_graph_warmup=11,
+    )
+    @StaticCaptureTraining(
+        model=res_model,
+        optim=joint_optimizer,
         # cuda_graph_warmup=11,
     )
     def training_step(model, data_input, target):
@@ -473,11 +478,11 @@ def main(cfg: DictConfig) -> float:
                 
                 
                 #DIFFUSION RESIDUAL PREDICTION
-                with torch.no_grad():
-                    residual = target - output
+                
+                residual = target - output
                 #residual = (target - output.detach())
                 
-                condition_input = output.detach()
+                #condition_input = output.detach()
                
                 residual = residual.to(device)
                 
@@ -493,37 +498,34 @@ def main(cfg: DictConfig) -> float:
                     P_mean + P_std * torch.randn(batch_size, device=device)
                 )
                 
-                predicted_residual = res_model(residual,sigma, condition = condition_input)
+                predicted_residual = res_model(residual,sigma)
                 
                 res_loss = criterion(predicted_residual,residual)
                 
                 #CHANGE THIS LATER
                 #CHANGE THIS LATER
                 #CHANGE THIS LATER
-                loss = deterministic_loss + res_loss
+                #loss = deterministic_loss + res_loss
                 
-                deterministic_optimizer.zero_grad()
-                loss.backward()
-                #deterministic_grad = get_gradient_vector(model)
+                joint_optimizer.zero_grad()
                 
-                res_optimizer.zero_grad()
+                deterministic_loss.backward()
+                deterministic_grad = get_gradient_vector(model)
+                
                 res_loss.backward()
-                #res_grad = get_gradient_vector(res_model)
+                res_grad = get_gradient_vector(res_model)
                 
-                #g_config=ConFIG_update([deterministic_grad, res_grad])
-                #apply_gradient_vector(model,g_config)
-                #apply_gradient_vector(res_model,g_config)
+                g_config=ConFIG_update([deterministic_grad, res_grad])
+                apply_gradient_vector(model,g_config)
+                apply_gradient_vector(res_model,g_config)
                 
-                
-                deterministic_optimizer.step()
-                res_optimizer.step()
-                
-                deterministic_scheduler.step()
+                joint_optimizer.step()
+                #deterministic_scheduler.step()
                 
                 #res_optimizer.zero_grad()
                 #res_loss.backward()
                 #res_optimizer.step()
-                residual_scheduler.step()
+                #residual_scheduler.step()
                 
 
                 
@@ -545,7 +547,7 @@ def main(cfg: DictConfig) -> float:
                 # scheduler.step()
                 #launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy()})
                 #if dist.rank == 0:
-                launchlog.log_minibatch({"loss_train": deterministic_loss.detach().cpu().numpy(), "lr": deterministic_optimizer.param_groups[0]["lr"]})
+                launchlog.log_minibatch({"loss_train": deterministic_loss.detach().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"]})
                 # Update the progress bar description with the current loss
                 train_loop.set_description(f'Epoch {epoch+1}')
                 train_loop.set_postfix(loss=deterministic_loss.item())
@@ -668,11 +670,11 @@ def main(cfg: DictConfig) -> float:
                         #    os.remove(worst_res_ckpt[1])
                         #ADD THIS BACK LATER
             if cfg.scheduler_name == 'plateau':
-                deterministic_scheduler.step(current_val_loss_avg)
-                residual_scheduler.step(current_val_loss_avg)
+                joint_scheduler.step(current_val_loss_avg)
+                #residual_scheduler.step(current_val_loss_avg)
             else:
-                deterministic_scheduler.step()
-                residual_scheduler.step()
+                joint_scheduler.step()
+                #residual_scheduler.step()
                       
             '''if cfg.scheduler_name == 'plateau':
                 deterministic_scheduler.step(current_val_loss_avg)

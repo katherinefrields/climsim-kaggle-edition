@@ -656,6 +656,13 @@ def main(cfg: DictConfig) -> float:
                 
                 grads = [deterministic_grad, res_grad]
                 
+                print("requires_grad residual:", residual.requires_grad)
+                print("requires_grad output:", output.requires_grad)
+                print("model grad from res_loss:", 
+                    [p.grad is not None for p in model.parameters()])
+                print("res_model grad from res_loss:", 
+                    [p.grad is not None for p in res_model.parameters()])
+
                 g_config=ConFIG_update(grads) # calculate the conflict-free direction
                 joint_apply_gradient_vector(model, res_model,g_config) # set the conflict-free direction to the network
 

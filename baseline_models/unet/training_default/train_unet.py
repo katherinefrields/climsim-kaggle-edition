@@ -463,6 +463,14 @@ def main(cfg: DictConfig) -> float:
                     print(f'data_input has nan: {torch.isnan(data_input).any().item()}')
                     print(f'target is {target}')
                     print(f'target has nan: {torch.isnan(target).any().item()}')
+                    
+                if current_step in range(30, 45):   # monitor a small window around the failing step
+                    print(f"\n--- Diagnostics step {current_step} ---")
+                    print("batch slice indices (est):", current_step, "->", current_step+batch_size)
+                    print("input min/max:", torch.nanmin(data_input).item(), torch.nanmax(data_input).item())
+                    print("target min/max:", torch.nanmin(target).item(), torch.nanmax(target).item())
+                    
+                
                 # optimizer.zero_grad()
                 # output = model(data_input)
                 # if cfg.do_energy_loss:
@@ -474,9 +482,10 @@ def main(cfg: DictConfig) -> float:
                 #     loss = criterion(output, target)
                 # loss.backward()
                 
-                output = model(data_input)
                 
-                if current_step == 37:
+                output = model(data_input)            
+                #for deterministic model
+                '''if current_step == 37:
                     print("output has NaN:", torch.isnan(output).any().item())
                     print("output has Inf:", torch.isinf(output).any().item())
 
@@ -489,12 +498,12 @@ def main(cfg: DictConfig) -> float:
                 joint_optimizer.zero_grad()
                 deterministic_loss.backward()
                 
-                joint_optimizer.step()
+                joint_optimizer.step()'''
                 
                 
                 
                 
-                '''if current_step == 37:
+                if current_step == 37:
                     print("output has NaN:", torch.isnan(output).any().item())
                     print("output has Inf:", torch.isinf(output).any().item())
 
@@ -558,7 +567,7 @@ def main(cfg: DictConfig) -> float:
                 data_utils.joint_apply_gradient_vector(model, res_model,g_config) # set the conflict-free direction to the network
 
                 joint_optimizer.step()
-'''
+
                 
                 #deterministic_scheduler.step()
                 

@@ -583,6 +583,9 @@ def main(cfg: DictConfig) -> float:
                 
                 #UNET DETERMINISTIC PREDICTION
                 data_input, target = data_input.to(device), target.to(device)
+                if current_step == 36:
+                    print(f'data_input is {data_input}')
+                
                 output = model(data_input)
                 
                 residual = target - output

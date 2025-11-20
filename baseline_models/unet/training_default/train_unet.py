@@ -470,10 +470,7 @@ def main(cfg: DictConfig) -> float:
                 
                 output = model(data_input)
                 
-                
-                
-                #DIFFUSION RESIDUAL PREDICTION
-                
+
                 residual = target - output
                 #residual = (target - output.detach())
                 
@@ -493,153 +490,6 @@ def main(cfg: DictConfig) -> float:
                     P_mean + P_std * torch.randn(batch_size, device=device)
                 )
                 
-                def joint_get_gradient_vector(network1: torch.nn.Module, network2:torch.nn.Module, none_grad_mode = "skip") -> torch.Tensor:
-                    """
-                    Returns the gradient vector of the given network.
-
-                    Args:
-                        network (torch.nn.Module): The network for which to compute the gradient vector.
-                        none_grad_mode (Literal['raise', 'zero', 'skip']): The mode to handle None gradients. default: 'skip'
-                            - 'raise': Raise an error when the gradient of a parameter is None.
-                            - 'zero': Replace the None gradient with a zero tensor.
-                            - 'skip': Skip the None gradient.
-                                        The None gradient usually occurs when part of the network is not trainable (e.g., fine-tuning)
-                            or the weight is not used to calculate the current loss (e.g., different parts of the network calculate different losses).
-                            If all of your losses are calculated using the same part of the network, you should set none_grad_mode to 'skip'.
-                            If your losses are calculated using different parts of the network, you should set none_grad_mode to 'zero' to ensure the gradients have the same shape.
-
-                    Returns:
-                        torch.Tensor: The gradient vector of the network.
-                    """
-                    with torch.no_grad():
-                        grad_vec = None
-                    
-                        for par in network1.parameters():
-                            if par.grad is None:
-                                if none_grad_mode == "raise":
-                                    raise RuntimeError("None gradient detected.")
-                                elif none_grad_mode == "zero":
-                                    viewed = torch.zeros_like(par.view(-1))
-                                elif none_grad_mode == "skip":
-                                    continue
-                                else:
-                                    raise ValueError(f"Invalid none_grad_mode '{none_grad_mode}'.")
-                            else:
-                                viewed = par.grad.view(-1)
-                            if grad_vec is None:
-                                grad_vec = viewed
-                            else:
-                                grad_vec = torch.cat((grad_vec, viewed))
-                                
-                        for par in network2.parameters():
-                            if par.grad is None:
-                                if none_grad_mode == "raise":
-                                    raise RuntimeError("None gradient detected.")
-                                elif none_grad_mode == "zero":
-                                    viewed = torch.zeros_like(par.view(-1))
-                                elif none_grad_mode == "skip":
-                                    continue
-                                else:
-                                    raise ValueError(f"Invalid none_grad_mode '{none_grad_mode}'.")
-                            else:
-                                viewed = par.grad.view(-1)
-                            if grad_vec is None:
-                                grad_vec = viewed
-                            else:
-                                grad_vec = torch.cat((grad_vec, viewed))
-                        return grad_vec
-
-                
-                def joint_apply_gradient_vector_para_based(
-                    network: torch.nn.Module,
-                    grad_vec: torch.Tensor,
-                ) -> None:
-                    """
-                    Applies a gradient vector to the network's parameters.
-                    Please only use this function when you are sure that the length of `grad_vec` is the same of your network's parameters.
-                git     This happens when you use `get_gradient_vector` with `none_grad_mode` set to 'zero'.
-                    Or, the 'none_grad_mode' is 'skip' but all of the parameters in your network is involved in the loss calculation.
-
-                    Args:
-                        network (torch.nn.Module): The network to apply the gradient vector to.
-                        grad_vec (torch.Tensor): The gradient vector to apply.
-                    """
-                    with torch.no_grad():
-                        start = 0
-                        for par in network.parameters():
-                            end = start + par.data.view(-1).shape[0]
-                            par.grad = grad_vec[start:end].view(par.data.shape)
-                            start = end
-                
-                def joint_apply_gradient_vector(
-                    network1: torch.nn.Module,
-                    network2: torch.nn.Module,
-                    grad_vec: torch.Tensor,
-                    none_grad_mode = "skip",
-                    zero_grad_mode = "pad_value",
-                ) -> None:
-                    """
-                    Applies a gradient vector to the network's parameters.
-                    This function requires the network contains the some gradient information in order to apply the gradient vector.
-                    If your network does not contain the gradient information, you should consider using `apply_gradient_vector_para_based` function.
-
-                    Args:
-                        network (torch.nn.Module): The network to apply the gradient vector to.
-                        grad_vec (torch.Tensor): The gradient vector to apply.
-                        none_grad_mode (Literal['zero', 'skip']): The mode to handle None gradients.
-                            You should set this parameter to the same value as the one used in `get_gradient_vector` method.
-                        zero_grad_mode (Literal['padding', 'skip']): How to set the value of the gradient if your `none_grad_mode` is "zero". default: 'skip'
-                            - 'skip': Skip the None gradient.
-                            - 'padding': Replace the None gradient with a zero tensor.
-                            - 'pad_value': Replace the None gradient using the value in the gradient.
-                            If you set `none_grad_mode` to 'zero', that means you padded zero to your `grad_vec` if the gradient of the parameter is None when getting the gradient vector.
-                            When you apply the gradient vector back to the network, the value in the `grad_vec` corresponding to the previous None gradient may not be zero due to the applied gradient operation.
-                                        Thus, you need to determine whether to recover the original None value, set it to zero, or set the value according to the value in `grad_vec`.
-                            If you are not sure what you are doing, it is safer to set it to 'pad_value'.
-
-                    """
-                    if none_grad_mode == "zero" and zero_grad_mode == "pad_value":
-                        joint_apply_gradient_vector_para_based(network2, grad_vec[network1.parameters().numl():])
-                    with torch.no_grad():
-                        start = 0
-                        for par in network1.parameters():
-                            if par.grad is None:
-                                if none_grad_mode == "skip":
-                                    continue
-                                elif none_grad_mode == "zero":
-                                    start = start + par.data.view(-1).shape[0]
-                                    if zero_grad_mode == "pad_zero":
-                                        par.grad = torch.zeros_like(par.data)
-                                    elif zero_grad_mode == "skip":
-                                        continue
-                                    else:
-                                        raise ValueError(f"Invalid zero_grad_mode '{zero_grad_mode}'.")
-                                else:
-                                    raise ValueError(f"Invalid none_grad_mode '{none_grad_mode}'.")
-                            else:
-                                end = start + par.data.view(-1).shape[0]
-                                par.grad.data = grad_vec[start:end].view(par.data.shape)
-                                start = end
-                        for par in network2.parameters():
-                            if par.grad is None:
-                                if none_grad_mode == "skip":
-                                    continue
-                                elif none_grad_mode == "zero":
-                                    start = start + par.data.view(-1).shape[0]
-                                    if zero_grad_mode == "pad_zero":
-                                        par.grad = torch.zeros_like(par.data)
-                                    elif zero_grad_mode == "skip":
-                                        continue
-                                    else:
-                                        raise ValueError(f"Invalid zero_grad_mode '{zero_grad_mode}'.")
-                                else:
-                                    raise ValueError(f"Invalid none_grad_mode '{none_grad_mode}'.")
-                            else:
-                                end = start + par.data.view(-1).shape[0]
-                                par.grad.data = grad_vec[start:end].view(par.data.shape)
-                                start = end
-                        
-                
                 
                 predicted_residual = res_model(residual,sigma)
                 
@@ -649,11 +499,11 @@ def main(cfg: DictConfig) -> float:
                 joint_optimizer.zero_grad()
                 deterministic_loss.backward(retain_graph=True)
                 #the res gradients for deterministic grad will all be zero, since they don't affect the deterministic loss
-                deterministic_grad = joint_get_gradient_vector(model, res_model, none_grad_mode="zero")
+                deterministic_grad = data_utils.joint_get_gradient_vector(model, res_model, none_grad_mode="zero")
                 
                 joint_optimizer.zero_grad()
                 res_loss.backward()
-                res_grad = joint_get_gradient_vector(model, res_model, none_grad_mode="zero")
+                res_grad = data_utils.joint_get_gradient_vector(model, res_model, none_grad_mode="zero")
                 
                 grads = [deterministic_grad, res_grad]
                 
@@ -665,7 +515,7 @@ def main(cfg: DictConfig) -> float:
                     [p.grad is not None for p in res_model.parameters()])
 
                 g_config=ConFIG_update(grads) # calculate the conflict-free direction
-                joint_apply_gradient_vector(model, res_model,g_config) # set the conflict-free direction to the network
+                data_utils.joint_apply_gradient_vector(model, res_model,g_config) # set the conflict-free direction to the network
 
                 joint_optimizer.step()
                 #deterministic_scheduler.step()
@@ -707,7 +557,9 @@ def main(cfg: DictConfig) -> float:
                 
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
             
-            # model.eval()
+            model.eval()
+            res_model.eval()
+            
             val_loss = 0.0
             num_samples_processed = 0
             val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]')
@@ -724,15 +576,13 @@ def main(cfg: DictConfig) -> float:
                 
                 #UNET DETERMINISTIC PREDICTION
                 data_input, target = data_input.to(device), target.to(device)
-                output = eval_step_forward(model, data_input)
-                deterministic_loss = criterion(output, target)
+                output = model(data_input)
                 
-                #DIFFUSION RESIDUAL PREDICTION
-                with torch.no_grad():
-                    residual = target - output
+                residual = target - output
                 #residual = (target - output.detach())
-                condition_input = output.detach()
                 
+                #condition_input = output.detach()
+               
                 residual = residual.to(device)
                 
                 #set the sigma based on parameters -- CHANGE THIS LATER
@@ -747,17 +597,13 @@ def main(cfg: DictConfig) -> float:
                     P_mean + P_std * torch.randn(batch_size, device=device)
                 )
                 
-                predicted_residual = res_model(residual,sigma, condition = condition_input)
+                predicted_residual = res_model(residual,sigma)
                 
+                deterministic_loss = criterion(output, target)
                 res_loss = criterion(predicted_residual,residual)
-            
                 
-                #CHANGE THIS LATER
-                #CHANGE THIS LATER
-                #CHANGE THIS LATER
-                loss = deterministic_loss + res_loss
                 
-                val_loss += loss.item() * data_input.size(0)
+                val_loss += deterministic_loss.item() * data_input.size(0)
                 num_samples_processed += data_input.size(0)
 
                 # Calculate and update the current average loss

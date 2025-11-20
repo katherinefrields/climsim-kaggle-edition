@@ -2313,7 +2313,7 @@ class data_utils:
 
         """
         if none_grad_mode == "zero" and zero_grad_mode == "pad_value":
-            joint_apply_gradient_vector_para_based(network1,network2)
+            joint_apply_gradient_vector_para_based(network1, network2, grad_vec)
         with torch.no_grad():
             start = 0
             for par in network1.parameters():

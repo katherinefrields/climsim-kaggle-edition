@@ -573,7 +573,7 @@ def main(cfg: DictConfig) -> float:
                 g_config=ConFIG_update(grads) # calculate the conflict-free direction
                 data_utils.joint_apply_gradient_vector(model, res_model,g_config) # set the conflict-free direction to the network
 
-                torch.nn.utils.clip_grad_norm_(list(model.parameters()) + list(res_model.parameters()), 1.0)
+                torch.nn.utils.clip_grad_norm_(list(model.module.parameters()) + list(res_model.module.parameters()), 1.0)
                 
                 joint_optimizer.step()
 

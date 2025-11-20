@@ -476,8 +476,8 @@ def main(cfg: DictConfig) -> float:
                 
                 
                 output, residual, predicted_residual = joint_model(data_input, target)
-                joint_model.compute_loss(criterion, output, target, predicted_residual, residual)
-                joint_model.backward(deterministic_loss, res_loss, joint_optimizer)
+                joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
+                joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
                 joint_optimizer.step()
                 
                 '''if current_step in range(30, 45):   # monitor a small window around the failing step

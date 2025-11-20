@@ -652,33 +652,11 @@ def main(cfg: DictConfig) -> float:
                 #     target[:,120:120+cfg.strato_lev] = 0
                 #     target[:,180:180+cfg.strato_lev] = 0
                 # Move data to the device
-                
-                #UNET DETERMINISTIC PREDICTION
                 data_input, target = data_input.to(device), target.to(device)
                 
+                output, residual, predicted_residual = joint_model(data_input, target)
+                deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
                 
-                output = model(data_input)
-                
-                residual = target - output
-               
-                residual = residual.to(device)
-                
-                #set the sigma based on parameters -- CHANGE THIS LATER
-                P_mean = -1.2
-                P_std = 1.2
-
-                # Batch size
-                batch_size = residual.shape[0]
-
-                # Sample log-normal σ
-                sigma = torch.exp(
-                    P_mean + P_std * torch.randn(batch_size, device=device)
-                )
-                
-                predicted_residual = res_model(residual,sigma)
-                
-                deterministic_loss = criterion(output, target)
-                res_loss = criterion(predicted_residual,residual)
                 
                 
                 val_loss += deterministic_loss.item() * data_input.size(0)
@@ -715,8 +693,8 @@ def main(cfg: DictConfig) -> float:
                     
                     #ckpt_path_res = os.path.join(save_path_ckpt_res, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}_res.mdlus')
                     if dist.distributed:
-                        model.module.save(ckpt_path)
-                        res_model.module.save(ckpt_res_path)
+                        model.save(ckpt_path)
+                        res_model.save(ckpt_res_path)
                         #save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     else:
                         model.save(ckpt_path)

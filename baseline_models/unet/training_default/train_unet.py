@@ -464,11 +464,11 @@ def main(cfg: DictConfig) -> float:
                     print(f'target is {target}')
                     print(f'target has nan: {torch.isnan(target).any().item()}')
                     
-                if current_step in range(30, 45):   # monitor a small window around the failing step
+                '''if current_step in range(30, 45):   # monitor a small window around the failing step
                     print(f"\n--- Diagnostics step {current_step} ---")
                     print("batch slice indices (est):", current_step, "->", current_step+batch_size)
                     print("input min/max:", torch.nanmin(data_input).item(), torch.nanmax(data_input).item())
-                    print("target min/max:", torch.nanmin(target).item(), torch.nanmax(target).item())
+                    print("target min/max:", torch.nanmin(target).item(), torch.nanmax(target).item())'''
                     
                 
                 # optimizer.zero_grad()
@@ -553,11 +553,13 @@ def main(cfg: DictConfig) -> float:
                 
                 joint_optimizer.zero_grad()
                 deterministic_loss.backward(retain_graph=True)
+                
                 #the res gradients for deterministic grad will all be zero, since they don't affect the deterministic loss
                 deterministic_grad = data_utils.joint_get_gradient_vector(model, res_model, none_grad_mode="zero")
                 
                 joint_optimizer.zero_grad()
                 res_loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 res_grad = data_utils.joint_get_gradient_vector(model, res_model, none_grad_mode="zero")
                 
                 grads = [deterministic_grad, res_grad]
@@ -566,6 +568,8 @@ def main(cfg: DictConfig) -> float:
                 g_config=ConFIG_update(grads) # calculate the conflict-free direction
                 data_utils.joint_apply_gradient_vector(model, res_model,g_config) # set the conflict-free direction to the network
 
+                torch.nn.utils.clip_grad_norm_(list(model.parameters()) + list(res_model.parameters()), 1.0)
+                
                 joint_optimizer.step()
 
                 

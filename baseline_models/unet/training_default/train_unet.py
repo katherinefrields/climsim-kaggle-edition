@@ -420,19 +420,7 @@ def main(cfg: DictConfig) -> float:
     input_div_device = torch.tensor(input_div, dtype=torch.float32).to(device)
     out_scale_device = torch.tensor(out_scale, dtype=torch.float32).to(device)
 
-    @StaticCaptureTraining(
-        model=joint_model,
-        optim=joint_optimizer,
-        # cuda_graph_warmup=11,
-    )
-    def training_step(model, data_input, target):
-        output = model(data_input)
-        loss = criterion(output, target)
-        return loss
-    @StaticCaptureEvaluateNoGrad(model=model, use_graphs=False)
-    def eval_step_forward(my_model, invar):
-        return my_model(invar)
-    #training block
+    
     logger.info("Starting Training!")
     # Basic training block with tqdm for progress tracking
     for epoch in range(cfg.epochs):

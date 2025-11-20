@@ -648,11 +648,12 @@ def main(cfg: DictConfig) -> float:
                 
                 joint_optimizer.zero_grad()
                 deterministic_loss.backward(retain_graph=True)
-                deterministic_grad = joint_get_gradient_vector(model, res_model)
+                #the res gradients for deterministic grad will all be zero, since they don't affect the deterministic loss
+                deterministic_grad = joint_get_gradient_vector(model, res_model, none_grad_mode="zero")
                 
                 joint_optimizer.zero_grad()
                 res_loss.backward()
-                res_grad = joint_get_gradient_vector(model, res_model)
+                res_grad = joint_get_gradient_vector(model, res_model, none_grad_mode="zero")
                 
                 grads = [deterministic_grad, res_grad]
                 

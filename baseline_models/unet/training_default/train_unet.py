@@ -241,8 +241,11 @@ def main(cfg: DictConfig) -> float:
                                                # the local rank of this process on
                                                # this node
                 output_device=dist.device,
+                bucket_cap_mb=35,
+                gradient_as_bucket_view=True,
                 broadcast_buffers=dist.broadcast_buffers,
-                find_unused_parameters=dist.find_unused_parameters,
+                find_unused_parameters=True,
+                static_graph=True,
             )
             
             '''model = DistributedDataParallel(

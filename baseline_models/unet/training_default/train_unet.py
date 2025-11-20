@@ -476,6 +476,9 @@ def main(cfg: DictConfig) -> float:
                 
                 output = model(data_input)
                 
+                if current_step == 37:
+                    print("output has NaN:", torch.isnan(output).any().item())
+                    print("output has Inf:", torch.isinf(output).any().item())
 
                 residual = target - output
                 #residual = (target - output.detach())
@@ -498,6 +501,12 @@ def main(cfg: DictConfig) -> float:
                 
                 
                 predicted_residual = res_model(residual,sigma)
+                
+                if current_step == 37:
+                    print("output after res has NaN:", torch.isnan(output).any().item())
+                    print("output after res has Inf:", torch.isinf(output).any().item())
+                    print("res has NaN:", torch.isnan(predicted_residual).any().item())
+                    print("res has Inf:", torch.isinf(predicted_residual).any().item())
                 
                 deterministic_loss = criterion(output, target)
                 res_loss = criterion(predicted_residual,residual)

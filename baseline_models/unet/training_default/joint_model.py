@@ -34,13 +34,13 @@ class JointModel(nn.Module):
         self.model_a = model_a
         self.model_b = model_b
 
-    def forward(self, x):
+    def forward(self, input, target):
         """
         Customize however you want.
         Example: run both models on same input,
         or feed output from one into the other.
         """
-        output = self.model_a(x)
+        output = self.model_a(input)
         
         residual = target - output
         

@@ -475,7 +475,7 @@ def main(cfg: DictConfig) -> float:
                     print(f'target has nan: {torch.isnan(target).any().item()}')
                 
                 
-                output, residual, predicted_residual = joint_model(data_input)
+                output, residual, predicted_residual = joint_model(data_input, target)
                 joint_model.loss(criterion, output, target, predicted_residual, residual)
                 joint_model.backward(deterministic_loss, res_loss, joint_optimizer)
                 joint_optimizer.step()

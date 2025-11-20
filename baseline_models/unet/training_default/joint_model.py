@@ -63,7 +63,7 @@ class JointModel(nn.Module):
 
         return output, residual, predicted_residual
 
-    def compute_loss(self, criterion, outputs, targets, predicted_residual, residual):
+    def compute_loss(self, criterion, output, target, predicted_residual, residual):
         """
         Customize loss combination here.
         """

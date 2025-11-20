@@ -476,7 +476,7 @@ def main(cfg: DictConfig) -> float:
                 
                 
                 output, residual, predicted_residual = joint_model(data_input, target)
-                joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
+                deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
                 joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
                 joint_optimizer.step()
                 

@@ -91,7 +91,7 @@ class JointModel(nn.Module):
         )
         flat_grads_det = torch.cat([
             g.view(-1) if g is not None else torch.zeros_like(p).view(-1)
-            for g, p in zip(grads_det, params_a)
+            for g, p in zip(grads_det, all_params)
         ])
         
         #the res gradients for deterministic grad will all be zero, since they don't affect the deterministic loss
@@ -104,7 +104,7 @@ class JointModel(nn.Module):
         )
         flat_grads_res = torch.cat([
             g.view(-1) if g is not None else torch.zeros_like(p).view(-1)
-            for g, p in zip(grads_res, params_b)
+            for g, p in zip(grads_res, all_params)
         ])
         
         #res_grad = data_utils.joint_get_gradient_vector(self.model_a, self.model_b, none_grad_mode="zero")

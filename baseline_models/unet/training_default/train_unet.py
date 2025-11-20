@@ -594,7 +594,7 @@ def main(cfg: DictConfig) -> float:
                 print(f'Current step is {current_step}')
                 #print(torch.cuda.memory_summary())
                 current_step += 1
-                del data_input, target, output, residual, predicted_residual, deterministic_grad, res_grad, g_config
+                del data_input, target, output, #residual, predicted_residual, deterministic_grad, res_grad, g_config
                 
                 
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})

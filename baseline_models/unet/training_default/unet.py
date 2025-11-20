@@ -342,6 +342,8 @@ class Unet(modulus.Module):
                 # x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
                 x = block(x)
                 skips.append(x)
+            if torch.isnan(x).any():
+                print(f"NaN detected after layer {name} in encoder")
 
         new_skips = []
         #for x_tmp, conv_tmp in zip(skips, self.skip_conv_layer):
@@ -381,15 +383,21 @@ class Unet(modulus.Module):
             #         aux = tmp if aux is None else tmp + aux
             #     elif "aux_norm" in name:
             #         tmp = block(x)
+            if torch.isnan(x).any():
+                print(f"NaN detected after layer {name} in decoder")
 
         #runs our data through the normalization and convolutional layers at the very end
         for name, block in self.dec_aux_norm.items():
             tmp = block(x)
+            if torch.isnan(tmp).any():
+                print(f"NaN detected after layer {name} in dec_aux_norm")
 
         #since we are running a standard decoder, there are no aux blocks so aux is None
         for name, block in self.dec_aux_conv.items():
             tmp = block(silu(tmp))
             aux = tmp if aux is None else tmp + aux
+            if torch.isnan(aux).any():
+                print(f"NaN detected after layer {name} in dec_aux_conv")
 
         # here x should be (batch, output_channels, seq_resolution)
         # remember that self.input_padding = (seq_resolution-self.vertical_level_num,0)

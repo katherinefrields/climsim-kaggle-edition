@@ -483,7 +483,7 @@ def main(cfg: DictConfig) -> float:
                 # loss.backward()
                 x = data_input
                 if current_step == 37:
-                    for i, layer in enumerate(model.layers):
+                    for i, layer in enumerate(model.module.layers):
                         x = layer(x)
                         if torch.isnan(x).any():
                             print(f"NaN detected after layer {i} ({layer})")

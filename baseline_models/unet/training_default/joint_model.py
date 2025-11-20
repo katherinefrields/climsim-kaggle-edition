@@ -55,7 +55,7 @@ class JointModel(nn.Module):
 
         # Sample log-normal σ
         sigma = torch.exp(
-            P_mean + P_std * torch.randn(batch_size, device=device)
+            P_mean + P_std * torch.randn(batch_size, device=output.device)
         )
         
         

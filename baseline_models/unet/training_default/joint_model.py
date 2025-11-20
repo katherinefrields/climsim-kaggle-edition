@@ -89,6 +89,10 @@ class JointModel(nn.Module):
         grads_det = torch.autograd.grad(
             deterministic_loss, all_params, retain_graph=True, allow_unused=True
         )
+        flat_grads_det = torch.cat([
+            g.view(-1) if g is not None else torch.zeros_like(p).view(-1)
+            for g, p in zip(grads_det, params_a)
+        ])
         
         #the res gradients for deterministic grad will all be zero, since they don't affect the deterministic loss
         #deterministic_grad = data_utils.joint_get_gradient_vector(self.model_a, self.model_b, none_grad_mode="zero")
@@ -98,6 +102,11 @@ class JointModel(nn.Module):
         grads_res = torch.autograd.grad(
             res_loss, all_params, retain_graph=False, allow_unused=True
         )
+        flat_grads_res = torch.cat([
+            g.view(-1) if g is not None else torch.zeros_like(p).view(-1)
+            for g, p in zip(grads_res, params_b)
+        ])
+        
         #res_grad = data_utils.joint_get_gradient_vector(self.model_a, self.model_b, none_grad_mode="zero")
         grads = [grads_det, grads_res]
         

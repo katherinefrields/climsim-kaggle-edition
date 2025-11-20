@@ -519,13 +519,13 @@ def main(cfg: DictConfig) -> float:
                                 if none_grad_mode == "raise":
                                     raise RuntimeError("None gradient detected.")
                                 elif none_grad_mode == "zero":
-                                    viewed = torch.zeros_like(par.data.view(-1))
+                                    viewed = torch.zeros_like(par.view(-1))
                                 elif none_grad_mode == "skip":
                                     continue
                                 else:
                                     raise ValueError(f"Invalid none_grad_mode '{none_grad_mode}'.")
                             else:
-                                viewed = par.grad.data.view(-1)
+                                viewed = par.grad.view(-1)
                             if grad_vec is None:
                                 grad_vec = viewed
                             else:
@@ -536,13 +536,13 @@ def main(cfg: DictConfig) -> float:
                                 if none_grad_mode == "raise":
                                     raise RuntimeError("None gradient detected.")
                                 elif none_grad_mode == "zero":
-                                    viewed = torch.zeros_like(par.data.view(-1))
+                                    viewed = torch.zeros_like(par.view(-1))
                                 elif none_grad_mode == "skip":
                                     continue
                                 else:
                                     raise ValueError(f"Invalid none_grad_mode '{none_grad_mode}'.")
                             else:
-                                viewed = par.grad.data.view(-1)
+                                viewed = par.grad.view(-1)
                             if grad_vec is None:
                                 grad_vec = viewed
                             else:

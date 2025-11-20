@@ -495,6 +495,19 @@ def main(cfg: DictConfig) -> float:
                 
                 deterministic_loss = criterion(output, target)
                 res_loss = criterion(predicted_residual,residual)
+                if not torch.isfinite(deterministic_loss):
+                    print(f"\n❌ deterministic_loss is NaN at batch {current_step}")
+                    print("output min/max:", output.min().item(), output.max().item())
+                    print("residual min/max:", residual.min().item(), residual.max().item())
+                    raise SystemExit
+
+                if not torch.isfinite(res_loss):
+                    print(f"\n❌ res_loss is NaN at batch {current_step}")
+                    print("predicted_residual min/max:", predicted_residual.min().item(), predicted_residual.max().item())
+                    print("residual min/max:", residual.min().item(), residual.max().item())
+                    print("output min/max:", output.min().item(), output.max().item())
+                    raise SystemExit
+                
                 
                 joint_optimizer.zero_grad()
                 deterministic_loss.backward(retain_graph=True)
@@ -507,12 +520,6 @@ def main(cfg: DictConfig) -> float:
                 
                 grads = [deterministic_grad, res_grad]
                 
-                print("requires_grad residual:", residual.requires_grad)
-                print("requires_grad output:", output.requires_grad)
-                print("model grad from res_loss:", 
-                    [p.grad is not None for p in model.parameters()])
-                print("res_model grad from res_loss:", 
-                    [p.grad is not None for p in res_model.parameters()])
 
                 g_config=ConFIG_update(grads) # calculate the conflict-free direction
                 data_utils.joint_apply_gradient_vector(model, res_model,g_config) # set the conflict-free direction to the network

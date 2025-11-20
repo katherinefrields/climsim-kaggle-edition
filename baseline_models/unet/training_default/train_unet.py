@@ -257,9 +257,9 @@ def main(cfg: DictConfig) -> float:
 
     #joint optimizer
     if cfg.optimizer == 'Adam':
-        joint_optimizer = optim.Adam(list(model.parameters()) + list(res_model.parameters()), lr=cfg.learning_rate)
+        joint_optimizer = optim.Adam(list(model.module.parameters()) + list(res_model.module.parameters()), lr=cfg.learning_rate)
     elif cfg.optimizer == 'AdamW':
-        joint_optimizer = optim.AdamW(list(model.parameters()) + list(res_model.parameters()), lr=cfg.learning_rate)
+        joint_optimizer = optim.AdamW(list(model.module.parameters()) + list(res_model.module.parameters()), lr=cfg.learning_rate)
     else:
         raise ValueError('Optimizer not implemented')
     

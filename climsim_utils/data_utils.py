@@ -2260,7 +2260,8 @@ class data_utils:
 
     
     def joint_apply_gradient_vector_para_based(
-        network: torch.nn.Module,
+        network1: torch.nn.Module,
+        network2: torch.nn.Module,
         grad_vec: torch.Tensor,
     ) -> None:
         """
@@ -2275,7 +2276,11 @@ class data_utils:
         """
         with torch.no_grad():
             start = 0
-            for par in network.parameters():
+            for par in network1.parameters():
+                end = start + par.data.view(-1).shape[0]
+                par.grad = grad_vec[start:end].view(par.data.shape)
+                start = end
+            for par in network2.parameters():
                 end = start + par.data.view(-1).shape[0]
                 par.grad = grad_vec[start:end].view(par.data.shape)
                 start = end
@@ -2308,7 +2313,7 @@ class data_utils:
 
         """
         if none_grad_mode == "zero" and zero_grad_mode == "pad_value":
-            joint_apply_gradient_vector_para_based(network2, grad_vec[network1.parameters().numl():])
+            joint_apply_gradient_vector_para_based(network1,network2)
         with torch.no_grad():
             start = 0
             for par in network1.parameters():

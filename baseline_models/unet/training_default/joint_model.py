@@ -59,7 +59,7 @@ class JointModel(nn.Module):
         )
         
         
-        predicted_residual = model_b(residual,sigma)
+        predicted_residual = self.model_b(residual,sigma)
 
         return output, residual, predicted_residual
 

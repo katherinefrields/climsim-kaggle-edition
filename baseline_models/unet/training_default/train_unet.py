@@ -501,7 +501,8 @@ def main(cfg: DictConfig) -> float:
                 joint_optimizer.step()'''
                 
                 
-                
+                if torch.any(torch.abs(output) > 1e3):
+                    print(f"Large output detected at {current_step}")
                 
                 if current_step == 37:
                     print("output has NaN:", torch.isnan(output).any().item())
@@ -559,7 +560,6 @@ def main(cfg: DictConfig) -> float:
                 
                 joint_optimizer.zero_grad()
                 res_loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 res_grad = data_utils.joint_get_gradient_vector(model, res_model, none_grad_mode="zero")
                 
                 grads = [deterministic_grad, res_grad]

@@ -44,7 +44,7 @@ class JointModel(nn.Module):
         
         residual = target - output
         
-        residual = residual.to(device)
+        residual = residual.to(output.device)
         
         #set the sigma based on parameters -- CHANGE THIS LATER
         P_mean = -1.2

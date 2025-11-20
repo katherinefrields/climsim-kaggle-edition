@@ -113,7 +113,7 @@ class Unet(modulus.Module):
         # emb_channels = model_channels * channel_mult_emb
         # self.emb_channels = emb_channels
         # noise_channels = model_channels * channel_mult_noise
-        init = dict(init_mode="xavier_uniform")
+        init = dict(init_mode="kaiming_normal")
         init_zero = dict(init_mode="xavier_uniform", init_weight=1e-5)
         init_attn = dict(init_mode="xavier_uniform", init_weight=0.2**0.5)
         block_kwargs = dict(

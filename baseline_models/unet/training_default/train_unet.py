@@ -579,9 +579,6 @@ def main(cfg: DictConfig) -> float:
                 output = model(data_input)
                 
                 residual = target - output
-                #residual = (target - output.detach())
-                
-                #condition_input = output.detach()
                
                 residual = residual.to(device)
                 

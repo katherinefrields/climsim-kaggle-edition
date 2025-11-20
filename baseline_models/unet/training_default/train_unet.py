@@ -480,6 +480,24 @@ def main(cfg: DictConfig) -> float:
                     print("output has NaN:", torch.isnan(output).any().item())
                     print("output has Inf:", torch.isinf(output).any().item())
 
+
+                deterministic_loss = loss_fn(output, target)
+                if not torch.isfinite(deterministic_loss):
+                    print(f"\n❌ deterministic_loss is NaN at batch {current_step}")
+                    print("output min/max:", output.min().item(), output.max().item())
+                    
+                joint_optimizer.zero_grad()
+                deterministic_loss.backward()
+                
+                joint_optimizer.step()
+                
+                
+                
+                
+                '''if current_step == 37:
+                    print("output has NaN:", torch.isnan(output).any().item())
+                    print("output has Inf:", torch.isinf(output).any().item())
+
                 residual = target - output
                 #residual = (target - output.detach())
                 
@@ -540,6 +558,8 @@ def main(cfg: DictConfig) -> float:
                 data_utils.joint_apply_gradient_vector(model, res_model,g_config) # set the conflict-free direction to the network
 
                 joint_optimizer.step()
+'''
+                
                 #deterministic_scheduler.step()
                 
                 #res_optimizer.zero_grad()

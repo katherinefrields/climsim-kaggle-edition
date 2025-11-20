@@ -79,18 +79,22 @@ class JointModel(nn.Module):
         """
         Custom backward logic.
         """
-        joint_optimizer.zero_grad()
-        deterministic_loss.backward(retain_graph=True)
+        #joint_optimizer.zero_grad()
+        #deterministic_loss.backward(retain_graph=True)
+        grads_det = torch.autograd.grad(
+            deterministic_loss, params, retain_graph=True, allow_unused=True
+        )
         
         #the res gradients for deterministic grad will all be zero, since they don't affect the deterministic loss
-        deterministic_grad = data_utils.joint_get_gradient_vector(self.model_a, self.model_b, none_grad_mode="zero")
+        #deterministic_grad = data_utils.joint_get_gradient_vector(self.model_a, self.model_b, none_grad_mode="zero")
         
-        joint_optimizer.zero_grad()
-        res_loss.backward()
-        res_grad = data_utils.joint_get_gradient_vector(self.model_a, self.model_b, none_grad_mode="zero")
+        #joint_optimizer.zero_grad()
+        #res_loss.backward()
+        grads_res = torch.autograd.grad(
+            res_loss, params, retain_graph=False, allow_unused=True
+        )
+        #res_grad = data_utils.joint_get_gradient_vector(self.model_a, self.model_b, none_grad_mode="zero")
         
-        grads = [deterministic_grad, res_grad]
-        
-
         g_config=ConFIG_update(grads) # calculate the conflict-free direction
+        joint_optimizer.zero_grad()
         data_utils.joint_apply_gradient_vector(self.model_a, self.model_b,g_config) # set the conflict-free direction to the network

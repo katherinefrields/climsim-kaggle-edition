@@ -2223,7 +2223,7 @@ class data_utils:
         with torch.no_grad():
             grad_vec = None
         
-            for par in network1.module.parameters():
+            for par in network1.parameters():
                 if par.grad is None:
                     if none_grad_mode == "raise":
                         raise RuntimeError("None gradient detected.")
@@ -2240,7 +2240,7 @@ class data_utils:
                 else:
                     grad_vec = torch.cat((grad_vec, viewed))
                     
-            for par in network2.module.parameters():
+            for par in network2.parameters():
                 if par.grad is None:
                     if none_grad_mode == "raise":
                         raise RuntimeError("None gradient detected.")
@@ -2276,11 +2276,11 @@ class data_utils:
         """
         with torch.no_grad():
             start = 0
-            for par in network1.module.parameters():
+            for par in network1.parameters():
                 end = start + par.data.view(-1).shape[0]
                 par.grad = grad_vec[start:end].view(par.data.shape)
                 start = end
-            for par in network2.module.parameters():
+            for par in network2.parameters():
                 end = start + par.data.view(-1).shape[0]
                 par.grad = grad_vec[start:end].view(par.data.shape)
                 start = end
@@ -2316,7 +2316,7 @@ class data_utils:
             joint_apply_gradient_vector_para_based(network1, network2, grad_vec)
         with torch.no_grad():
             start = 0
-            for par in network1.module.parameters():
+            for par in network1.parameters():
                 if par.grad is None:
                     if none_grad_mode == "skip":
                         continue
@@ -2334,7 +2334,7 @@ class data_utils:
                     end = start + par.data.view(-1).shape[0]
                     par.grad.data = grad_vec[start:end].view(par.data.shape)
                     start = end
-            for par in network2.module.parameters():
+            for par in network2.parameters():
                 if par.grad is None:
                     if none_grad_mode == "skip":
                         continue

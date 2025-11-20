@@ -457,6 +457,9 @@ def main(cfg: DictConfig) -> float:
                 #     target[:,180:180+cfg.strato_lev] = 0
                 print(f'starting step {current_step} of epoch {epoch+1}')
                 data_input, target = data_input.to(device), target.to(device)
+                
+                if current_step == 37:
+                    print(f'data_input is {data_input}')
                 # optimizer.zero_grad()
                 # output = model(data_input)
                 # if cfg.do_energy_loss:
@@ -583,8 +586,7 @@ def main(cfg: DictConfig) -> float:
                 
                 #UNET DETERMINISTIC PREDICTION
                 data_input, target = data_input.to(device), target.to(device)
-                if current_step == 36:
-                    print(f'data_input is {data_input}')
+                
                 
                 output = model(data_input)
                 

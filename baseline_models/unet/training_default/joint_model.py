@@ -108,7 +108,7 @@ class JointModel(nn.Module):
         ])
         
         #res_grad = data_utils.joint_get_gradient_vector(self.model_a, self.model_b, none_grad_mode="zero")
-        grads = [grads_det, grads_res]
+        grads = [flat_grads_det, flat_grads_res]
         
         g_config=ConFIG_update(grads) # calculate the conflict-free direction
         joint_optimizer.zero_grad()

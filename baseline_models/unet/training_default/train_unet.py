@@ -21,6 +21,8 @@ from physicsnemo.launch.utils import (
     save_checkpoint,
     get_checkpoint_dir,
 )
+
+from joint_model import JointModel
 from climsim_utils.data_utils import *
 from physicsnemo.models.diffusion.preconditioning import EDMPrecond
 from climsim_datasets import TrainingDataset, ValidationDataset
@@ -209,6 +211,7 @@ def main(cfg: DictConfig) -> float:
         
     ).to(dist.device)
 
+    joint_model = JointModel(model, res_model).to(dist.device)
 
     if len(cfg.restart_path) > 0:
         print("Restarting from checkpoint: " + cfg.restart_path)
@@ -232,7 +235,17 @@ def main(cfg: DictConfig) -> float:
     if dist.distributed:
         ddps = torch.cuda.Stream()
         with torch.cuda.stream(ddps):
-            model = DistributedDataParallel(
+            joint_model = DistributedDataParallel(
+                joint_model,
+                device_ids=[dist.local_rank],  # Set the device_id to be
+                                               # the local rank of this process on
+                                               # this node
+                output_device=dist.device,
+                broadcast_buffers=dist.broadcast_buffers,
+                find_unused_parameters=dist.find_unused_parameters,
+            )
+            
+            '''model = DistributedDataParallel(
                 model,
                 device_ids=[dist.local_rank],  # Set the device_id to be
                                                # the local rank of this process on
@@ -252,16 +265,25 @@ def main(cfg: DictConfig) -> float:
                 broadcast_buffers=dist.broadcast_buffers,
                 find_unused_parameters=True,
                 static_graph=True,
-            )
+            )'''
         torch.cuda.current_stream().wait_stream(ddps)
 
+
     #joint optimizer
+    if cfg.optimizer == 'Adam':
+        joint_optimizer = optim.Adam(joint_model.module.parameters(), lr=cfg.learning_rate)
+    elif cfg.optimizer == 'AdamW':
+        joint_optimizer = optim.AdamW(joint_model.module.parameters(), lr=cfg.learning_rate)
+    else:
+        raise ValueError('Optimizer not implemented')
+    
+'''    #joint optimizer
     if cfg.optimizer == 'Adam':
         joint_optimizer = optim.Adam(list(model.module.parameters()) + list(res_model.module.parameters()), lr=cfg.learning_rate)
     elif cfg.optimizer == 'AdamW':
         joint_optimizer = optim.AdamW(list(model.module.parameters()) + list(res_model.module.parameters()), lr=cfg.learning_rate)
     else:
-        raise ValueError('Optimizer not implemented')
+        raise ValueError('Optimizer not implemented')'''
     
     
     # create deterministic optimizer
@@ -399,7 +421,7 @@ def main(cfg: DictConfig) -> float:
     out_scale_device = torch.tensor(out_scale, dtype=torch.float32).to(device)
 
     @StaticCaptureTraining(
-        model=model,
+        model=joint_model,
         optim=joint_optimizer,
         # cuda_graph_warmup=11,
     )
@@ -463,7 +485,13 @@ def main(cfg: DictConfig) -> float:
                     print(f'data_input has nan: {torch.isnan(data_input).any().item()}')
                     print(f'target is {target}')
                     print(f'target has nan: {torch.isnan(target).any().item()}')
-                    
+                
+                
+                output, residual, predicted_residual = joint_model(data_input)
+                joint_model.loss(criterion, output, target, predicted_residual, residual)
+                joint_model.backward(deterministic_loss, res_loss, joint_optimizer)
+                joint_optimizer.step()
+                
                 '''if current_step in range(30, 45):   # monitor a small window around the failing step
                     print(f"\n--- Diagnostics step {current_step} ---")
                     print("batch slice indices (est):", current_step, "->", current_step+batch_size)
@@ -488,7 +516,7 @@ def main(cfg: DictConfig) -> float:
                         if torch.isnan(x).any():
                             print(f"NaN detected after layer {i} ({layer})")
                             break'''
-                output = model(data_input)            
+                #output = model(data_input)            
                 #for deterministic model
                 '''if current_step == 37:
                     print("output has NaN:", torch.isnan(output).any().item())
@@ -506,7 +534,7 @@ def main(cfg: DictConfig) -> float:
                 joint_optimizer.step()'''
                 
                 
-                if torch.any(torch.abs(output) > 1e3):
+                '''f torch.any(torch.abs(output) > 1e3):
                     print(f"Large output detected at {current_step}")
                 
                 if current_step == 37:
@@ -575,7 +603,7 @@ def main(cfg: DictConfig) -> float:
 
                 torch.nn.utils.clip_grad_norm_(list(model.module.parameters()) + list(res_model.module.parameters()), 1.0)
                 
-                joint_optimizer.step()
+                joint_optimizer.step()'''
 
                 
                 #deterministic_scheduler.step()

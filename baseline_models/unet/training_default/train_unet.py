@@ -460,6 +460,9 @@ def main(cfg: DictConfig) -> float:
                 
                 if current_step == 37:
                     print(f'data_input is {data_input}')
+                    print(f'data_input has nan: {torch.isnan(data_input).any().item()}')
+                    print(f'target is {target}')
+                    print(f'target has nan: {torch.isnan(target).any().item()}')
                 # optimizer.zero_grad()
                 # output = model(data_input)
                 # if cfg.do_energy_loss:

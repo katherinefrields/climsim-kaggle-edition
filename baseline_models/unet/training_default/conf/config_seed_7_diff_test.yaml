@@ -70,7 +70,7 @@ input_clip_rhonly: True
 
 # training settings
 seed: 7
-restart_path: ''
+restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
 expname: 'diff_test'
 num_workers: 32

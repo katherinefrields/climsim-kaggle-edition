@@ -211,7 +211,7 @@ def main(cfg: DictConfig) -> float:
         
     ).to(dist.device)
 
-    joint_model = JointModel(model, res_model).to(dist.device)
+    
 
     if len(cfg.restart_path) > 0:
         print("Restarting from checkpoint: " + cfg.restart_path)
@@ -227,6 +227,8 @@ def main(cfg: DictConfig) -> float:
             model_restart = modulus.Module.from_checkpoint(cfg.restart_path).to(dist.device)
             model.load_state_dict(model_restart.state_dict())
 
+    joint_model = JointModel(model, res_model).to(dist.device)
+    
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to
     # check this.

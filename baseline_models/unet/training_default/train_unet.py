@@ -500,111 +500,7 @@ def main(cfg: DictConfig) -> float:
                 # else:
                 #     loss = criterion(output, target)
                 # loss.backward()
-                '''x = data_input
-                if current_step == 37:
-                    for i, layer in enumerate(model.module.layers):
-                        x = layer(x)
-                        if torch.isnan(x).any():
-                            print(f"NaN detected after layer {i} ({layer})")
-                            break'''
-                #output = model(data_input)            
-                #for deterministic model
-                '''if current_step == 37:
-                    print("output has NaN:", torch.isnan(output).any().item())
-                    print("output has Inf:", torch.isinf(output).any().item())
-
-
-                deterministic_loss = loss_fn(output, target)
-                if not torch.isfinite(deterministic_loss):
-                    print(f"\n❌ deterministic_loss is NaN at batch {current_step}")
-                    print("output min/max:", output.min().item(), output.max().item())
-                    
-                joint_optimizer.zero_grad()
-                deterministic_loss.backward()
                 
-                joint_optimizer.step()'''
-                
-                
-                '''f torch.any(torch.abs(output) > 1e3):
-                    print(f"Large output detected at {current_step}")
-                
-                if current_step == 37:
-                    print("output has NaN:", torch.isnan(output).any().item())
-                    print("output has Inf:", torch.isinf(output).any().item())
-
-                residual = target - output
-                #residual = (target - output.detach())
-                
-                #condition_input = output.detach()
-               
-                residual = residual.to(device)
-                
-                #set the sigma based on parameters -- CHANGE THIS LATER
-                P_mean = -1.2
-                P_std = 1.2
-
-                # Batch size
-                batch_size = residual.shape[0]
-
-                # Sample log-normal σ
-                sigma = torch.exp(
-                    P_mean + P_std * torch.randn(batch_size, device=device)
-                )
-                
-                
-                predicted_residual = res_model(residual,sigma)
-                
-                if current_step == 37:
-                    print("output after res has NaN:", torch.isnan(output).any().item())
-                    print("output after res has Inf:", torch.isinf(output).any().item())
-                    print("res has NaN:", torch.isnan(predicted_residual).any().item())
-                    print("res has Inf:", torch.isinf(predicted_residual).any().item())
-                
-                deterministic_loss = criterion(output, target)
-                res_loss = criterion(predicted_residual,residual)
-                if not torch.isfinite(deterministic_loss):
-                    print(f"\n❌ deterministic_loss is NaN at batch {current_step}")
-                    print("output min/max:", output.min().item(), output.max().item())
-                    print("residual min/max:", residual.min().item(), residual.max().item())
-                    raise SystemExit
-
-                if not torch.isfinite(res_loss):
-                    print(f"\n❌ res_loss is NaN at batch {current_step}")
-                    print("predicted_residual min/max:", predicted_residual.min().item(), predicted_residual.max().item())
-                    print("residual min/max:", residual.min().item(), residual.max().item())
-                    print("output min/max:", output.min().item(), output.max().item())
-                    raise SystemExit
-                
-                
-                joint_optimizer.zero_grad()
-                deterministic_loss.backward(retain_graph=True)
-                
-                #the res gradients for deterministic grad will all be zero, since they don't affect the deterministic loss
-                deterministic_grad = data_utils.joint_get_gradient_vector(model, res_model, none_grad_mode="zero")
-                
-                joint_optimizer.zero_grad()
-                res_loss.backward()
-                res_grad = data_utils.joint_get_gradient_vector(model, res_model, none_grad_mode="zero")
-                
-                grads = [deterministic_grad, res_grad]
-                
-
-                g_config=ConFIG_update(grads) # calculate the conflict-free direction
-                data_utils.joint_apply_gradient_vector(model, res_model,g_config) # set the conflict-free direction to the network
-
-                torch.nn.utils.clip_grad_norm_(list(model.module.parameters()) + list(res_model.module.parameters()), 1.0)
-                
-                joint_optimizer.step()'''
-
-                
-                #deterministic_scheduler.step()
-                
-                #res_optimizer.zero_grad()
-                #res_loss.backward()
-                #res_optimizer.step()
-                #residual_scheduler.step()
-                
-
                 
                 # max_grad = max(p.grad.abs().max() for p in model.parameters() if p.grad is not None)
                 # # Initialize a list to store the L2 norms of each parameter's gradient
@@ -631,7 +527,7 @@ def main(cfg: DictConfig) -> float:
                 print(f'Current step is {current_step}')
                 #print(torch.cuda.memory_summary())
                 current_step += 1
-                del data_input, target, output, #residual, predicted_residual, deterministic_grad, res_grad, g_config
+                del data_input, target, output, residual, predicted_residual
                 
                 
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
@@ -656,7 +552,6 @@ def main(cfg: DictConfig) -> float:
                 
                 output, residual, predicted_residual = joint_model(data_input, target)
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
-                
                 
                 
                 val_loss += deterministic_loss.item() * data_input.size(0)
@@ -691,15 +586,12 @@ def main(cfg: DictConfig) -> float:
                     ckpt_path = os.path.join(save_path_ckpt, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}.mdlus')
                     ckpt_res_path = os.path.join(save_path_ckpt_res, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}.mdlus')
                     
-                    #ckpt_path_res = os.path.join(save_path_ckpt_res, f'ckpt_epoch_{epoch+1}_metric_{current_metric:.4f}_res.mdlus')
                     if dist.distributed:
                         model.save(ckpt_path)
                         res_model.save(ckpt_res_path)
-                        #save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     else:
                         model.save(ckpt_path)
                         res_model.save(ckpt_res_path)
-                        #save_checkpoint(save_path_ckpt_res, models = res_model, epoch = epoch+1, optimizer=res_optimizer,scheduler = residual_scheduler)
                     top_checkpoints.append((current_metric, ckpt_path))
                     top_res_checkpoints.append((current_metric,ckpt_res_path))
                     # Sort and keep top 5 based on max/min goal at the beginning
@@ -721,17 +613,9 @@ def main(cfg: DictConfig) -> float:
                         #ADD THIS BACK LATER
             if cfg.scheduler_name == 'plateau':
                 joint_scheduler.step(current_val_loss_avg)
-                #residual_scheduler.step(current_val_loss_avg)
             else:
                 joint_scheduler.step()
-                #residual_scheduler.step()
                       
-            '''if cfg.scheduler_name == 'plateau':
-                deterministic_scheduler.step(current_val_loss_avg)
-                #residual_scheduler.step(current_val_loss_avg)
-            else:
-                deterministic_scheduler.step()
-                #residual_scheduler.step()'''
             
             if dist.world_size > 1:
                 torch.distributed.barrier()
@@ -800,12 +684,6 @@ def main(cfg: DictConfig) -> float:
                 save_path_torch = os.path.join(mdlus_directory, filename.replace('.mdlus', '.pt'))
                 scripted_model.save(save_path_torch)
                 print('save path for ckpt torchscript:', save_path_torch)
-                
-                #save_path_torch = os.path.join(mdlus_directory, filename.replace('.mdlus', '.pt'))
-                #save_checkpoint(save_path, models = model_inf_res, epoch = top_res_checkpoints[0][1], optimizer=res_optimizer,scheduler = residual_scheduler)
-                
-                #scripted_model_res.save(save_path_torch)
-                #print('save path for ckpt torchscript:', save_path_torch)
                 
                 # wrap model
                 device = torch.device("cuda")

@@ -403,12 +403,6 @@ def main(cfg: DictConfig) -> float:
                 print(f'starting step {current_step} of epoch {epoch+1}')
                 data_input, target = data_input.to(device), target.to(device)
                 
-                if current_step == 37:
-                    print(f'data_input is {data_input}')
-                    print(f'data_input has nan: {torch.isnan(data_input).any().item()}')
-                    print(f'target is {target}')
-                    print(f'target has nan: {torch.isnan(target).any().item()}')
-                
                 
                 output, residual, predicted_residual = joint_model(data_input, target)
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
@@ -446,7 +440,7 @@ def main(cfg: DictConfig) -> float:
                 # scheduler.step()
                 #launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy()})
                 #if dist.rank == 0:
-                launchlog.log_minibatch({"loss_train": deterministic_loss.detach().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"]})
+                launchlog.log_minibatch({"loss_det_train": deterministic_loss.detach().cpu().numpy(),"loss_res_train": res_loss.detach().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"]})
                 # Update the progress bar description with the current loss
                 train_loop.set_description(f'Epoch {epoch+1}')
                 train_loop.set_postfix(det_loss=deterministic_loss.item(), res_loss=res_loss.item())

@@ -248,27 +248,6 @@ def main(cfg: DictConfig) -> float:
                 static_graph=True,
             )
             
-            '''model = DistributedDataParallel(
-                model,
-                device_ids=[dist.local_rank],  # Set the device_id to be
-                                               # the local rank of this process on
-                                               # this node
-                output_device=dist.device,
-                broadcast_buffers=dist.broadcast_buffers,
-                find_unused_parameters=dist.find_unused_parameters,
-            )
-            res_model= DistributedDataParallel(
-                res_model,
-                device_ids=[dist.local_rank],  # Set the device_id to be
-                                               # the local rank of this process on
-                                               # sthis node
-                output_device=dist.device,
-                bucket_cap_mb=35,
-                gradient_as_bucket_view=True,
-                broadcast_buffers=dist.broadcast_buffers,
-                find_unused_parameters=True,
-                static_graph=True,
-            )'''
         torch.cuda.current_stream().wait_stream(ddps)
 
 
@@ -280,32 +259,6 @@ def main(cfg: DictConfig) -> float:
     else:
         raise ValueError('Optimizer not implemented')
     
-    '''#joint optimizer
-    if cfg.optimizer == 'Adam':
-        joint_optimizer = optim.Adam(list(model.module.parameters()) + list(res_model.module.parameters()), lr=cfg.learning_rate)
-    elif cfg.optimizer == 'AdamW':
-        joint_optimizer = optim.AdamW(list(model.module.parameters()) + list(res_model.module.parameters()), lr=cfg.learning_rate)
-    else:
-        raise ValueError('Optimizer not implemented')'''
-    
-    
-    # create deterministic optimizer
-    '''if cfg.optimizer == 'Adam':
-        deterministic_optimizer = optim.Adam(model.parameters(), lr=cfg.learning_rate)
-    elif cfg.optimizer == 'AdamW':
-        deterministic_optimizer = optim.AdamW(model.parameters(), lr=cfg.learning_rate)
-    else:
-        raise ValueError('Optimizer not implemented')'''
-    
-    '''# create resodia; optimizer
-    if cfg.optimizer == 'Adam':
-        res_optimizer = optim.Adam(res_model.parameters(), lr=cfg.learning_rate)
-    elif cfg.optimizer == 'AdamW':
-        res_optimizer = optim.AdamW(res_model.parameters(), lr=cfg.learning_rate)
-    else:
-        raise ValueError('Optimizer not implemented')'''
-    
-    
     
     # create scheduler
     if cfg.scheduler_name == 'step':
@@ -316,27 +269,6 @@ def main(cfg: DictConfig) -> float:
         joint_scheduler = optim.lr_scheduler.CosineAnnealingLR(joint_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
     else:
         raise ValueError('Scheduler not implemented')
-    
-    '''# create scheduler
-    if cfg.scheduler_name == 'step':
-        deterministic_scheduler = optim.lr_scheduler.StepLR(deterministic_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
-    elif cfg.scheduler_name == 'plateau':
-        deterministic_scheduler = optim.lr_scheduler.ReduceLROnPlateau(deterministic_optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
-    elif cfg.scheduler_name == 'cosine':
-        deterministic_scheduler = optim.lr_scheduler.CosineAnnealingLR(deterministic_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
-    else:
-        raise ValueError('Scheduler not implemented')'''
-    
-
-    '''# create residual scheduler
-    if cfg.scheduler_name == 'step':
-        residual_scheduler = optim.lr_scheduler.StepLR(res_optimizer, step_size=cfg.scheduler.step.step_size, gamma=cfg.scheduler.step.gamma)
-    elif cfg.scheduler_name == 'plateau':
-        residual_scheduler = optim.lr_scheduler.ReduceLROnPlateau(res_optimizer, mode='min', factor=cfg.scheduler.plateau.factor, patience=cfg.scheduler.plateau.patience, verbose=True)
-    elif cfg.scheduler_name == 'cosine':
-        residual_scheduler = optim.lr_scheduler.CosineAnnealingLR(res_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
-    else:
-        raise ValueError('Scheduler not implemented')'''
     
     
     # create loss function
@@ -483,12 +415,6 @@ def main(cfg: DictConfig) -> float:
                 joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
                 joint_optimizer.step()
                 
-                '''if current_step in range(30, 45):   # monitor a small window around the failing step
-                    print(f"\n--- Diagnostics step {current_step} ---")
-                    print("batch slice indices (est):", current_step, "->", current_step+batch_size)
-                    print("input min/max:", torch.nanmin(data_input).item(), torch.nanmax(data_input).item())
-                    print("target min/max:", torch.nanmin(target).item(), torch.nanmax(target).item())'''
-                    
                 
                 # optimizer.zero_grad()
                 # output = model(data_input)
@@ -523,7 +449,7 @@ def main(cfg: DictConfig) -> float:
                 launchlog.log_minibatch({"loss_train": deterministic_loss.detach().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"]})
                 # Update the progress bar description with the current loss
                 train_loop.set_description(f'Epoch {epoch+1}')
-                train_loop.set_postfix(loss=deterministic_loss.item())
+                train_loop.set_postfix(det_loss=deterministic_loss.item(), res_loss=res_loss.item())
                 print(f'Current step is {current_step}')
                 #print(torch.cuda.memory_summary())
                 current_step += 1
@@ -535,7 +461,8 @@ def main(cfg: DictConfig) -> float:
             model.eval()
             res_model.eval()
             
-            val_loss = 0.0
+            deterministic_val_loss = 0.0
+            residual_val_loss = 0.0
             num_samples_processed = 0
             val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]')
             current_step = 0
@@ -554,12 +481,14 @@ def main(cfg: DictConfig) -> float:
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
                 
                 
-                val_loss += deterministic_loss.item() * data_input.size(0)
+                deterministic_val_loss += deterministic_loss.item() * data_input.size(0)
+                residual_val_loss += res_loss.item() * data_input.size(0)
                 num_samples_processed += data_input.size(0)
 
                 # Calculate and update the current average loss
-                current_val_loss_avg = val_loss / num_samples_processed
-                val_loop.set_postfix(loss=current_val_loss_avg)
+                current_deterministic_val_loss_avg = deterministic_val_loss / num_samples_processed
+                current_residual_val_loss_avg = residual_val_loss / num_samples_processed
+                val_loop.set_postfix(det_loss=current_deterministic_val_loss_avg, res_loss = current_residual_val_loss_avg)
                 current_step += 1
                 del data_input, target, output, residual, predicted_residual
                     
@@ -567,14 +496,20 @@ def main(cfg: DictConfig) -> float:
             # if dist.rank == 0:
                 #all reduce the loss
             if dist.world_size > 1:
-                current_val_loss_avg = torch.tensor(current_val_loss_avg, device=dist.device)
-                torch.distributed.all_reduce(current_val_loss_avg)
-                current_val_loss_avg = current_val_loss_avg.item() / dist.world_size
+                current_deterministic_val_loss_avg = torch.tensor(current_deterministic_val_loss_avg, device=dist.device)
+                torch.distributed.all_reduce(current_deterministic_val_loss_avg)
+                current_deterministic_val_loss_avg = current_deterministic_val_loss_avg.item() / dist.world_size
+                
+                current_residual_val_loss_avg = torch.tensor(current_residual_val_loss_avg, device=dist.device)
+                torch.distributed.all_reduce(current_residual_val_loss_avg)
+                current_residual_val_loss_avg = current_residual_val_loss_avg.item() / dist.world_size
 
             if dist.rank == 0:
-                launchlog.log_epoch({"loss_valid": current_val_loss_avg})
+                launchlog.log_epoch({"loss_det_valid": current_deterministic_val_loss_avg, "los_res_valid": current_residual_val_loss_avg})
 
-                current_metric = current_val_loss_avg
+                #currently saving the model with the best deterministic performance
+                current_metric = current_deterministic_val_loss_avg
+                
                 # Save the top checkpoints
                 if cfg.top_ckpt_mode == 'min':
                     is_better = current_metric < max(top_checkpoints, key=lambda x: x[0])[0]
@@ -612,7 +547,7 @@ def main(cfg: DictConfig) -> float:
                         #    os.remove(worst_res_ckpt[1])
                         #ADD THIS BACK LATER
             if cfg.scheduler_name == 'plateau':
-                joint_scheduler.step(current_val_loss_avg)
+                joint_scheduler.step(current_deterministic_val_loss_avg)
             else:
                 joint_scheduler.step()
                       
@@ -699,7 +634,7 @@ def main(cfg: DictConfig) -> float:
                 
         logger.info("Training complete!")
 
-    return current_val_loss_avg
+    return current_deterministic_val_loss_avg
 
 if __name__ == "__main__":
     main()

@@ -210,11 +210,9 @@ def main(cfg: DictConfig) -> float:
         model_type="DhariwalUNet",  # or another backbone
         #model_channels = cfg.model_channels,#used for score unet
         attn_resolutions=res_attn_resolutions,
-        num_block=cfg.diffusion_model.num_blocks,
+        num_blocks=cfg.diffusion_model.num_blocks,
         channel_mult=res_channel_mult,
         model_channels = cfg.diffusion_model.model_channels,
-        
-        
     ).to(dist.device)
 
     

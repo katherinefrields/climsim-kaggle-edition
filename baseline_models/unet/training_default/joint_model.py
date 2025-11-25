@@ -52,7 +52,7 @@ class JointModel(nn.Module):
             P_mean + P_std * torch.randn(batch_size, device=output.device)
         )
         
-        predicted_residual = self.res_model(residual,sigma)
+        predicted_residual = self.res_model(residual,sigma, condition = output)
 
         return output, residual, predicted_residual
 

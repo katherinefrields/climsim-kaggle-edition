@@ -193,7 +193,7 @@ def main(cfg: DictConfig) -> float:
     res_channel_mult = OmegaConf.to_container(cfg.diffusion_model.channel_mult, resolve = True)
     #res_resample_filter = OmegaConf.to_container(cfg.diffusion_model.resample_filter, resolve = True)
     res_model = EDMPrecond(
-        img_resolution=cfg.seq_resolution,         # vertical levels
+        img_resolution=cfg.diffusion_model.seq_resolution,         # vertical levels
         #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
         #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
         #starting with unconditional

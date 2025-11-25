@@ -159,9 +159,9 @@ def main(cfg: DictConfig) -> float:
     # create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     #print('debug: output_size', output_size, output_size//60, output_size%60)
-    attn_resolutions = OmegaConf.to_container(cfg.attn_resolutions, resolve = True)
-    channel_mult = OmegaConf.to_container(cfg.channel_mult, resolve = True)
-    resample_filter = OmegaConf.to_container(cfg.resample_filter, resolve = True)
+    attn_resolutions = OmegaConf.to_container(cfg.deterministic_model.attn_resolutions, resolve = True)
+    channel_mult = OmegaConf.to_container(cfg.deterministic_model.channel_mult, resolve = True)
+    resample_filter = OmegaConf.to_container(cfg.deterministic_model.resample_filter, resolve = True)
     model = Unet(
         input_profile_num = data.input_profile_num,
         input_scalar_num = data.input_scalar_num,
@@ -169,27 +169,29 @@ def main(cfg: DictConfig) -> float:
         target_scalar_num = data.target_scalar_num,
         output_prune = cfg.output_prune,
         strato_lev_out = cfg.strato_lev_out,
-        dropout = cfg.dropout,
-        loc_embedding = cfg.loc_embedding,
-        embedding_type = cfg.embedding_type,
-        num_blocks = cfg.num_blocks,
+        dropout = cfg.deterministic_model.dropout,
+        loc_embedding = cfg.deterministic_model.loc_embedding,
+        embedding_type = cfg.deterministic_model.embedding_type,
+        num_blocks = cfg.deterministic_model.num_blocks,
         attn_resolutions = attn_resolutions,
-        model_channels = cfg.model_channels,
-        skip_conv = cfg.skip_conv,
-        prev_2d = cfg.prev_2d,
-        seq_resolution = cfg.seq_resolution,
-        label_dim = cfg.label_dim,
-        augment_dim = cfg.augment_dim,
+        model_channels = cfg.deterministic_model.model_channels,
+        skip_conv = cfg.deterministic_model.skip_conv,
+        prev_2d = cfg.deterministic_model.prev_2d,
+        seq_resolution = cfg.deterministic_model.seq_resolution,
+        label_dim = cfg.deterministic_model.label_dim,
+        augment_dim = cfg.deterministic_model.augment_dim,
         channel_mult = channel_mult,
-        channel_mult_emb = cfg.channel_mult_emb,
-        label_dropout = cfg.label_dropout,
-        channel_mult_noise = cfg.channel_mult_noise,
-        encoder_type = cfg.encoder_type,
-        decoder_type = cfg.decoder_type,
+        channel_mult_emb = cfg.deterministic_model.channel_mult_emb,
+        label_dropout = cfg.deterministic_model.label_dropout,
+        channel_mult_noise = cfg.deterministic_model.channel_mult_noise,
+        encoder_type = cfg.deterministic_model.encoder_type,
+        decoder_type = cfg.deterministic_model.decoder_type,
         resample_filter = resample_filter,
     ).to(dist.device)
 
-
+    res_attn_resolutions = OmegaConf.to_container(cfg.diffusion_model.attn_resolutions, resolve = True)
+    res_channel_mult = OmegaConf.to_container(cfg.diffusion_model.channel_mult, resolve = True)
+    #res_resample_filter = OmegaConf.to_container(cfg.diffusion_model.resample_filter, resolve = True)
     res_model = EDMPrecond(
         img_resolution=cfg.seq_resolution,         # vertical levels
         #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
@@ -207,6 +209,10 @@ def main(cfg: DictConfig) -> float:
         #sigma_data=0.5,
         model_type="DhariwalUNet",  # or another backbone
         #model_channels = cfg.model_channels,#used for score unet
+        attn_resolutions=res_attn_resolutions,
+        num_block=cfg.diffusion_model.num_blocks,
+        channel_mult=res_channel_mult,
+        model_channels = cfg.diffusion_model.model_channels,
         
         
     ).to(dist.device)

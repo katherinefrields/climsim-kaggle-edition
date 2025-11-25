@@ -108,21 +108,28 @@ wandb:
    entity: "cbrain"
 
 # model hyperparameters
-dropout: 0.0
-loc_embedding: False
-embedding_type: "positional"
-num_blocks: 2
-attn_resolutions: [0]
-model_channels: 64
-skip_conv: False
-prev_2d: False
-seq_resolution: 64
-label_dim: 0
-augment_dim: 0
-channel_mult: [1, 2, 2, 2]
-channel_mult_emb: 4
-label_dropout: 0.0
-channel_mult_noise: 1
-encoder_type: "standard"
-decoder_type: "standard"
-resample_filter: [1, 1]
+deterministic_model:
+   dropout: 0.0
+   loc_embedding: False
+   embedding_type: "positional"
+   num_blocks: 2
+   attn_resolutions: [0]
+   model_channels: 128
+   skip_conv: False
+   prev_2d: False
+   seq_resolution: 64
+   label_dim: 0
+   augment_dim: 0
+   channel_mult: [1, 2, 2, 2]
+   channel_mult_emb: 4
+   label_dropout: 0.0
+   channel_mult_noise: 1
+   encoder_type: "standard"
+   decoder_type: "standard"
+   resample_filter: [1, 1]
+   
+diffusion_model:
+   channel_mult: [1, 2, 2, 2]
+   attn_resolutions: [0]
+   num_blocks: 2
+   model_channels: 128

@@ -194,7 +194,7 @@ class EDMPrecond(Module):
             condition_cat = torch.cat((condition_profile, condition_scalar), dim=1)
             
             condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
-            
+            self.img_in_channels = self.img_in_channels * 2
                 
         #=====Class Conditioning=====
         class_labels = (

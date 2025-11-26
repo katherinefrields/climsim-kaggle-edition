@@ -162,9 +162,10 @@ def main(cfg: DictConfig) -> float:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     res_std = torch.load('/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/res_std.pt').to(device)
-    
     res_std = res_std.to(torch.float32)
     
+    preds_std = torch.load('/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/preds_std.pt').to(device)
+    preds_std = preds_std.to(torch.float32)
     
     
     #print('debug: output_size', output_size, output_size//60, output_size%60)
@@ -216,6 +217,7 @@ def main(cfg: DictConfig) -> float:
         #sigma_min=0.002,
         #sigma_max=80,
         sigma_data=res_std,
+        sigma_condition_data = preds_std,
         model_type="DhariwalUNet",  # or another backbone
         #model_channels = cfg.model_channels,#used for score unet
         attn_resolutions=res_attn_resolutions,

@@ -130,7 +130,7 @@ deterministic_model:
 
 diffusion_model:
    channel_mult: [1, 2, 2, 2]
-   attn_resolutions: [0]
+   attn_resolutions: [8]
    num_blocks: 2
    model_channels: 128
    seq_resolution: 64

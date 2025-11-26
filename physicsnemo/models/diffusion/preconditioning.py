@@ -132,7 +132,9 @@ class EDMPrecond(Module):
         self.sigma_max = sigma_max
         self.sigma_data = sigma_data
 
-        if condition==True:
+        self.condition = condition
+    
+        if self.condition==True:
             img_in_channels = img_in_channels * 2
         self.input_profile_num = input_profile_num # number of input profile variables
         self.input_scalar_num = input_scalar_num # number of input scalar variables

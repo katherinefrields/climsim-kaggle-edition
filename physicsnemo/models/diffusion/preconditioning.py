@@ -130,14 +130,15 @@ class EDMPrecond(Module):
         self.use_fp16 = use_fp16
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
-        self.sigma_data = sigma_data
-
+        
         self.condition = condition
     
         self.input_profile_num = input_profile_num # number of input profile variables
         self.input_scalar_num = input_scalar_num # number of input scalar variables
         self.vertical_level_num = vertical_level_num
 
+        self.sigma_data = sigma_data.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        
         self.input_padding = (img_resolution - vertical_level_num,0)
         
         model_class = getattr(network_module, model_type)
@@ -161,7 +162,7 @@ class EDMPrecond(Module):
         #=====Cast to floats=====
         x = x.to(torch.float32)
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1)
-        sigma_data = sigma_data.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        
         
         #=====Reshape Input=====
         #levels are without padding

@@ -165,8 +165,23 @@ class EDMPrecond(Module):
         #=====Reshape Sigma=====
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
-        '''
-        sigma_data = self.sigma_data.unsqueeze(0)
+        sigma_data = self.sigma_data
+        
+        sigma_data_profile = sigma_data[:,:self.input_profile_num*self.vertical_level_num]
+        sigma_scalar = sigma_data[:,self.input_profile_num*self.vertical_level_num:]
+        
+        # reshape x_profile to (batch, input_profile_num, levels)
+        sigma_data_profile = sigma_data_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        
+        # broadcast x_scalar to (batch, input_scalar_num, levels)
+        sigma_scalar = sigma_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+        
+        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
+        sigma_data = torch.cat((sigma_data_profile, sigma_scalar), dim=1)
+        
+        sigma_data = torch.nn.functional.pad(sigma_data, self.input_padding, "constant", 0.0)
+        
+        '''sigma_data = self.sigma_data.unsqueeze(0)
         profile_index = self.input_profile_num*(self.vertical_level_num + 4)
         
         sigma_data_profile = sigma_data[:,:profile_index]
@@ -179,12 +194,12 @@ class EDMPrecond(Module):
         sigma_scalar = sigma_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num + 4)
         
         #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-        sigma_data = torch.cat((sigma_data_profile, sigma_scalar), dim=1)'''
+        sigma_data = torch.cat((sigma_data_profile, sigma_scalar), dim=1)
         
-        #sigma_data = torch.nn.functional.pad(sigma_data, self.input_padding, "constant", 0.0)
+        sigma_data = torch.nn.functional.pad(sigma_data, self.input_padding, "constant", 0.0)'''
         
         #ALT
-        sigma_data = self.sigma_data
+        #sigma_data = self.sigma_data
         
         #=====Reshape Input=====
         #levels are without padding

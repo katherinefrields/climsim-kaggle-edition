@@ -137,7 +137,7 @@ class EDMPrecond(Module):
         self.input_scalar_num = input_scalar_num # number of input scalar variables
         self.vertical_level_num = vertical_level_num
 
-        self.sigma_data = sigma_data.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        self.sigma_data = sigma_data
         
         self.input_padding = (img_resolution - vertical_level_num,0)
         
@@ -162,6 +162,23 @@ class EDMPrecond(Module):
         #=====Cast to floats=====
         x = x.to(torch.float32)
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1)
+        #=====Reshape Sigma=====
+        #levels are without padding
+        #currently x(batch, target_profile_num*levels+target_scalar_num)
+        
+        sigma_data_profile = self.sigma_data[:,:self.input_profile_num*self.vertical_level_num]
+        sigma_scalar = self.sigma_data[:,self.input_profile_num*self.vertical_level_num:]
+        
+        # reshape x_profile to (batch, input_profile_num, levels)
+        sigma_data_profile = sigma_data_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        
+        # broadcast x_scalar to (batch, input_scalar_num, levels)
+        sigma_scalar = sigma_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+        
+        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
+        sigma_data = torch.cat((sigma_data_profile, sigma_scalar), dim=1)
+        
+        sigma_data = torch.nn.functional.pad(sigma_data, self.input_padding, "constant", 0.0)
         
         
         #=====Reshape Input=====
@@ -222,9 +239,9 @@ class EDMPrecond(Module):
         )
         
         #=====Compute Scaling Coefficients=====
-        c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
-        c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
-        c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
+        c_skip = sigma_data**2 / (sigma**2 + sigma_data**2)
+        c_out = sigma * sigma_data / (sigma**2 + sigma_data**2).sqrt()
+        c_in = 1 / (sigma_data**2 + sigma**2).sqrt()
         c_noise = sigma.log() / 4
 
         #=====Model Conditioning=====

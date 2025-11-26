@@ -400,6 +400,8 @@ def main(cfg: DictConfig) -> float:
             # Wrap train_loader with tqdm for a progress bar
             train_loop = tqdm(train_loader, desc=f'Epoch {epoch+1}')
             current_step = 0
+            for param in model.parameters():
+                param.requires_grad = False
             for data_input, target in train_loop:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
@@ -409,6 +411,11 @@ def main(cfg: DictConfig) -> float:
                 #     target[:,120:120+cfg.strato_lev] = 0
                 #     target[:,180:180+cfg.strato_lev] = 0
                 print(f'starting step {current_step} of epoch {epoch+1}')
+                
+                if current_step == cfg.warmup_steps:
+                    print('Unfreezing deterministic model')
+                    for param in model.parameters():
+                        param.requires_grad = True
                 data_input, target = data_input.to(device), target.to(device)
                 
                 

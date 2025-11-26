@@ -161,9 +161,9 @@ def main(cfg: DictConfig) -> float:
     # create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    res_std = torch.load('/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/diff_test_5000_steps/res_std.pt').to(device)
+    #res_std = torch.load('/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/diff_test_5000_steps/res_std.pt').to(device)
     
-    res_std = res_std.to(torch.float32)
+    #res_std = res_std.to(torch.float32)
     
     
     
@@ -215,7 +215,7 @@ def main(cfg: DictConfig) -> float:
         use_fp16=False,
         #sigma_min=0.002,
         #sigma_max=80,
-        sigma_data=res_std,
+        #sigma_data=res_std,
         model_type="DhariwalUNet",  # or another backbone
         #model_channels = cfg.model_channels,#used for score unet
         attn_resolutions=res_attn_resolutions,
@@ -484,6 +484,13 @@ def main(cfg: DictConfig) -> float:
             num_samples_processed = 0
             val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]')
             current_step = 0
+            
+            
+            #for debugging
+            val_preds = []
+            val_targets = []
+            
+            
             for data_input, target in val_loop:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
@@ -495,9 +502,14 @@ def main(cfg: DictConfig) -> float:
                 # Move data to the device
                 data_input, target = data_input.to(device), target.to(device)
                 
+                
+                
                 output, residual, predicted_residual = joint_model(data_input, target)
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
                 
+                
+                val_targets.append(target.cpu().numpy())
+                val_preds.append(output.cpu().numpy())
                 
                 deterministic_val_loss += deterministic_loss.item() * data_input.size(0)
                 residual_val_loss += res_loss.item() * data_input.size(0)
@@ -509,7 +521,13 @@ def main(cfg: DictConfig) -> float:
                 val_loop.set_postfix(det_loss=current_deterministic_val_loss_avg, res_loss = current_residual_val_loss_avg)
                 current_step += 1
                 del data_input, target, output, residual, predicted_residual
-                    
+
+            #debugging purposes
+            val_preds = np.stack(val_preds, axis=0)
+            val_targets = np.stack(val_targets, axis=0)
+            
+            np.save(os.path.join(save_path, f'val_preds_epoch_{epoch+1}.npy'), val_preds)
+            np.save(os.path.join(save_path, f'val_targets_epoch_{epoch+1}.npy'), val_targets)
             
             # if dist.rank == 0:
                 #all reduce the loss

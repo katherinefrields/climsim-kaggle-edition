@@ -165,6 +165,7 @@ class EDMPrecond(Module):
         #=====Reshape Sigma=====
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
+        '''
         sigma_data = self.sigma_data.unsqueeze(0)
         profile_index = self.input_profile_num*(self.vertical_level_num + 4)
         
@@ -178,10 +179,12 @@ class EDMPrecond(Module):
         sigma_scalar = sigma_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num + 4)
         
         #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-        sigma_data = torch.cat((sigma_data_profile, sigma_scalar), dim=1)
+        sigma_data = torch.cat((sigma_data_profile, sigma_scalar), dim=1)'''
         
         #sigma_data = torch.nn.functional.pad(sigma_data, self.input_padding, "constant", 0.0)
         
+        #ALT
+        sigma_data = self.sigma_data
         
         #=====Reshape Input=====
         #levels are without padding

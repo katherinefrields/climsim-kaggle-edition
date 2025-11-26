@@ -88,6 +88,7 @@ def main(cfg: DictConfig) -> float:
     output_size = data.target_feature_len
 
     input_sub, input_div, out_scale = data.save_norm(write=False)
+    res_std = torch.load('/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/diff_test_5000_steps/res_std.pt')
 
     train_dataset = TrainingDataset(parent_path = cfg.data_path,
                                     input_sub = input_sub,
@@ -206,7 +207,7 @@ def main(cfg: DictConfig) -> float:
         use_fp16=False,
         #sigma_min=0.002,
         #sigma_max=80,
-        #sigma_data=0.5,
+        sigma_data=res_std,
         model_type="DhariwalUNet",  # or another backbone
         #model_channels = cfg.model_channels,#used for score unet
         attn_resolutions=res_attn_resolutions,

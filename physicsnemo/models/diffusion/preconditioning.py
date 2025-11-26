@@ -220,9 +220,12 @@ class EDMPrecond(Module):
         
         print(f'x shape is {x.shape}, mean data shape is {self.mean_data.shape}, sigma data shape is {self.sigma_data.shape}')
         x = (x - self.mean_data)/((self.sigma_data+ 1e-8) * 0.5)
+        print(f'normalized x is {x}')
+        
         
         print(f'condition shape is {condition.shape}, mean condition shape is {self.condition_mean_data.shape}, sigma condition data shape is {self.sigma_condition_data.shape}')
         condition = (condition - self.condition_mean_data)/((self.sigma_condition_data + 1e-8) * 0.5)
+        print(f'condition x is {condition}')
         
         #=====Reshape Input=====
         #levels are without padding

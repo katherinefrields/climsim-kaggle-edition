@@ -308,7 +308,7 @@ class EDMPrecond(Module):
             )
         D_x = c_skip * x + c_out * F_x.to(torch.float32)
         
-        D_x = D_x * (self.sigma_data * 0.5) + self.mean_data
+        
         #print(f'D_x shape is {D_x.shape}')
 
         y_profile = D_x[:,:self.input_profile_num,self.input_padding[0]:]
@@ -321,6 +321,8 @@ class EDMPrecond(Module):
         y_profile = y_profile.reshape(-1, self.input_profile_num*self.vertical_level_num)
         #print(f'before concat y_profile shape is {y_profile.shape} and y_scalar shape is {y_scalar.shape}')
         y = torch.cat((y_profile, y_scalar), dim=1)
+        
+        y = y*(self.sigma_data * 0.5) + self.mean_data
         
         return y
 

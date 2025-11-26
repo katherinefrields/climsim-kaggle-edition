@@ -110,6 +110,8 @@ class EDMPrecond(Module):
         sigma_max=float("inf"),
         sigma_data=0.5,
         sigma_condition_data=.5,
+        mean_data = 0.0, 
+        condition_mean_data = 0.0,
         model_type="DhariwalUNet",
         img_in_channels=None,
         img_out_channels=None,
@@ -139,8 +141,10 @@ class EDMPrecond(Module):
         self.vertical_level_num = vertical_level_num
 
         self.sigma_data = sigma_data
+        self.mean_data = mean_data
         
         self.sigma_condition_data = sigma_condition_data
+        self.condition_mean_data = condition_mean_data
         
         self.input_padding = (img_resolution - vertical_level_num,0)
         
@@ -165,7 +169,7 @@ class EDMPrecond(Module):
         #=====Cast to floats=====
         x = x.to(torch.float32)
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1)
-        #=====Reshape Sigma=====
+        '''#=====Reshape Sigma=====
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
         sigma_data = self.sigma_data
@@ -226,6 +230,11 @@ class EDMPrecond(Module):
         x = torch.cat((x_profile, x_scalar), dim=1)
         
         x = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
+        '''
+        
+        #======Normalize condition data======
+        x = (x - self.mean_data)/(self.sigma_data * 0.5)
+        condition = (condition - self.condition_mean_data)/(self.sigma_condition_data * 0.5)
         
         #=====Reshape Condition=====
         #levels are without padding
@@ -267,6 +276,8 @@ class EDMPrecond(Module):
         )
         
         #=====Compute Scaling Coefficients=====
+        sigma_data = self.sigma_data
+        sigma_condition_data = self.sigma_condition_data
         #apply scaling on conditional and normal inputs
         c_skip = sigma_data**2 / (sigma**2 + sigma_data**2)
         

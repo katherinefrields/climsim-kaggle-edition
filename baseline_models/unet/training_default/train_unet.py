@@ -400,7 +400,7 @@ def main(cfg: DictConfig) -> float:
             # Wrap train_loader with tqdm for a progress bar
             train_loop = tqdm(train_loader, desc=f'Epoch {epoch+1}')
             current_step = 0
-            for param in joint_model.model.deterministic_model.parameters():
+            for param in joint_model.module.deterministic_model.parameters():
                 param.requires_grad = False
             for data_input, target in train_loop:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
@@ -414,7 +414,7 @@ def main(cfg: DictConfig) -> float:
                 
                 if current_step == cfg.diffusion_model.warmup_steps:
                     print('Unfreezing deterministic model')
-                    for param in joint_model.model.deterministic_model.parameters():
+                    for param in joint_model.module.deterministic_model.parameters():
                         param.requires_grad = True
                 data_input, target = data_input.to(device), target.to(device)
                 

@@ -213,7 +213,7 @@ class EDMPrecond(Module):
             sigma_condition_scalar = sigma_condition_data[:,self.input_profile_num*self.vertical_level_num:]
             
             # reshape x_profile to (batch, input_profile_num, levels)
-            sigma_data_profile = sigma_condition_data_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+            sigma_condition_data_profile = sigma_condition_data_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
             
             # broadcast x_scalar to (batch, input_scalar_num, levels)
             sigma_condition_scalar = sigma_condition_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)

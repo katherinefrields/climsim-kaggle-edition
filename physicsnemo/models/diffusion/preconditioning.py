@@ -279,16 +279,15 @@ class EDMPrecond(Module):
         )
         
         #=====Compute Scaling Coefficients=====
-        sigma_data = self.sigma_data
-        sigma_condition_data = self.sigma_condition_data
+        
         #apply scaling on conditional and normal inputs
-        c_skip = sigma_data**2 / (sigma**2 + sigma_data**2)
+        c_skip = (.5)**2 / (sigma**2 + (.5)**2)
         
         #apply scaling on normal inputs only
-        c_out = sigma * sigma_data / (sigma**2 + sigma_data**2).sqrt()
+        c_out = sigma * (.5) / (sigma**2 + (.5)**2).sqrt()
         
         #apply scaling on conditional and normal inputs
-        c_in = 1 / (sigma_condition_data**2 + sigma**2).sqrt()
+        c_in = 1 / ((.5)**2 + sigma**2).sqrt()
         
         c_noise = sigma.log() / 4
 
@@ -309,6 +308,7 @@ class EDMPrecond(Module):
             )
         D_x = c_skip * x + c_out * F_x.to(torch.float32)
         
+        D_x = D_x * (self.sigma_data * 0.5) + self.mean_data
         #print(f'D_x shape is {D_x.shape}')
 
         y_profile = D_x[:,:self.input_profile_num,self.input_padding[0]:]

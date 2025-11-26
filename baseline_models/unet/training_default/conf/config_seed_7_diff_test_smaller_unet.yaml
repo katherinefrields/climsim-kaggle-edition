@@ -135,3 +135,4 @@ diffusion_model:
    model_channels: 128
    seq_resolution: 64
    dropout: 0.0
+   condition: True

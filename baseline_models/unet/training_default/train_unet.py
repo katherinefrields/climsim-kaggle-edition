@@ -213,7 +213,8 @@ def main(cfg: DictConfig) -> float:
         num_blocks=cfg.diffusion_model.num_blocks,
         channel_mult=res_channel_mult,
         model_channels = cfg.diffusion_model.model_channels,
-        dropout=cfg.diffusion_model.dropout
+        dropout=cfg.diffusion_model.dropout,
+        condition=cfg.diffusion_model.condition,
     ).to(dist.device)
 
     

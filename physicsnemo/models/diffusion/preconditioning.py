@@ -112,6 +112,7 @@ class EDMPrecond(Module):
         model_type="DhariwalUNet",
         img_in_channels=None,
         img_out_channels=None,
+        condition=False,
         **model_kwargs,
     ):
         super().__init__(meta=EDMPrecondMetaData)
@@ -131,6 +132,8 @@ class EDMPrecond(Module):
         self.sigma_max = sigma_max
         self.sigma_data = sigma_data
 
+        if condition==True:
+            img_in_channels = img_in_channels * 2
         self.input_profile_num = input_profile_num # number of input profile variables
         self.input_scalar_num = input_scalar_num # number of input scalar variables
         self.vertical_level_num = vertical_level_num
@@ -194,7 +197,7 @@ class EDMPrecond(Module):
             condition_cat = torch.cat((condition_profile, condition_scalar), dim=1)
             
             condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
-            self.img_in_channels = self.img_in_channels * 2
+
         
             x = torch.cat([x, condition_cat], dim=1)
                 

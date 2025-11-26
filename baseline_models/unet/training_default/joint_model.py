@@ -76,27 +76,39 @@ class JointModel(nn.Module):
         params_b = [p for p in self.res_model.parameters() if p.requires_grad]
         all_params = params_a + params_b
 
-        #collect the gradients over both models according to the determinsitic loss
-        grads_det = torch.autograd.grad(
-            deterministic_loss, all_params, retain_graph=True, allow_unused=True
-        )
-        #flatten the gradients, setting any None gradients (like those in res model) to zero
-        flat_grads_det = torch.cat([
-            g.view(-1) if g is not None else torch.zeros_like(p).view(-1)
-            for g, p in zip(grads_det, all_params)
-        ])
-        
-        #collect the gradients over both models according to the residual loss
-        grads_res = torch.autograd.grad(
-            res_loss, all_params, retain_graph=False, allow_unused=True
-        )
-        #flatten the gradients, setting any None gradients to zero
-        flat_grads_res = torch.cat([
-            g.view(-1) if g is not None else torch.zeros_like(p).view(-1)
-            for g, p in zip(grads_res, all_params)
-        ])
-        
-        grads = [flat_grads_det, flat_grads_res]
+        if len(params_a)==0:
+            grads_res = torch.autograd.grad(
+                res_loss, all_params, retain_graph=False, allow_unused=True
+            )
+            #flatten the gradients, setting any None gradients to zero
+            flat_grads_res = torch.cat([
+                g.view(-1) if g is not None else torch.zeros_like(p).view(-1)
+                for g, p in zip(grads_res, all_params)
+            ])
+                
+            grads = [flat_grads_res]
+        else:
+            #collect the gradients over both models according to the determinsitic loss
+            grads_det = torch.autograd.grad(
+                deterministic_loss, all_params, retain_graph=True, allow_unused=True
+            )
+            #flatten the gradients, setting any None gradients (like those in res model) to zero
+            flat_grads_det = torch.cat([
+                g.view(-1) if g is not None else torch.zeros_like(p).view(-1)
+                for g, p in zip(grads_det, all_params)
+            ])
+            
+            #collect the gradients over both models according to the residual loss
+            grads_res = torch.autograd.grad(
+                res_loss, all_params, retain_graph=False, allow_unused=True
+            )
+            #flatten the gradients, setting any None gradients to zero
+            flat_grads_res = torch.cat([
+                g.view(-1) if g is not None else torch.zeros_like(p).view(-1)
+                for g, p in zip(grads_res, all_params)
+            ])
+                
+            grads = [flat_grads_det, flat_grads_res]
         
         g_config=ConFIG_update(grads) # calculate the conflict-free direction
         joint_optimizer.zero_grad()

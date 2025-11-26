@@ -166,8 +166,9 @@ class EDMPrecond(Module):
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
         sigma_data = self.sigma_data.unsqueeze(0)
-        sigma_data_profile = sigma_data[:,:self.input_profile_num*(self.vertical_level_num + self.input_padding)]
-        sigma_scalar = sigma_data[:,self.input_profile_num*(self.vertical_level_num + self.input_padding):]
+        profile_index = self.input_profile_num*(self.vertical_level_num + self.input_padding)
+        sigma_data_profile = sigma_data[:,:profile_index]
+        sigma_scalar = sigma_data[:,profile_index:]
         
         # reshape x_profile to (batch, input_profile_num, levels)
         sigma_data_profile = sigma_data_profile.reshape(-1, self.input_profile_num, self.vertical_level_num + self.input_padding)

@@ -217,7 +217,8 @@ class EDMPrecond(Module):
         '''
         
         #======Normalize condition data======
-        x = (x - self.mean_data)/(self.sigma_data * 0.5)
+        
+        x = (x - self.mean_data)/((self.sigma_data+ 1e-8) * 0.5)
         condition = (condition - self.condition_mean_data)/(self.sigma_condition_data * 0.5)
         
         #=====Reshape Input=====
@@ -322,7 +323,7 @@ class EDMPrecond(Module):
         #print(f'before concat y_profile shape is {y_profile.shape} and y_scalar shape is {y_scalar.shape}')
         y = torch.cat((y_profile, y_scalar), dim=1)
         
-        y = y*(self.sigma_data * 0.5) + self.mean_data
+        y = y*((self.sigma_data+ 1e-8) * 0.5) + self.mean_data
         
         return y
 

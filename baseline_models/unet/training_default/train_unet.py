@@ -88,7 +88,8 @@ def main(cfg: DictConfig) -> float:
     output_size = data.target_feature_len
 
     input_sub, input_div, out_scale = data.save_norm(write=False)
-    res_std = torch.load('/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/diff_test_5000_steps/res_std.pt')
+    
+    
 
     train_dataset = TrainingDataset(parent_path = cfg.data_path,
                                     input_sub = input_sub,
@@ -159,6 +160,13 @@ def main(cfg: DictConfig) -> float:
 
     # create model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    res_std = torch.load('/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/diff_test_5000_steps/res_std.pt').to(device)
+    
+    res_std = res_std.to(torch.float32)
+    
+    
+    
     #print('debug: output_size', output_size, output_size//60, output_size%60)
     attn_resolutions = OmegaConf.to_container(cfg.deterministic_model.attn_resolutions, resolve = True)
     channel_mult = OmegaConf.to_container(cfg.deterministic_model.channel_mult, resolve = True)

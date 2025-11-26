@@ -166,19 +166,19 @@ class EDMPrecond(Module):
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
         sigma_data = self.sigma_data.unsqueeze(0)
-        sigma_data_profile = sigma_data[:,:self.input_profile_num*self.vertical_level_num]
-        sigma_scalar = sigma_data[:,self.input_profile_num*self.vertical_level_num:]
+        sigma_data_profile = sigma_data[:,:self.input_profile_num*(self.vertical_level_num + self.input_padding)]
+        sigma_scalar = sigma_data[:,self.input_profile_num*(self.vertical_level_num + self.input_padding):]
         
         # reshape x_profile to (batch, input_profile_num, levels)
-        sigma_data_profile = sigma_data_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        sigma_data_profile = sigma_data_profile.reshape(-1, self.input_profile_num, self.vertical_level_num + self.input_padding)
         
         # broadcast x_scalar to (batch, input_scalar_num, levels)
-        sigma_scalar = sigma_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+        sigma_scalar = sigma_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num + self.input_padding)
         
         #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
         sigma_data = torch.cat((sigma_data_profile, sigma_scalar), dim=1)
         
-        sigma_data = torch.nn.functional.pad(sigma_data, self.input_padding, "constant", 0.0)
+        #sigma_data = torch.nn.functional.pad(sigma_data, self.input_padding, "constant", 0.0)
         
         
         #=====Reshape Input=====

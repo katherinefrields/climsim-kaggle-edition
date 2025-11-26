@@ -162,6 +162,7 @@ class EDMPrecond(Module):
         x = x.to(torch.float32)
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1)
         
+        
         #=====Reshape Input=====
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
@@ -199,8 +200,10 @@ class EDMPrecond(Module):
             condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
 
         
-            x = torch.cat([x, condition_cat], dim=1)
-                
+            input = torch.cat([x, condition_cat], dim=1)
+        else:
+            input = x 
+        
         #=====Class Conditioning=====
         class_labels = (
             None
@@ -224,7 +227,7 @@ class EDMPrecond(Module):
         c_noise = sigma.log() / 4
 
         #=====Model Conditioning=====
-        arg = c_in * x
+        arg = c_in * input
 
         #=====Predict Noise=====
         F_x = self.model(

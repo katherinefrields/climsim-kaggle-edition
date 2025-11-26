@@ -195,6 +195,8 @@ class EDMPrecond(Module):
             
             condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
             self.img_in_channels = self.img_in_channels * 2
+        
+            x = torch.cat([x, condition_cat], dim=1)
                 
         #=====Class Conditioning=====
         class_labels = (
@@ -220,9 +222,6 @@ class EDMPrecond(Module):
 
         #=====Model Conditioning=====
         arg = c_in * x
-
-        if condition is not None:
-            arg = torch.cat([arg, condition_cat], dim=1)
 
         #=====Predict Noise=====
         F_x = self.model(

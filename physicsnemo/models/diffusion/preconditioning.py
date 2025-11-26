@@ -213,6 +213,8 @@ class EDMPrecond(Module):
             sigma_condition_data = sigma_data
         
             
+        
+        '''
         #=====Reshape Input=====
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
@@ -230,8 +232,6 @@ class EDMPrecond(Module):
         x = torch.cat((x_profile, x_scalar), dim=1)
         
         x = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
-        '''
-        
         #======Normalize condition data======
         x = (x - self.mean_data)/(self.sigma_data * 0.5)
         condition = (condition - self.condition_mean_data)/(self.sigma_condition_data * 0.5)

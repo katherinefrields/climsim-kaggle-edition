@@ -219,7 +219,7 @@ class EDMPrecond(Module):
         #======Normalize condition data======
         
         x = (x - self.mean_data)/((self.sigma_data+ 1e-8) * 0.5)
-        condition = (condition - self.condition_mean_data)/(self.sigma_condition_data * 0.5)
+        condition = (condition - self.condition_mean_data)/((self.sigma_condition_data + 1e-8) * 0.5)
         
         #=====Reshape Input=====
         #levels are without padding

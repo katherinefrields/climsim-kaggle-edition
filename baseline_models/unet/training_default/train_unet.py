@@ -412,7 +412,7 @@ def main(cfg: DictConfig) -> float:
                 #     target[:,180:180+cfg.strato_lev] = 0
                 print(f'starting step {current_step} of epoch {epoch+1}')
                 
-                if current_step == cfg.warmup_steps:
+                if current_step == cfg.diffusion_model.warmup_steps:
                     print('Unfreezing deterministic model')
                     for param in model.parameters():
                         param.requires_grad = True

@@ -17,6 +17,8 @@ from climsim_utils.data_utils import *
 from conflictfree.grad_operator import ConFIG_update
 
 
+    
+    
 class JointModel(nn.Module):
     def __init__(self, deterministic_model, res_model):
         """
@@ -29,6 +31,18 @@ class JointModel(nn.Module):
     def forward(self, input, target):
         output = self.deterministic_model(input)
         
+        res_std = torch.load('/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/res_std.pt').to(input.device)
+        res_std = res_std.to(torch.float32)
+
+        res_mean = torch.load('/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/res_mean.pt').to(input.device)
+        res_mean = res_mean.to(torch.float32)
+
+        preds_std = torch.load('/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/preds_std.pt').to(input.device)
+        preds_std = preds_std.to(torch.float32)
+
+        preds_mean = torch.load('/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/preds_mean.pt').to(input.device)
+        preds_mean = preds_mean.to(torch.float32)
+
         residual = target - output
         residual = residual.to(output.device)
         
@@ -44,7 +58,7 @@ class JointModel(nn.Module):
             P_mean + P_std * torch.randn(batch_size, device=output.device)
         )
         
-        predicted_residual = self.res_model(residual,sigma, condition = output)
+        predicted_residual = self.res_model(residual,sigma, res_mean, res_std, preds_mean, preds_std, condition = output)
 
         return output, residual, predicted_residual
 

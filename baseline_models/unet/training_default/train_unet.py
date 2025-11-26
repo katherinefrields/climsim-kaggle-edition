@@ -400,7 +400,7 @@ def main(cfg: DictConfig) -> float:
             # Wrap train_loader with tqdm for a progress bar
             train_loop = tqdm(train_loader, desc=f'Epoch {epoch+1}')
             current_step = 0
-            for param in joint_model.mode.deterministic_model.parameters():
+            for param in joint_model.model.deterministic_model.parameters():
                 param.requires_grad = False
             for data_input, target in train_loop:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:

@@ -134,8 +134,6 @@ class EDMPrecond(Module):
 
         self.condition = condition
     
-        if self.condition==True:
-            img_in_channels = img_in_channels * 2
         self.input_profile_num = input_profile_num # number of input profile variables
         self.input_scalar_num = input_scalar_num # number of input scalar variables
         self.vertical_level_num = vertical_level_num

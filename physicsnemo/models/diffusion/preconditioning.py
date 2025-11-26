@@ -169,7 +169,7 @@ class EDMPrecond(Module):
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
         sigma_data = self.sigma_data
-        if condition == True:
+        if condition != None:
             sigma_data = torch.cat((sigma_data, self.sigma_condition_data), dim=1)
         
         sigma_data_profile = sigma_data[:,:self.input_profile_num*self.vertical_level_num]

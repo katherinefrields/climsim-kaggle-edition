@@ -268,7 +268,7 @@ class EDMPrecond(Module):
         
         #=====Compute Scaling Coefficients=====
         #apply scaling on conditional and normal inputs
-        c_skip = sigma_condition_data**2 / (sigma**2 + sigma_condition_data**2)
+        c_skip = sigma_data**2 / (sigma**2 + sigma_data**2)
         
         #apply scaling on normal inputs only
         c_out = sigma * sigma_data / (sigma**2 + sigma_data**2).sqrt()

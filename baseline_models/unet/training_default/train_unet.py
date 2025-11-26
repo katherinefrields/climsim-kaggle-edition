@@ -526,8 +526,8 @@ def main(cfg: DictConfig) -> float:
             val_preds = np.stack(val_preds, axis=0)
             val_targets = np.stack(val_targets, axis=0)
             
-            np.save(os.path.join(save_path, f'val_preds_epoch_{epoch+1}.npy'), val_preds)
-            np.save(os.path.join(save_path, f'val_targets_epoch_{epoch+1}.npy'), val_targets)
+            np.save(os.path.join('/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/', f'val_preds_epoch_{epoch+1}.npy'), val_preds)
+            np.save(os.path.join('/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/', f'val_targets_epoch_{epoch+1}.npy'), val_targets)
             
             # if dist.rank == 0:
                 #all reduce the loss

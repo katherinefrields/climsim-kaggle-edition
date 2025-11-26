@@ -169,8 +169,6 @@ class EDMPrecond(Module):
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
         sigma_data = self.sigma_data
-        if condition != None:
-            sigma_data = torch.cat((sigma_data, self.sigma_condition_data), dim=1)
         
         sigma_data_profile = sigma_data[:,:self.input_profile_num*self.vertical_level_num]
         sigma_scalar = sigma_data[:,self.input_profile_num*self.vertical_level_num:]
@@ -205,7 +203,30 @@ class EDMPrecond(Module):
         
         #ALT
         #sigma_data = self.sigma_data
+        #=====Reshape Sigma Condition=====
+        #levels are without padding
+        #currently x(batch, target_profile_num*levels+target_scalar_num)
+        if condition != None:
+            sigma_condition_data = self.sigma_condition_data
         
+            sigma_condition_data_profile = sigma_condition_data[:,:self.input_profile_num*self.vertical_level_num]
+            sigma_condition_scalar = sigma_condition_data[:,self.input_profile_num*self.vertical_level_num:]
+            
+            # reshape x_profile to (batch, input_profile_num, levels)
+            sigma_data_profile = sigma_condition_data_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+            
+            # broadcast x_scalar to (batch, input_scalar_num, levels)
+            sigma_condition_scalar = sigma_condition_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+            
+            #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
+            sigma_condition_data = torch.cat((sigma_condition_data_profile, sigma_condition_scalar), dim=1)
+            
+            sigma_condition_data = torch.nn.functional.pad(sigma_condition_data, self.input_padding, "constant", 0.0)
+        
+        
+            sigma_data = torch.cat((sigma_data, sigma_condition_data), dim=1)
+        
+            
         #=====Reshape Input=====
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)

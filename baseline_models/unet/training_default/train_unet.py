@@ -240,8 +240,16 @@ def main(cfg: DictConfig) -> float:
         else:
             model_restart = modulus.Module.from_checkpoint(cfg.restart_path).to(dist.device)
             model.load_state_dict(model_restart.state_dict())
+            
+    res_std_path = '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/res_std.pt'
+    res_mean_path = '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/res_mean.pt'
+    
+    preds_std_path = '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/preds_std.pt'
+    preds_mean_path = '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/preds_mean.pt'
+    
 
-    joint_model = JointModel(model, res_model).to(dist.device)
+        
+    joint_model = JointModel(model, res_model, res_std_path, res_mean_path, preds_std_path, preds_mean_path).to(dist.device)
     
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to

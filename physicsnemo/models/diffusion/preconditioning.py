@@ -206,6 +206,7 @@ class EDMPrecond(Module):
         n = torch.randn_like(x) * sigma
         x = x + n
         
+        print(f'sigma shape is {sigma.shape}')
             
         #=====Class Conditioning=====
         class_labels = (
@@ -254,12 +255,11 @@ class EDMPrecond(Module):
             #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
             condition_cat = torch.cat((condition_profile, condition_scalar), dim=1)
             condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
-        
-
-        if condition != None:
             input = torch.cat([arg, condition_cat], dim=1)
         else:
             input = arg
+            
+        print(f'input shape to model is {input.shape}')
         #=====Predict Noise=====
         F_x = self.model(
             input.to(dtype),

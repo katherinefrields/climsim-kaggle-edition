@@ -51,7 +51,7 @@ class JointModel(nn.Module):
         #set the sigma based on parameters -- CHANGE THIS LATER
         
          #======Normalize input and condition data======
-        x = (x - self.res_mean)/((self.res_std+ 1e-8) * 0.5)
+        normalized_residual = (residual - self.res_mean)/((self.res_std+ 1e-8) * 0.5)
         condition = (condition - self.preds_mean)/((self.preds_std + 1e-8) * 0.5)
         
         ''' #Batch size
@@ -65,10 +65,11 @@ class JointModel(nn.Module):
         )
         '''
        
-        predicted_residual, weight = self.res_model(residual,self.res_std, self.res_mean, self.preds_std, self.preds_mean, condition = output)
-        scaled_predicted_residual = predicted_residual*((self.res_std+ 1e-8) * 0.5) + self.mean_data
+        normalized_predicted_residual, weight = self.res_model(normalized_residual,self.res_std, self.res_mean, self.preds_std, self.preds_mean, condition = output)
+        predicted_residual = normalized_predicted_residual*((self.res_std+ 1e-8) * 0.5) + self.mean_data
         
-        return output, residual, scaled_predicted_residual, weight
+        #predicted_residual is scaled back to original data space
+        return output, residual, predicted_residual, normalized_residual, normalized_predicted_residual, weight
 
     def compute_loss(self, criterion, output, target, predicted_residual, residual, weight):
         """

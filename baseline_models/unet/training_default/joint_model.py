@@ -78,6 +78,7 @@ class JointModel(nn.Module):
         
         predicted_residual = self.res_model(residual + n,sigma, condition = condition_output)
         
+        print(f'predicted residual shape: {predicted_residual.shape}, residual shape: {residual.shape}')
         return output, residual, predicted_residual, weight
 
     def compute_loss(self, criterion, output, target, predicted_residual, residual, weight):

@@ -160,7 +160,7 @@ class EDMPrecond(Module):
 
     def forward(
         self,
-        x, res_std, res_mean, preds_std, preds_mean,
+        x,
         condition=None,
         class_labels=None,
         force_fp32=False,
@@ -170,9 +170,7 @@ class EDMPrecond(Module):
         x = x.to(torch.float32)
         
         
-        #======Normalize input and condition data======
-        x = (x - res_mean)/((res_std+ 1e-8) * 0.5)
-        condition = (condition - preds_mean)/((preds_std + 1e-8) * 0.5)
+       
         
         
         #print(f'noise residual shape: { x.shape}, residual shape: {x.shape}')
@@ -288,8 +286,6 @@ class EDMPrecond(Module):
         y_profile = y_profile.reshape(-1, self.input_profile_num*self.vertical_level_num)
         #print(f'before concat y_profile shape is {y_profile.shape} and y_scalar shape is {y_scalar.shape}')
         y = torch.cat((y_profile, y_scalar), dim=1)
-        
-        y = y*((sigma_data+ 1e-8) * 0.5) + self.mean_data
         
         return y, weight
 

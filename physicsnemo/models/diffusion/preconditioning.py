@@ -161,6 +161,7 @@ class EDMPrecond(Module):
     def forward(
         self,
         x,
+        sigma,
         condition=None,
         class_labels=None,
         force_fp32=False,
@@ -168,10 +169,6 @@ class EDMPrecond(Module):
     ):
         #=====Cast to floats=====
         x = x.to(torch.float32)
-        
-        
-       
-        
         
         #print(f'noise residual shape: { x.shape}, residual shape: {x.shape}')
         #=====Reshape Input=====
@@ -193,15 +190,8 @@ class EDMPrecond(Module):
         x = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
         
         #======Noises Residual======
-        P_mean = -1.2
-        P_std = 1.2
-        sigma_data = 0.5
         
-        #trying this rand shape. it was different in the EDM Sampler -->
-        #rnd_normal = torch.randn(x.shape, device=x.device)
-        rnd_normal = torch.randn([x.shape[0], 1, 1], device=x.device)
-        sigma = (rnd_normal * P_std +P_mean).exp()
-        weight = (sigma ** 2 + sigma_data ** 2) / (sigma * sigma_data) ** 2
+        weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
         n = torch.randn_like(x) * sigma
         x = x + n
         

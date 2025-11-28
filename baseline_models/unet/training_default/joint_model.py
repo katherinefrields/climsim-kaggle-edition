@@ -65,7 +65,17 @@ class JointModel(nn.Module):
         )
         '''
        
-        normalized_predicted_residual, weight = self.res_model(normalized_residual, condition = condition_input)
+        
+        P_mean = -1.2
+        P_std = 1.2
+        batch_size = residual.shape[0]
+        
+        #trying this rand shape. it was different in the EDM Sampler -->
+        #rnd_normal = torch.randn(x.shape, device=x.device)
+        rnd_normal = torch.randn([batch_size, 1, 1], device=residual.device)
+        sigma = (rnd_normal * P_std +P_mean).exp()
+        
+        normalized_predicted_residual, weight = self.res_model(normalized_residual, sigma, condition = condition_input)
         predicted_residual = normalized_predicted_residual*((self.res_std+ 1e-8) * 0.5) + self.res_mean
         
         #predicted_residual is scaled back to original data space

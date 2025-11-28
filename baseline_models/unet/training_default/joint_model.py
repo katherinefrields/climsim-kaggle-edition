@@ -52,7 +52,7 @@ class JointModel(nn.Module):
         
          #======Normalize input and condition data======
         normalized_residual = (residual - self.res_mean)/((self.res_std+ 1e-8) * 0.5)
-        condition = (condition - self.preds_mean)/((self.preds_std + 1e-8) * 0.5)
+        condition_input = (output - self.preds_mean)/((self.preds_std + 1e-8) * 0.5)
         
         ''' #Batch size
         P_mean = -1.2
@@ -65,7 +65,7 @@ class JointModel(nn.Module):
         )
         '''
        
-        normalized_predicted_residual, weight = self.res_model(normalized_residual,self.res_std, self.res_mean, self.preds_std, self.preds_mean, condition = output)
+        normalized_predicted_residual, weight = self.res_model(normalized_residual,self.res_std, self.res_mean, self.preds_std, self.preds_mean, condition = condition_input)
         predicted_residual = normalized_predicted_residual*((self.res_std+ 1e-8) * 0.5) + self.mean_data
         
         #predicted_residual is scaled back to original data space

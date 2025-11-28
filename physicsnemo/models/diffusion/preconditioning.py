@@ -161,10 +161,6 @@ class EDMPrecond(Module):
         self,
         x,
         sigma,
-        mean_data, 
-        sigma_data,
-        condition_mean_data,
-        sigma_condition_data,
         condition=None,
         class_labels=None,
         force_fp32=False,
@@ -173,17 +169,6 @@ class EDMPrecond(Module):
         #=====Cast to floats=====
         x = x.to(torch.float32)
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1)
-        
-        #======Normalize condition data======
-        
-        print(f'x shape is {x.shape}, mean data shape is {mean_data.shape}, sigma data shape is {sigma_data.shape}')
-        x = (x - mean_data)/((sigma_data+ 1e-8) * 0.5)
-        print(f'normalized x is {x}')
-        
-        
-        print(f'condition shape is {condition.shape}, mean condition shape is {condition_mean_data.shape}, sigma condition data shape is {sigma_condition_data.shape}')
-        condition = (condition - condition_mean_data)/((sigma_condition_data + 1e-8) * 0.5)
-        print(f'condition x is {condition}')
         
         #=====Reshape Input=====
         #levels are without padding
@@ -226,6 +211,15 @@ class EDMPrecond(Module):
             input = torch.cat([x, condition_cat], dim=1)
         else:
             input = x 
+            
+            
+        #======Apply Noise======
+        rnd_uniform = torch.rand([input.shape[0], 1, 1, 1], device=input.device)
+        sigma = self.sigma_min * ((self.sigma_max / self.sigma_min) ** rnd_uniform)
+        weight = 1 / sigma ** 2
+        n = torch.randn_like(y) * sigma
+        
+        input = input + n
         
         #=====Class Conditioning=====
         class_labels = (

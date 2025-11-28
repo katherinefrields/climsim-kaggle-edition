@@ -16,7 +16,7 @@ from climsim_utils.data_utils import *
 
 from conflictfree.grad_operator import ConFIG_update
 
-
+from loss import EDMLoss
     
     
 class JointModel(nn.Module):
@@ -49,28 +49,44 @@ class JointModel(nn.Module):
         residual = residual.to(output.device)
         
         #set the sigma based on parameters -- CHANGE THIS LATER
+        
+
+        ''' #Batch size
         P_mean = -1.2
         P_std = 1.2
-
-        # Batch size
         batch_size = residual.shape[0]
 
         # Sample log-normal σ
         sigma = torch.exp(
             P_mean + P_std * torch.randn(batch_size, device=output.device)
         )
+        '''
+        P_mean = -1.2
+        P_std = 1.2
+        sigma_data = 0.5
         
-        predicted_residual = self.res_model(residual,sigma, self.res_mean, self.res_std, self.preds_mean, self.preds_std, condition = output)
+        #======Normalize input and condition data======
+        residual = (residual - self.res_mean)/((self.res_std+ 1e-8) * 0.5)
+        condition_output = (output - self.preds_mean)/((self.preds_std + 1e-8) * 0.5)
+        
+        
+        #======Noises Residual======
+        rnd_normal = torch.randn([residual.shape[0], 1, 1, 1], device=residual.device)
+        sigma = (rnd_normal * P_std +P_mean).exp()
+        weight = (sigma ** 2 + sigma_data ** 2) / (sigma * sigma_data) ** 2
+        n = torch.randn_like(residual) * sigma
+        
+        predicted_residual = self.res_model(residual + n,sigma, condition = condition_output)
+        
+        return output, residual, predicted_residual, weight
 
-        return output, residual, predicted_residual
-
-    def compute_loss(self, criterion, output, target, predicted_residual, residual):
+    def compute_loss(self, criterion, output, target, predicted_residual, residual, weight):
         """
         Customize loss combination here.
         """
         
         deterministic_loss = criterion(output, target)
-        res_loss = criterion(predicted_residual,residual)
+        res_loss = weight * ((predicted_residual - residual) ** 2)
 
         # Example weighted sum
         return deterministic_loss, res_loss

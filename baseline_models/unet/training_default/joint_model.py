@@ -50,7 +50,7 @@ class JointModel(nn.Module):
         
         #set the sigma based on parameters -- CHANGE THIS LATER
         
-         #======Normalize input and condition data======
+        #======Normalize input and condition data======
         normalized_residual = (residual - self.res_mean)/((self.res_std+ 1e-8) * 0.5)
         condition_input = (output - self.preds_mean)/((self.preds_std + 1e-8) * 0.5)
         
@@ -65,7 +65,6 @@ class JointModel(nn.Module):
         )
         '''
        
-        
         P_mean = -1.2
         P_std = 1.2
         batch_size = residual.shape[0]

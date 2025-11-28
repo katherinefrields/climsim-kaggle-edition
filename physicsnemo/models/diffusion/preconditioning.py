@@ -212,14 +212,6 @@ class EDMPrecond(Module):
         else:
             input = x 
             
-            
-        #======Apply Noise======
-        rnd_uniform = torch.rand([input.shape[0], 1, 1, 1], device=input.device)
-        sigma = self.sigma_min * ((self.sigma_max / self.sigma_min) ** rnd_uniform)
-        weight = 1 / sigma ** 2
-        n = torch.randn_like(y) * sigma
-        
-        input = input + n
         
         #=====Class Conditioning=====
         class_labels = (

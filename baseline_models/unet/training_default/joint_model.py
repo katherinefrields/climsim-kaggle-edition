@@ -75,10 +75,11 @@ class JointModel(nn.Module):
         sigma = (rnd_normal * P_std +P_mean).exp()
         weight = (sigma ** 2 + sigma_data ** 2) / (sigma * sigma_data) ** 2
         n = torch.randn_like(residual) * sigma
+        noised_residual = residual + n
+        print(f'noise residual shape: {noised_residual.shape}, residual shape: {residual.shape}')
+        predicted_residual = self.res_model(noised_residual,sigma, condition = condition_output)
         
-        predicted_residual = self.res_model(residual + n,sigma, condition = condition_output)
         
-        print(f'predicted residual shape: {predicted_residual.shape}, residual shape: {residual.shape}')
         return output, residual, predicted_residual, weight
 
     def compute_loss(self, criterion, output, target, predicted_residual, residual, weight):

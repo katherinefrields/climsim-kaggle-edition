@@ -72,7 +72,7 @@ class JointModel(nn.Module):
         """
         
         deterministic_loss = criterion(output, target)
-        res_loss = weight * ((predicted_residual - residual) ** 2)
+        res_loss = (weight * ((predicted_residual - residual) ** 2)).mean()
 
         # Example weighted sum
         return deterministic_loss, res_loss

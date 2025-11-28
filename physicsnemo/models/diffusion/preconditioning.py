@@ -170,6 +170,13 @@ class EDMPrecond(Module):
         x = x.to(torch.float32)
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1)
         
+        
+        #======Normalize input and condition data======
+        x = (x - self.res_mean)/((self.res_std+ 1e-8) * 0.5)
+        condition = (condition - self.preds_mean)/((self.preds_std + 1e-8) * 0.5)
+        
+        
+        #print(f'noise residual shape: { x.shape}, residual shape: {x.shape}')
         #=====Reshape Input=====
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
@@ -188,6 +195,17 @@ class EDMPrecond(Module):
         
         x = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
         
+        #======Noises Residual======
+        P_mean = -1.2
+        P_std = 1.2
+        sigma_data = 0.5
+        
+        #trying this rand shape. it was different in the EDM Sampler -->
+        rnd_normal = torch.randn([x.shape], device=x.device)
+        sigma = (rnd_normal * P_std +P_mean).exp()
+        weight = (sigma ** 2 + sigma_data ** 2) / (sigma * sigma_data) ** 2
+        n = torch.randn_like(x) * sigma
+        x = x + n
         
         #=====Reshape Condition=====
         #levels are without padding
@@ -273,9 +291,9 @@ class EDMPrecond(Module):
         #print(f'before concat y_profile shape is {y_profile.shape} and y_scalar shape is {y_scalar.shape}')
         y = torch.cat((y_profile, y_scalar), dim=1)
         
-        y = y*((sigma_data+ 1e-8) * 0.5) + mean_data
+        y = y*((sigma_data+ 1e-8) * 0.5) + self.mean_data
         
-        return y
+        return y, weight
 
     @staticmethod
     def round_sigma(sigma: Union[float, List, torch.Tensor]):

@@ -200,7 +200,7 @@ class EDMPrecond(Module):
         sigma_data = 0.5
         
         #trying this rand shape. it was different in the EDM Sampler -->
-        rnd_normal = torch.randn([x.shape], device=x.device)
+        rnd_normal = torch.randn(x.shape, device=x.device)
         sigma = (rnd_normal * P_std +P_mean).exp()
         weight = (sigma ** 2 + sigma_data ** 2) / (sigma * sigma_data) ** 2
         n = torch.randn_like(x) * sigma

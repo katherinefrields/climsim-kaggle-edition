@@ -16,7 +16,7 @@ from climsim_utils.data_utils import *
 
 from conflictfree.grad_operator import ConFIG_update
 
-from loss import EDMLoss
+
     
     
 class JointModel(nn.Module):

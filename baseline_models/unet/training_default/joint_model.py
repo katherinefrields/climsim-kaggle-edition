@@ -61,24 +61,8 @@ class JointModel(nn.Module):
             P_mean + P_std * torch.randn(batch_size, device=output.device)
         )
         '''
-        P_mean = -1.2
-        P_std = 1.2
-        sigma_data = 0.5
-        
-        #======Normalize input and condition data======
-        residual = (residual - self.res_mean)/((self.res_std+ 1e-8) * 0.5)
-        condition_output = (output - self.preds_mean)/((self.preds_std + 1e-8) * 0.5)
-        
-        
-        #======Noises Residual======
-        rnd_normal = torch.randn([residual.shape[0], 1, 1, 1], device=residual.device)
-        sigma = (rnd_normal * P_std +P_mean).exp()
-        weight = (sigma ** 2 + sigma_data ** 2) / (sigma * sigma_data) ** 2
-        n = torch.randn_like(residual) * sigma
-        noised_residual = residual + n
-        print(f'noise residual shape: {noised_residual.shape}, residual shape: {residual.shape}')
-        predicted_residual = self.res_model(noised_residual,sigma, condition = condition_output)
-        
+       
+        predicted_residual, weight = self.res_model(residual,self.res_std, self.res_mean, self.preds_std, self.preds_mean, condition = output)
         
         return output, residual, predicted_residual, weight
 

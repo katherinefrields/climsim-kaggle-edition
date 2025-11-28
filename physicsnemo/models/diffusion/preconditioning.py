@@ -135,7 +135,8 @@ class EDMPrecond(Module):
         self.sigma_max = sigma_max
         
         self.condition = condition
-    
+        
+        
         self.input_profile_num = input_profile_num # number of input profile variables
         self.input_scalar_num = input_scalar_num # number of input scalar variables
         self.vertical_level_num = vertical_level_num
@@ -159,8 +160,7 @@ class EDMPrecond(Module):
 
     def forward(
         self,
-        x,
-        sigma,
+        x, res_std, res_mean, preds_std, preds_mean,
         condition=None,
         class_labels=None,
         force_fp32=False,
@@ -172,8 +172,8 @@ class EDMPrecond(Module):
         
         
         #======Normalize input and condition data======
-        x = (x - self.res_mean)/((self.res_std+ 1e-8) * 0.5)
-        condition = (condition - self.preds_mean)/((self.preds_std + 1e-8) * 0.5)
+        x = (x - res_mean)/((res_std+ 1e-8) * 0.5)
+        condition = (condition - preds_mean)/((preds_std + 1e-8) * 0.5)
         
         
         #print(f'noise residual shape: { x.shape}, residual shape: {x.shape}')

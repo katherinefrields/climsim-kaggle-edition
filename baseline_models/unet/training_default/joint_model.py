@@ -55,6 +55,7 @@ class JointModel(nn.Module):
         residual = target - output
         
         residual = residual.to(output.device)
+        residual = torch.ones_like(residual)
         
         #======Normalize input and condition data======
         normalized_residual = ((residual - self.res_mean)/((self.res_std+ 1e-8)))*.5
@@ -119,6 +120,8 @@ class JointModel(nn.Module):
         #======Noises Residual======
         n = torch.randn_like(x) * sigma
         noised_residual = x + n
+        noised_residual = torch.likes(noised_residual)
+        
         
         # weight per batch element according to the noise that was added to it
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2

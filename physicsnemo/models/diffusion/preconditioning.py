@@ -107,7 +107,7 @@ class EDMPrecond(Module):
         label_dim=0,
         use_fp16=False,
         sigma_min=0.002,
-        sigma_max=10,
+        sigma_max=80,
         sigma_data=0.5,
         sigma_condition_data=0.5,
         mean_data = 0.0, 

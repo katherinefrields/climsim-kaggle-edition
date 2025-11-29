@@ -43,16 +43,49 @@ class JointModel(nn.Module):
 
 
     def forward(self, input, target):
+        #output is shape (B, C*L)
         output = self.deterministic_model(input)
-        
         residual = target - output
-        residual = residual.to(output.device)
         
-        #set the sigma based on parameters -- CHANGE THIS LATER
+        residual = residual.to(output.device)
         
         #======Normalize input and condition data======
         normalized_residual = ((residual - self.res_mean)/((self.res_std+ 1e-8)))*.5
         condition_input = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
+    
+        
+        #=====Reshape Residaul=====
+        #when you train your own model, have it 
+        x_profile = normalized_residual[:,:self.input_profile_num*self.vertical_level_num]
+        x_scalar = normalized_residual[:,self.input_profile_num*self.vertical_level_num:]
+        
+        # reshape x_profile to (batch, input_profile_num, levels)
+        x_profile = x_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        
+        # broadcast x_scalar to (batch, input_scalar_num, levels)
+        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+        
+        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
+        x = torch.cat((x_profile, x_scalar), dim=1)
+        
+        x = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
+        #x is (B, C, L)
+        
+        #=====Reshape Condition=====
+        condition_profile = condition_input[:,:self.input_profile_num*self.vertical_level_num]
+        condition_scalar = condition_input[:,self.input_profile_num*self.vertical_level_num:]
+        
+        # reshape x_profile to (batch, input_profile_num, levels)
+        condition_profile = condition_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        
+        # broadcast x_scalar to (batch, input_scalar_num, levels)
+        condition_scalar = condition_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+        
+        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
+        condition_cat = torch.cat((condition_profile, condition_scalar), dim=1)
+        condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
+        #Condition is (B, C, L)
+        
         
         ''' #Batch size
         P_mean = -1.2
@@ -71,23 +104,32 @@ class JointModel(nn.Module):
         
         #trying this rand shape. it was different in the EDM Sampler -->
         #rnd_normal = torch.randn(x.shape, device=x.device)
-        rnd_normal = torch.randn([batch_size, 1, 1], device=residual.device)
+        
+        #apply the same noise to all features in the batch
+        rnd_normal = torch.randn([batch_size, 1], device=residual.device)
         sigma = (rnd_normal * P_std + P_mean).exp()
         
-        x, D_x, weight = self.res_model(normalized_residual, sigma, condition = condition_input)
+        #======Noises Residual======
+        n = torch.randn_like(x) * sigma
+        noised_residual = x + n
+        
+        # weight per batch element according to the noise that was added to it
+        weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
+        
+        #x is input noise image, D_x is predicted denoised image (B, C, L), y is predicted denoised image shape (B, C*L)
+        D_x, y = self.res_model(noised_residual,sigma, condition = condition_cat)
         
         #predicted_residual is scaled back to original data space
-        return output, x, D_x, weight
+        return output, x, D_x, y, weight
 
     def compute_loss(self, criterion, output, target, x, D_x, weight):
         """
         Customize loss combination here.
         """
-        
         deterministic_loss = criterion(output, target)
-        unweighted_res_loss =  (((x - D_x) ** 2)).mean(dim = (1,2)) # calculate over 308 features
+        unweighted_res_loss =  (((x - D_x) ** 2)).mean(dim = (1,2)) # calculate over C and L features
         res_loss = (unweighted_res_loss * weight).mean()  # weighted residual loss
-        print(f'deterministic loss: {deterministic_loss.item()}, residual loss: {res_loss.item()}')
+        #print(f'deterministic loss: {deterministic_loss.item()}, residual loss: {res_loss.item()}')
         # Example weighted sum
         return deterministic_loss, res_loss
     

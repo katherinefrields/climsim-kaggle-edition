@@ -160,7 +160,7 @@ class EDMPrecond(Module):
 
     def forward(
         self,
-        x,
+        x_n,
         sigma,
         condition=None,
         class_labels=None,
@@ -168,32 +168,12 @@ class EDMPrecond(Module):
         **model_kwargs,
     ):
         #=====Cast to floats=====
-        x = x.to(torch.float32)
+        x_n = x_n.to(torch.float32)
         
         #print(f'noise residual shape: { x.shape}, residual shape: {x.shape}')
         #=====Reshape Input=====
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
-        
-        x_profile = x[:,:self.input_profile_num*self.vertical_level_num]
-        x_scalar = x[:,self.input_profile_num*self.vertical_level_num:]
-        
-        # reshape x_profile to (batch, input_profile_num, levels)
-        x_profile = x_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
-        
-        # broadcast x_scalar to (batch, input_scalar_num, levels)
-        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
-        
-        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-        x = torch.cat((x_profile, x_scalar), dim=1)
-        
-        x = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
-        
-        #======Noises Residual======
-        
-        weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
-        n = torch.randn_like(x) * sigma
-        x_n = x + n
         
             
         #=====Class Conditioning=====
@@ -226,26 +206,13 @@ class EDMPrecond(Module):
         c_noise = sigma.log() / 4
 
         arg = c_in * x_n
-        
-        #=====Reshape Condition=====
+
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
         if condition != None:
-            condition_profile = condition[:,:self.input_profile_num*self.vertical_level_num]
-            condition_scalar = condition[:,self.input_profile_num*self.vertical_level_num:]
-            
-            # reshape x_profile to (batch, input_profile_num, levels)
-            condition_profile = condition_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
-            
-            # broadcast x_scalar to (batch, input_scalar_num, levels)
-            condition_scalar = condition_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
-            
-            #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-            condition_cat = torch.cat((condition_profile, condition_scalar), dim=1)
-            condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
-            input = torch.cat([arg, condition_cat], dim=1)
+            input = torch.cat([arg, condition], dim=1)
         else:
-            input = arg
+            input = x_n
             
         #=====Predict Noise=====
         F_x = self.model(
@@ -259,24 +226,22 @@ class EDMPrecond(Module):
             raise ValueError(
                 f"Expected the dtype to be {dtype}, but got {F_x.dtype} instead."
             )
-        D_x = c_skip * x + c_out * F_x.to(torch.float32)
+        D_x = c_skip * x_n + c_out * F_x.to(torch.float32)
         
         
         #print(f'D_x shape is {D_x.shape}')
-
-        #y_profile = D_x[:,:self.input_profile_num,self.input_padding[0]:]
-        #y_scalar = D_x[:,self.input_profile_num:,self.input_padding[0]:]
+        y_profile = D_x[:,:self.input_profile_num,self.input_padding[0]:]
+        y_scalar = D_x[:,self.input_profile_num:,self.input_padding[0]:]
         
         #print(f'y_profile shape is {y_profile.shape}')
         #print(f'y_scalar shape is {y_scalar.shape}')
 
-        #y_scalar = y_scalar.mean(dim=2)
-        #y_profile = y_profile.reshape(-1, self.input_profile_num*self.vertical_level_num)
+        y_scalar = y_scalar.mean(dim=2)
+        y_profile = y_profile.reshape(-1, self.input_profile_num*self.vertical_level_num)
         #print(f'before concat y_profile shape is {y_profile.shape} and y_scalar shape is {y_scalar.shape}')
-        #y = torch.cat((y_profile, y_scalar), dim=1)
+        y = torch.cat((y_profile, y_scalar), dim=1)
         
-        return x, D_x, weight
-
+        return D_x, y
     @staticmethod
     def round_sigma(sigma: Union[float, List, torch.Tensor]):
         """

@@ -444,7 +444,7 @@ def main(cfg: DictConfig) -> float:
                 #calcluate loss using normalized residuals
                 #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_predicted_residual, normalized_residual, weight)
                 joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
-                #joint_optimizer.step()
+                joint_optimizer.step()
                 
                 
                 # optimizer.zero_grad()
@@ -481,7 +481,6 @@ def main(cfg: DictConfig) -> float:
                 # Update the progress bar description with the current loss
                 train_loop.set_description(f'Epoch {epoch+1}')
                 train_loop.set_postfix(det_loss=deterministic_loss.item(), res_loss=res_loss.item())
-                print(f'Current step is {current_step}')
                 #print(torch.cuda.memory_summary())
                 current_step += 1
                 del data_input, target, output, x, D_x

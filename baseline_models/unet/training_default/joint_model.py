@@ -20,7 +20,9 @@ from conflictfree.grad_operator import ConFIG_update
     
     
 class JointModel(nn.Module):
-    def __init__(self, deterministic_model, res_model, res_std_path, res_mean_path, preds_std_path, preds_mean_path,input_profile_num, input_scalar_num):
+    def __init__(self, deterministic_model, res_model, res_std_path, res_mean_path, 
+                 preds_std_path, preds_mean_path,input_profile_num, 
+                 input_scalar_num, vertical_level_num=60):
         """
         deterministic_model, res_model: already-instantiated nn.Module objects
         """
@@ -42,6 +44,7 @@ class JointModel(nn.Module):
         
         self.input_profile_num = input_profile_num
         self.input_scalar_num = input_scalar_num
+        self.vertical_level_num = vertical_level_num
 
 
     def forward(self, input, target):

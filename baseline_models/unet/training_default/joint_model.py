@@ -74,19 +74,18 @@ class JointModel(nn.Module):
         rnd_normal = torch.randn([batch_size, 1, 1], device=residual.device)
         sigma = (rnd_normal * P_std + P_mean).exp()
         
-        normalized_predicted_residual, weight = self.res_model(normalized_residual, sigma, condition = condition_input)
-        predicted_residual = (normalized_predicted_residual/.5)*(self.res_std+ 1e-8) + self.res_mean
+        x, D_x, weight = self.res_model(normalized_residual, sigma, condition = condition_input)
         
         #predicted_residual is scaled back to original data space
-        return output, residual, predicted_residual, normalized_residual, normalized_predicted_residual, weight
+        return output, x, D_x, weight
 
-    def compute_loss(self, criterion, output, target, predicted_residual, residual, weight):
+    def compute_loss(self, criterion, output, target, x, D_x, weight):
         """
         Customize loss combination here.
         """
         
         deterministic_loss = criterion(output, target)
-        unweighted_res_loss =  (((predicted_residual - residual) ** 2)).mean(-1) # calculate over 308 features
+        unweighted_res_loss =  (((x - D_x) ** 2)).mean(dim = (1,2)) # calculate over 308 features
         res_loss = (unweighted_res_loss * weight).mean()  # weighted residual loss
         print(f'deterministic loss: {deterministic_loss.item()}, residual loss: {res_loss.item()}')
         # Example weighted sum

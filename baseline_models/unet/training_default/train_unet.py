@@ -484,7 +484,7 @@ def main(cfg: DictConfig) -> float:
                 print(f'Current step is {current_step}')
                 #print(torch.cuda.memory_summary())
                 current_step += 1
-                del data_input, target, output, residual, predicted_residual
+                del data_input, target, output, x, D_x
                 
                 
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
@@ -538,7 +538,7 @@ def main(cfg: DictConfig) -> float:
                 current_residual_val_loss_avg = residual_val_loss / num_samples_processed
                 val_loop.set_postfix(det_loss=current_deterministic_val_loss_avg, res_loss = current_residual_val_loss_avg)
                 current_step += 1
-                del data_input, target, output, residual, predicted_residual
+                del data_input, target, output, x, D_x
 
             #debugging purposes
             #val_preds = np.stack(val_preds, axis=0)

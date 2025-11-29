@@ -90,7 +90,26 @@ class JointModel(nn.Module):
         print(f'deterministic loss: {deterministic_loss.item()}, residual loss: {res_loss.item()}')
         # Example weighted sum
         return deterministic_loss, res_loss
+    
+    def backward(self, deterministic_loss, res_loss, joint_optimizer):
+         # 1. Zero all grads
+        joint_optimizer.zero_grad()
 
+        # 2. Block all gradients from deterministic model
+        deterministic_loss = deterministic_loss.detach()
+
+        # 3. Backprop only through res_model
+        res_loss.backward()
+
+        # 4. Update only res_model parameters
+        for p in self.deterministic_model.parameters():
+            p.grad = None
+
+        joint_optimizer.step()
+            
+        
+        
+'''
     def backward(self, deterministic_loss, res_loss, joint_optimizer):
         """
         Custom backward logic.
@@ -137,3 +156,4 @@ class JointModel(nn.Module):
         g_config=ConFIG_update(grads) # calculate the conflict-free direction
         joint_optimizer.zero_grad()
         data_utils.joint_apply_gradient_vector(self.deterministic_model, self.res_model,g_config) # set the conflict-free direction to the network
+'''

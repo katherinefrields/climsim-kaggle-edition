@@ -444,7 +444,7 @@ def main(cfg: DictConfig) -> float:
                 #calcluate loss using normalized residuals
                 #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_predicted_residual, normalized_residual, weight)
                 joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
-                joint_optimizer.step()
+                #joint_optimizer.step()
                 
                 
                 # optimizer.zero_grad()
@@ -521,7 +521,7 @@ def main(cfg: DictConfig) -> float:
                 
                 #calcluate loss using normalized residuals
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, x, D_x, weight)
-                joint_model.backward(deterministic_loss, res_loss, joint_optimizer)
+                
                 #output, residual, predicted_residual = joint_model(data_input, target)
                 #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
                 

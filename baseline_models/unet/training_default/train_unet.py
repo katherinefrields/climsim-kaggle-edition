@@ -435,10 +435,14 @@ def main(cfg: DictConfig) -> float:
                 data_input, target = data_input.to(device), target.to(device)
                 
                 #scaled predicted
-                output, residual, predicted_residual, normalized_residual, normalized_predicted_residual, weight = joint_model(data_input, target)
+                output, x, D_x, weight = joint_model(data_input, target)
                 
                 #calcluate loss using normalized residuals
-                deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_predicted_residual, normalized_residual, weight)
+                deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, x, D_x, weight)
+                #output, residual, predicted_residual, normalized_residual, normalized_predicted_residual, weight = joint_model(data_input, target)
+                
+                #calcluate loss using normalized residuals
+                #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_predicted_residual, normalized_residual, weight)
                 joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
                 joint_optimizer.step()
                 

@@ -212,7 +212,7 @@ class EDMPrecond(Module):
         if condition != None:
             input = torch.cat([arg, condition], dim=1)
         else:
-            input = x_n
+            input = arg
             
         #=====Predict Noise=====
         F_x = self.model(

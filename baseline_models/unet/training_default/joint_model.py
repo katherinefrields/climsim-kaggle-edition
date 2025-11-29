@@ -40,8 +40,8 @@ class JointModel(nn.Module):
         preds_mean = torch.load(preds_mean_path).to(deterministic_model.device)
         self.preds_mean = preds_mean.to(torch.float32)
         
-        self.input_profile_num = target_profile_num,
-        self.input_scalar_num = target_scalar_num,
+        self.input_profile_num = input_profile_num
+        self.input_scalar_num = input_scalar_num
 
 
     def forward(self, input, target):

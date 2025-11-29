@@ -75,7 +75,7 @@ class JointModel(nn.Module):
         sigma = (rnd_normal * P_std +P_mean).exp()
         
         normalized_predicted_residual, weight = self.res_model(normalized_residual, sigma, condition = condition_input)
-        predicted_residual = normalized_predicted_residual*((self.res_std+ 1e-8)) + self.res_mean
+        predicted_residual = (normalized_predicted_residual/.5)*(self.res_std+ 1e-8) + self.res_mean
         
         #predicted_residual is scaled back to original data space
         return output, residual, predicted_residual, normalized_residual, normalized_predicted_residual, weight

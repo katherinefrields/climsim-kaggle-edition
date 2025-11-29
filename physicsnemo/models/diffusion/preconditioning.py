@@ -108,8 +108,8 @@ class EDMPrecond(Module):
         use_fp16=False,
         sigma_min=0.002,
         sigma_max=80,
-        sigma_data=.5,
-        sigma_condition_data=.5,
+        sigma_data=0.5,
+        sigma_condition_data=0.5,
         mean_data = 0.0, 
         condition_mean_data = 0.0,
         model_type="DhariwalUNet",
@@ -193,7 +193,7 @@ class EDMPrecond(Module):
         
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
         n = torch.randn_like(x) * sigma
-        x = x + n
+        x_n = x + n
         
         print(f'sigma shape is {sigma.shape}')
             
@@ -226,7 +226,7 @@ class EDMPrecond(Module):
         
         c_noise = sigma.log() / 4
 
-        arg = c_in * x
+        arg = c_in * x_n
         
         #=====Reshape Condition=====
         #levels are without padding

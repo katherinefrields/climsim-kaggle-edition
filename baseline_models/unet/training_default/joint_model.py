@@ -72,7 +72,7 @@ class JointModel(nn.Module):
         #trying this rand shape. it was different in the EDM Sampler -->
         #rnd_normal = torch.randn(x.shape, device=x.device)
         rnd_normal = torch.randn([batch_size, 1, 1], device=residual.device)
-        sigma = (rnd_normal * P_std +P_mean).exp()
+        sigma = (rnd_normal * P_std + P_mean).exp()
         
         normalized_predicted_residual, weight = self.res_model(normalized_residual, sigma, condition = condition_input)
         predicted_residual = (normalized_predicted_residual/.5)*(self.res_std+ 1e-8) + self.res_mean

@@ -45,7 +45,7 @@ class JointModel(nn.Module):
         self.input_profile_num = input_profile_num
         self.input_scalar_num = input_scalar_num
         self.vertical_level_num = vertical_level_num
-        self.input_padding = (img_resolution - vertical_level_num,0)
+        self.input_padding = (4,0)
 
 
     def forward(self, input, target):

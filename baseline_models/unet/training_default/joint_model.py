@@ -20,7 +20,7 @@ from conflictfree.grad_operator import ConFIG_update
     
     
 class JointModel(nn.Module):
-    def __init__(self, deterministic_model, res_model, res_std_path, res_mean_path, preds_std_path, preds_mean_path):
+    def __init__(self, deterministic_model, res_model, res_std_path, res_mean_path, preds_std_path, preds_mean_path,input_profile_num, input_scalar_num):
         """
         deterministic_model, res_model: already-instantiated nn.Module objects
         """
@@ -40,6 +40,8 @@ class JointModel(nn.Module):
         preds_mean = torch.load(preds_mean_path).to(deterministic_model.device)
         self.preds_mean = preds_mean.to(torch.float32)
         
+        self.input_profile_num = target_profile_num,
+        self.input_scalar_num = target_scalar_num,
 
 
     def forward(self, input, target):

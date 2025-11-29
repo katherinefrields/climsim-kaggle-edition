@@ -249,7 +249,8 @@ def main(cfg: DictConfig) -> float:
     
 
         
-    joint_model = JointModel(model, res_model, res_std_path, res_mean_path, preds_std_path, preds_mean_path).to(dist.device)
+    joint_model = JointModel(model, res_model, res_std_path, res_mean_path, preds_std_path, preds_mean_path, input_profile_num = data.target_profile_num,
+        input_scalar_num = data.target_scalar_num,).to(dist.device)
     
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to

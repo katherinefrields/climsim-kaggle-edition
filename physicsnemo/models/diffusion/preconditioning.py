@@ -216,13 +216,13 @@ class EDMPrecond(Module):
         #=====Compute Scaling Coefficients=====
         
         #apply scaling on conditional and normal inputs
-        c_skip = (.5)**2 / (sigma**2 + (.5)**2)
+        c_skip = (self.sigma_data)**2 / (sigma**2 + (self.sigma_data)**2)
         
         #apply scaling on normal inputs only
-        c_out = sigma * (.5) / (sigma**2 + (.5)**2).sqrt()
+        c_out = sigma * (self.sigma_data) / (sigma**2 + (self.sigma_data)**2).sqrt()
         
         #apply scaling on conditional and normal inputs
-        c_in = 1 / ((.5)**2 + sigma**2).sqrt()
+        c_in = 1 / ((self.sigma_data)**2 + sigma**2).sqrt()
         
         c_noise = sigma.log() / 4
 

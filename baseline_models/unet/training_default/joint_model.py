@@ -117,7 +117,7 @@ class JointModel(nn.Module):
         #rnd_normal = torch.randn(x.shape, device=x.device)
         
         #apply the same noise to all features in the batch
-        rnd_normal = torch.randn([batch_size,], device=residual.device)
+        rnd_normal = torch.randn([batch_size,1,  1], device=residual.device)
         sigma = (rnd_normal * P_std + P_mean).exp()
         
         #======Noises Residual======

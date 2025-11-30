@@ -53,10 +53,12 @@ class JointModel(nn.Module):
         #output is shape (B, C*L)
         output = self.deterministic_model(input)
         #CHANGED THIS NAME TEMPORARILY!!!!!!
-        residual_a = target - output
         
-        #residual = residual.to(output.device)
-        residual = torch.zeros_like(residual_a)
+        residual = target - output
+        residual = residual.to(output.device)
+        
+        #residual_a = target - output
+        #residual = torch.zeros_like(residual_a)
         
         #======Normalize input and condition data======
         normalized_residual = ((residual - self.res_mean)/((self.res_std+ 1e-8)))*.5

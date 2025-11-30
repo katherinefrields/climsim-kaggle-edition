@@ -241,7 +241,7 @@ class EDMPrecond(Module):
         #print(f'before concat y_profile shape is {y_profile.shape} and y_scalar shape is {y_scalar.shape}')
         y = torch.cat((y_profile, y_scalar), dim=1)
         
-        return D_x, y
+        return D_x,  y
     @staticmethod
     def round_sigma(sigma: Union[float, List, torch.Tensor]):
         """

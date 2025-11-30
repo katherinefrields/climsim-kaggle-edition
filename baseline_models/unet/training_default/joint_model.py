@@ -128,10 +128,10 @@ class JointModel(nn.Module):
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
         
         #x is input noise image, D_x is predicted denoised image (B, C, L), y is predicted denoised image shape (B, C*L)
-        D_x, y = self.res_model(noised_residual,sigma, condition = condition_cat)
+        D_x,  y = self.res_model(noised_residual,sigma, condition = condition_cat)
         
         #predicted_residual is scaled back to original data space
-        return output, x, D_x, y, weight
+        return output, x,  D_x, y, weight
 
     def compute_loss(self, criterion, output, target, x, D_x, weight):
         """
@@ -139,8 +139,8 @@ class JointModel(nn.Module):
         """
         deterministic_loss = criterion(output, target)
         unweighted_res_loss =  (((x - D_x) ** 2)).mean(dim = (1,2)) # calculate over C and L features
-        print(f'unweighted loss value is {unweighted_res_loss}')
-        print(f'weight value is {weight}')
+        print(f'predicted value is {D_x}')
+        print(f'true value is {x}')
         res_loss = (unweighted_res_loss * weight).mean()  # weighted residual loss
         #print(f'deterministic loss: {deterministic_loss.item()}, residual loss: {res_loss.item()}')
         # Example weighted sum

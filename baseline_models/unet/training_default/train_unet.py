@@ -453,7 +453,7 @@ def main(cfg: DictConfig) -> float:
                 #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_predicted_residual, normalized_residual, weight)
                 
                 #temporarily disabled to compute training res norms
-                #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target,  x, D_x, weight)
+                deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target,  x, D_x, weight)
                 #joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
                 
                 #joint_optimizer.step()

@@ -52,10 +52,11 @@ class JointModel(nn.Module):
     def forward(self, input, target):
         #output is shape (B, C*L)
         output = self.deterministic_model(input)
-        residual = target - output
+        #CHANGED THIS NAME TEMPORARILY!!!!!!
+        residual_a = target - output
         
-        residual = residual.to(output.device)
-        residual = torch.ones_like(residual)
+        #residual = residual.to(output.device)
+        residual = torch.ones_like(residual_a)
         
         #======Normalize input and condition data======
         normalized_residual = ((residual - self.res_mean)/((self.res_std+ 1e-8)))*.5

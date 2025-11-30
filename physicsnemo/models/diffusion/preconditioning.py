@@ -228,7 +228,11 @@ class EDMPrecond(Module):
             )
         D_x = c_skip * x_n + c_out * F_x.to(torch.float32)
         
-        
+        D_x[:, 1, 0:12] = D_x[:, 1,0:12]
+        D_x[:, 2,0:12] = D_x[:, 2,0:12]
+        D_x[:, 3,0:12] = D_x[:, 3,0:12]
+        D_x[:, 4,0:12] = D_x[:, 4,0:12]
+            
         #print(f'D_x shape is {D_x.shape}')
         y_profile = D_x[:,:self.input_profile_num,self.input_padding[0]:]
         y_scalar = D_x[:,self.input_profile_num:,self.input_padding[0]:]

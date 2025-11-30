@@ -147,7 +147,7 @@ class JointModel(nn.Module):
         #print(f'deterministic loss: {deterministic_loss.item()}, residual loss: {res_loss.item()}')
         # Example weighted sum
         return deterministic_loss, res_loss
-    
+
     def backward(self, deterministic_loss, res_loss, joint_optimizer):
          # 1. Zero all grads
         joint_optimizer.zero_grad()

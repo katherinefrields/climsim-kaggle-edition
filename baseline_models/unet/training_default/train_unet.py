@@ -446,8 +446,7 @@ def main(cfg: DictConfig) -> float:
                 #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_predicted_residual, normalized_residual, weight)
                 joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
                 
-                norm = torch.nn.utils.clip_grad_norm_(joint_model.module.parameters(), float('inf'))
-                print(f"Grad norm = {norm:.2f}")
+                
         
                 joint_optimizer.step()
                 

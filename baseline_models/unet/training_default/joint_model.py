@@ -56,7 +56,7 @@ class JointModel(nn.Module):
         residual_a = target - output
         
         #residual = residual.to(output.device)
-        residual = torch.ones_like(residual_a)
+        residual = torch.zeros_like(residual_a)
         
         #======Normalize input and condition data======
         normalized_residual = ((residual - self.res_mean)/((self.res_std+ 1e-8)))*.5

@@ -420,8 +420,8 @@ def main(cfg: DictConfig) -> float:
             for param in joint_model.module.deterministic_model.parameters():
                 param.requires_grad = False
                 
-            #train_preds = []
-            #train_targets = []
+            train_preds = []
+            train_targets = []
             
             for data_input, target in train_loop:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
@@ -442,8 +442,8 @@ def main(cfg: DictConfig) -> float:
                 #scaled predicted
                 output, x, D_x, _,  weight = joint_model(data_input, target)
                 
-                #train_targets.append(target.cpu().numpy())
-                #train_preds.append(output.cpu().numpy())
+                train_targets.append(target.cpu().numpy())
+                train_preds.append(output.cpu().numpy())
                 
                 #calcluate loss using normalized residuals
                 
@@ -454,8 +454,8 @@ def main(cfg: DictConfig) -> float:
                 
                 #temporarily disabled to compute training res norms
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target,  x, D_x, weight)
-                joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
-                joint_optimizer.step()
+                #joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
+                #joint_optimizer.step()
                 
                 
                 # optimizer.zero_grad()
@@ -496,8 +496,8 @@ def main(cfg: DictConfig) -> float:
                 current_step += 1
                 del data_input, target, output, x, D_x
                 
-            #np.save(os.path.join('/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/', f'train_preds_epoch_{epoch+1}.npy'), train_preds)
-            #np.save(os.path.join('/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/', f'train_targets_epoch_{epoch+1}.npy'), train_targets)    
+            np.save(os.path.join('/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/', f'train_preds_epoch_{epoch+1}.npy'), train_preds)
+            np.save(os.path.join('/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/', f'train_targets_epoch_{epoch+1}.npy'), train_targets)    
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
             
             model.eval()

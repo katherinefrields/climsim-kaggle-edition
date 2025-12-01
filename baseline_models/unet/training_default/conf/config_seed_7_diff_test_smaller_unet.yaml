@@ -81,7 +81,7 @@ save_top_ckpts: 15
 top_ckpt_mode: 'min'
 optimizer: 'AdamW'
 loss: 'Huber'
-scheduler_name: 'cosine_warmup'
+scheduler_name: 'cosine'
 scheduler:
    step:
       step_size: 3

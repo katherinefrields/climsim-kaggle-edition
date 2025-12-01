@@ -397,14 +397,17 @@ def main(cfg: DictConfig) -> float:
     
     logger.info("Starting Training!")
     # Basic training block with tqdm for progress tracking
+    
+    
     for epoch in range(cfg.epochs):
+        epoch += 1
         if dist.distributed:
             train_sampler.set_epoch(epoch)
         # idx_train_loader = epoch % len(train_input_path)
             if epoch >0:
         #     #free the memory of previously defined train_dataset and train_loader
-                del train_dataset.inputs
-                del train_dataset.targets
+                #del train_dataset.inputs
+                #del train_dataset.targets
                 del train_dataset
                 del train_loader
                 torch.cuda.empty_cache()

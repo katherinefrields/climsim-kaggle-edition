@@ -241,6 +241,20 @@ def main(cfg: DictConfig) -> float:
             model_restart = modulus.Module.from_checkpoint(cfg.restart_path).to(dist.device)
             model.load_state_dict(model_restart.state_dict())
             
+    if len(cfg.diffusion_restart_path) > 0:
+        print("Restarting from checkpoint: " + cfg.diffusion_restart_path)
+        if dist.distributed:
+            res_model_restart = modulus.Module.from_checkpoint(cfg.diffusion_restart_path).to(dist.device)
+            if dist.rank == 0:
+                res_model.load_state_dict(res_model_restart.state_dict())
+                torch.distributed.barrier()
+            else:
+                torch.distributed.barrier()
+                res_model.load_state_dict(res_model_restart.state_dict())
+        else:
+            res_model_restart = modulus.Module.from_checkpoint(cfg.diffusion_restart_path).to(dist.device)
+            res_model.load_state_dict(res_model_restart.state_dict())
+            
     res_std_path = '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/res_std.pt'
     res_mean_path = '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/res_mean.pt'
     

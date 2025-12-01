@@ -137,4 +137,4 @@ diffusion_model:
    seq_resolution: 64
    dropout: .10
    condition: True
-   warmup_steps: 35000
+   warmup_steps: 2000000

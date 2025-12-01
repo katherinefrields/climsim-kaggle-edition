@@ -71,12 +71,12 @@ input_clip_rhonly: True
 # training settings
 seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
-diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/diff_test_refactored_smaller_LR_1_epoch/diff_model/diff_model.mdlus'
+diffusion_restart_path: ''
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'diff_test_refactored_smaller_LR_epoch_3_test'
+expname: 'diff_test_refactored_smaller_LR_epoch_3'
 num_workers: 32
 batch_size: 512 #1024
-epochs: 1
+epochs: 3
 learning_rate: 0.00001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'

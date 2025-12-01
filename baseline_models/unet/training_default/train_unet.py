@@ -400,18 +400,18 @@ def main(cfg: DictConfig) -> float:
     
     
     for epoch in range(cfg.epochs):
-        epoch += 1
+        
         if dist.distributed:
             train_sampler.set_epoch(epoch)
         # idx_train_loader = epoch % len(train_input_path)
-            if epoch >0:
+            #if epoch >0:
         #     #free the memory of previously defined train_dataset and train_loader
                 #del train_dataset.inputs
                 #del train_dataset.targets
-                del train_dataset
-                del train_loader
-                torch.cuda.empty_cache()
-                gc.collect()
+                #del train_dataset
+                #del train_loader
+                #torch.cuda.empty_cache()
+                #gc.collect()
         # logger.info(f"Training epoch {epoch+1}/{cfg.epochs} with train_input_path: {train_input_path[idx_train_loader]}")
         # train_dataset = climsim_dataset(train_input_path[idx_train_loader], train_target_path[idx_train_loader], \
         #                                 input_sub, input_div, out_scale, cfg.qinput_prune, cfg.output_prune, \

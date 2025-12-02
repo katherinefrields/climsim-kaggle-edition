@@ -210,7 +210,7 @@ def main(cfg: DictConfig) -> float:
         #label_dim=0,               # not class-conditional
         use_fp16=False,
         #sigma_min=0.002,
-        #sigma_max=80,
+        sigma_max=1,
         #sigma_data=res_std,
         #sigma_condition_data = preds_std,
         #mean_data=res_mean,

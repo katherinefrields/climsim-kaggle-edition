@@ -109,7 +109,7 @@ class JointModel(nn.Module):
         )
         '''
        
-        P_mean = -1.2
+        P_mean = -2.3
         P_std = 1.2
         batch_size = residual.shape[0]
         

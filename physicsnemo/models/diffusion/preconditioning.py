@@ -136,7 +136,7 @@ class EDMPrecond(Module):
         self.sigma_max = sigma_max
         
         self.condition = condition
-        
+        self.condition_channels = condition_channels
         
         self.input_profile_num = input_profile_num # number of input profile variables
         self.input_scalar_num = input_scalar_num # number of input scalar variables

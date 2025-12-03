@@ -97,11 +97,11 @@ class JointModel(nn.Module):
         #x is (B, C, L)
         
         #=====Reshape Output Condition=====
-        condition_profile = condition_input[:,:self.input_profile_num*self.vertical_level_num]
-        condition_scalar = condition_input[:,self.input_profile_num*self.vertical_level_num:]
+        condition_profile = condition_input[:,:self.target_profile_num*self.vertical_level_num]
+        condition_scalar = condition_input[:,self.target_profile_num*self.vertical_level_num:]
         
         # reshape x_profile to (batch, input_profile_num, levels)
-        condition_profile = condition_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        condition_profile = condition_profile.reshape(-1, self.target_profile_num, self.vertical_level_num)
         
         # broadcast x_scalar to (batch, target_scalar_num, levels)
         condition_scalar = condition_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
@@ -114,11 +114,11 @@ class JointModel(nn.Module):
         
         #=====Reshape Input Condition=====
         input = input * .5 #multiply to match diffusion input scaling
-        input_condition_profile = input[:,:self.target_profile_num*self.vertical_level_num]
-        input_condition_scalar = input[:,self.target_profile_num*self.vertical_level_num:]
+        input_condition_profile = input[:,:self.input_profile_num*self.vertical_level_num]
+        input_condition_scalar = input[:,self.input_profile_num*self.vertical_level_num:]
         
         # reshape x_profile to (batch, target_profile_num, levels)
-        input_condition_profile = input_condition_profile.reshape(-1, self.target_profile_num, self.vertical_level_num)
+        input_condition_profile = input_condition_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
         
         # broadcast x_scalar to (batch, target_scalar_num, levels)
         input_condition_scalar = input_condition_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)

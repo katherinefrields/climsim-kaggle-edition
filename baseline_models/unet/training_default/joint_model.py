@@ -22,7 +22,7 @@ from conflictfree.grad_operator import ConFIG_update
 class JointModel(nn.Module):
     def __init__(self, deterministic_model, res_model, res_std_path, res_mean_path, 
                  preds_std_path, preds_mean_path,input_profile_num, 
-                 input_scalar_num, vertical_level_num=60, img_resolution=64, sigma_data = .5):
+                 input_scalar_num, vertical_level_num=60, img_resolution=64, sigma_data = .5, p_mean = -4.0, p_std=1.2):
         """
         deterministic_model, res_model: already-instantiated nn.Module objects
         """
@@ -47,6 +47,9 @@ class JointModel(nn.Module):
         self.vertical_level_num = vertical_level_num
         self.input_padding = (4,0)
         self.sigma_data = .5
+        
+        self.p_mean = p_mean
+        self.p_std = p_std
 
 
     def forward(self, input, target):
@@ -109,8 +112,6 @@ class JointModel(nn.Module):
         )
         '''
        
-        P_mean = -4.0
-        P_std = 1.2
         batch_size = residual.shape[0]
         
         #trying this rand shape. it was different in the EDM Sampler -->
@@ -118,7 +119,7 @@ class JointModel(nn.Module):
         
         #apply the same noise to all features in the batch
         rnd_normal = torch.randn([batch_size,1,  1], device=residual.device)
-        sigma = (rnd_normal * P_std + P_mean).exp()
+        sigma = (rnd_normal * self.p_std + self.p_mean).exp()
         
         #======Noises Residual======
         n = torch.randn_like(x) * sigma

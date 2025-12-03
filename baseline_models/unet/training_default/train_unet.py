@@ -223,6 +223,8 @@ def main(cfg: DictConfig) -> float:
         model_channels = cfg.diffusion_model.model_channels,
         dropout=cfg.diffusion_model.dropout,
         condition=cfg.diffusion_model.condition,
+        p_mean = cfg.diffusion_model.p_mean,
+        p_std = cfg.diffusion_model.p_std,
     ).to(dist.device)
 
     
@@ -379,7 +381,9 @@ def main(cfg: DictConfig) -> float:
             os.makedirs(save_path_wrapped)
         if not os.path.exists(save_path_ckpt_res):
             os.makedirs(save_path_ckpt_res)
-            
+        
+        config_path = os.path.join(save_path, 'saved_config.yaml')
+        OmegaConf.save(config=cfg, f=config_path)
     
     if dist.world_size > 1:
         torch.distributed.barrier()

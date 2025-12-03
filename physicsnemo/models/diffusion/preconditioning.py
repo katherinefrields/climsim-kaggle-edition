@@ -180,7 +180,7 @@ class EDMPrecond(Module):
         class_labels = (
             None
             if self.label_dim == 0
-            else torch.zeros([1, self.label_dim], device=x.device)
+            else torch.zeros([1, self.label_dim], device=x_n.device)
             if class_labels is None
             else class_labels.to(torch.float32).reshape(-1, self.label_dim)
         )
@@ -188,7 +188,7 @@ class EDMPrecond(Module):
         #=====Float use=====
         dtype = (
             torch.float16
-            if (self.use_fp16 and not force_fp32 and x.device.type == "cuda")
+            if (self.use_fp16 and not force_fp32 and x_n.device.type == "cuda")
             else torch.float32
         )
         

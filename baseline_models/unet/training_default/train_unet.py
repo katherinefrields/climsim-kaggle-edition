@@ -197,6 +197,8 @@ def main(cfg: DictConfig) -> float:
     res_attn_resolutions = OmegaConf.to_container(cfg.diffusion_model.attn_resolutions, resolve = True)
     res_channel_mult = OmegaConf.to_container(cfg.diffusion_model.channel_mult, resolve = True)
     #res_resample_filter = OmegaConf.to_container(cfg.diffusion_model.resample_filter, resolve = True)
+    
+    
     res_model = EDMPrecond(
         img_resolution=cfg.diffusion_model.seq_resolution,         # vertical levels
         #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
@@ -223,6 +225,7 @@ def main(cfg: DictConfig) -> float:
         model_channels = cfg.diffusion_model.model_channels,
         dropout=cfg.diffusion_model.dropout,
         condition=cfg.diffusion_model.condition,
+        condition_channels=data.target_profile_num  + data.target_scalar_num + data.input_profile_num + data.input_scalar_num,
     ).to(dist.device)
 
     
@@ -263,9 +266,15 @@ def main(cfg: DictConfig) -> float:
     
 
         
-    joint_model = JointModel(model, res_model, res_std_path, res_mean_path, preds_std_path, preds_mean_path, input_profile_num = data.target_profile_num,
-        input_scalar_num = data.target_scalar_num, p_mean = cfg.diffusion_model.p_mean,
-        p_std = cfg.diffusion_model.p_std).to(dist.device)
+    joint_model = JointModel(model, res_model, res_std_path, res_mean_path, 
+                            preds_std_path, preds_mean_path, 
+                            input_profile_num = data.input_profile_num, 
+                            input_scalar_num = data.input_scalar_num,
+                            target_profile_num = data.target_profile_num,
+                            target_scalar_num = data.target_scalar_num, 
+                            condition_channel_num = res_model.condition_channels,
+                            p_mean = cfg.diffusion_model.p_mean,
+                            p_std = cfg.diffusion_model.p_std).to(dist.device)
     
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to

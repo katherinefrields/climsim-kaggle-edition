@@ -116,6 +116,7 @@ class EDMPrecond(Module):
         img_in_channels=None,
         img_out_channels=None,
         condition=False,
+        condition_channels = 0,
         **model_kwargs,
     ):
         super().__init__(meta=EDMPrecondMetaData)
@@ -152,7 +153,7 @@ class EDMPrecond(Module):
         model_class = getattr(network_module, model_type)
         self.model = model_class(
             img_resolution=img_resolution,
-            in_channels=img_in_channels* 2,
+            in_channels=img_in_channels+ condition_channels,
             out_channels=img_out_channels,
             label_dim=label_dim,
             **model_kwargs,

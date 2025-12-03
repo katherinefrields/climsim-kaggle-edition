@@ -223,8 +223,6 @@ def main(cfg: DictConfig) -> float:
         model_channels = cfg.diffusion_model.model_channels,
         dropout=cfg.diffusion_model.dropout,
         condition=cfg.diffusion_model.condition,
-        p_mean = cfg.diffusion_model.p_mean,
-        p_std = cfg.diffusion_model.p_std,
     ).to(dist.device)
 
     
@@ -266,7 +264,8 @@ def main(cfg: DictConfig) -> float:
 
         
     joint_model = JointModel(model, res_model, res_std_path, res_mean_path, preds_std_path, preds_mean_path, input_profile_num = data.target_profile_num,
-        input_scalar_num = data.target_scalar_num).to(dist.device)
+        input_scalar_num = data.target_scalar_num, p_mean = cfg.diffusion_model.p_mean,
+        p_std = cfg.diffusion_model.p_std).to(dist.device)
     
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to

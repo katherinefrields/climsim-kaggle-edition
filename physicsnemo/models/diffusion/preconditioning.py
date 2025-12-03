@@ -210,11 +210,11 @@ class EDMPrecond(Module):
 
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
-        if condition != None:
-            print('applying conditioning')
-            input = torch.cat([arg, condition], dim=1)
-        else:
-            input = arg
+        if condition == None:
+            print('condition is None')
+        print('applying conditioning')
+        input = torch.cat([arg, condition], dim=1)
+        
             
         #=====Predict Noise=====
         F_x = self.model(

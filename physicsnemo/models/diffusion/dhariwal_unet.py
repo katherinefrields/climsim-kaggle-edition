@@ -218,6 +218,8 @@ class DhariwalUNet(Module):
             else None
         )
 
+        print(f'score unet in_channels is {in_channels}, out_channels is {out_channels}')
+        
         # Encoder.
         self.enc = torch.nn.ModuleDict()
         cout = in_channels

@@ -160,6 +160,11 @@ class JointModel(nn.Module):
         # weight per batch element according to the noise that was added to it
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
         
+        # ---- INSERT CONDITIONING DROPOUT HERE ----
+        
+        drop_mask = (torch.rand(batch_size, 1, 1, device=condition_cat.device) < 0.1)
+        condition_cat = condition_cat * (~drop_mask)  # OR (1 - drop_mask.float())
+    
         #x is input noise image, D_x is predicted denoised image (B, C, L), y is predicted denoised image shape (B, C*L)
         D_x,  y = self.res_model(noised_residual,sigma, condition = condition_cat)
         

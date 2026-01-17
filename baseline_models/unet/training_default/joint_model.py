@@ -63,9 +63,51 @@ class JointModel(nn.Module):
         self.p_mean = p_mean
         self.p_std = p_std
 
-
+     #output is (B, C*L)
+    #normalized true residual is (B, C*L)
+    #normalized_predicted_residual is (B, C*L)
+    #denormalized_residual (B, C, L)
+    #denormalized_predicted_residual (B, C, L)
+    #weight is the weight associated with the batch for the loss function
     def forward(self, input, target):
         #output is shape (B, C*L)
+
+        '''#=====Reshape Input=====
+        # split x into x_profile and x_scalar
+        x_profile = input[:,:self.input_profile_num*self.vertical_level_num]
+        x_scalar = input[:,self.input_profile_num*self.vertical_level_num:]
+
+        # reshape x_profile to (batch, input_profile_num, levels)
+        x_profile = x_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        # broadcast x_scalar to (batch, input_scalar_num, levels)
+        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+
+        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
+        x = torch.cat((x_profile, x_scalar), dim=1)
+        
+        # pads the beginning of levels so that levels = seq_resolution (which by default is 64)
+        input = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)'''
+        
+        input = self.reshape_input(input)
+        
+        #=====Reshape Target Condition=====
+        #FINISH RESHAPING TARGET
+        '''target_profile = condition_input[:,:self.target_profile_num*self.vertical_level_num]
+        target_scalar = condition_input[:,self.target_profile_num*self.vertical_level_num:]
+        
+        # reshape x_profile to (batch, input_profile_num, levels)
+        target_profile = target_profile.reshape(-1, self.target_profile_num, self.vertical_level_num)
+        
+        # broadcast x_scalar to (batch, target_scalar_num, levels)
+        target_scalar = target_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+        
+        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+target_scalar_num, levels)
+        target = torch.cat((target_profile, target_scalar), dim=1)
+        '''
+        
+        target = self.reshape_target(target)
+        
+        #=====Calculate Residual=====
         output = self.deterministic_model(input)
         
         residual = target - output
@@ -75,11 +117,13 @@ class JointModel(nn.Module):
         #residual = torch.zeros_like(residual_a)
         
         #======Normalize input and condition data======
+        #reshape mean data temperarily for broadcasting
+        
         normalized_residual = ((residual - self.res_mean)/((self.res_std+ 1e-8)))*.5
-        condition_input = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
+        condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
     
         
-        #=====Reshape Residaul=====
+        '''#=====Reshape Residaul=====
         #when you train your own model, have it 
         x_profile = normalized_residual[:,:self.target_profile_num*self.vertical_level_num]
         x_scalar = normalized_residual[:,self.target_profile_num*self.vertical_level_num:]
@@ -114,6 +158,8 @@ class JointModel(nn.Module):
         
         #=====Reshape Input Condition=====
         input = input * .5 #multiply to match diffusion input scaling
+        
+        
         input_condition_profile = input[:,:self.input_profile_num*self.vertical_level_num]
         input_condition_scalar = input[:,self.input_profile_num*self.vertical_level_num:]
         
@@ -130,6 +176,7 @@ class JointModel(nn.Module):
         condition_cat = torch.cat((condition_cat, input_condition_cat), dim=1)
         
         condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
+        '''
         
         ''' #Batch size
         P_mean = -1.2
@@ -152,24 +199,33 @@ class JointModel(nn.Module):
         sigma = (rnd_normal * self.p_std + self.p_mean).exp()
         
         #======Noises Residual======
-        n = torch.randn_like(x) * sigma
-        noised_residual = x + n
+        n = torch.randn_like(normalized_residual) * sigma
+        noised_residual = normalized_residual + n
         #noised_residual = torch.likes(noised_residual)
         
         
         # weight per batch element according to the noise that was added to it
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
         
+        #this was used for classifier free guidance
         # ---- INSERT CONDITIONING DROPOUT HERE ----
-        
-        drop_mask = (torch.rand(batch_size, 1, 1, device=condition_cat.device) < 0.1)
-        condition_cat = condition_cat * (~drop_mask)  # OR (1 - drop_mask.float())
+        #drop_mask = (torch.rand(batch_size, 1, 1, device=condition_cat.device) < 0.1)
+        #condition_cat = condition_cat * (~drop_mask)  # OR (1 - drop_mask.float())
     
-        #x is input noise image, D_x is predicted denoised image (B, C, L), y is predicted denoised image shape (B, C*L)
-        D_x,  y = self.res_model(noised_residual,sigma, condition = condition_cat)
+        #noised_residual is input noisy image, D_x is predicted denoised image (B, C, L), y is predicted denoised image shape (B, C*L)
+        normalized_predicted_residual = self.res_model(noised_residual,sigma, condition = condition_output)
         
-        #predicted_residual is scaled back to original data space
-        return output, x,  D_x, y, weight
+        #=====Reshape Predicted residual=====
+        #reshape true residual and predicted residual back to (B, C*L)
+        denormalized_residual = normalized_residual * .5 * (self.res_std+ 1e-8) + self.res_mean
+        denormalized_predicted_residual = normalized_predicted_residual * .5 * (self.res_std+ 1e-8) + self.res_mean
+        
+        normalized_residual = self.reverse_reshape_target(normalized_residual)
+        normalized_predicted_residual = self.reverse_reshape_target(normalized_predicted_residual)
+        
+       
+        
+        return output, normalized_residual, normalized_predicted_residual, denormalized_residual, denormalized_predicted_residual, weight
 
     def compute_loss(self, criterion, output, target, x, D_x, weight):
         """
@@ -197,7 +253,59 @@ class JointModel(nn.Module):
         # 4. Update only res_model parameters
         for p in self.deterministic_model.parameters():
             p.grad = None
+    
+    #reshapes target from (B,C*L ) to (B, C, L)
+    def reshape_target(self, target):
+        #=====Reshape Target Condition=====
+        #FINISH RESHAPING TARGET
+        target_profile = target[:,:self.target_profile_num*self.vertical_level_num]
+        target_scalar = target[:,self.target_profile_num*self.vertical_level_num:]
         
+        # reshape x_profile to (batch, input_profile_num, levels)
+        target_profile = target_profile.reshape(-1, self.target_profile_num, self.vertical_level_num)
+        
+        # broadcast x_scalar to (batch, target_scalar_num, levels)
+        target_scalar = target_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+        
+        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+target_scalar_num, levels)
+        target = torch.cat((target_profile, target_scalar), dim=1)
+    
+    #reshapes input from (B,C*L ) to (B, C, L)
+    def reshape_input(self, input):
+        #=====Reshape Input=====
+        # split x into x_profile and x_scalar
+        x_profile = input[:,:self.input_profile_num*self.vertical_level_num]
+        x_scalar = input[:,self.input_profile_num*self.vertical_level_num:]
+
+        # reshape x_profile to (batch, input_profile_num, levels)
+        x_profile = x_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        # broadcast x_scalar to (batch, input_scalar_num, levels)
+        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+
+        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
+        x = torch.cat((x_profile, x_scalar), dim=1)
+        
+        # pads the beginning of levels so that levels = seq_resolution (which by default is 64)
+        input = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
+        
+        return input
+    
+    #reshapes target from (B,C,L) to (B, C*L)
+    def reverse_reshape_target(self, target):
+        #=====Reshape Target Condition=====
+        y_profile = target[:,:self.input_profile_num,self.input_padding[0]:]
+        y_scalar = target[:,self.input_profile_num:,self.input_padding[0]:]
+        
+        #print(f'y_profile shape is {y_profile.shape}')
+        #print(f'y_scalar shape is {y_scalar.shape}')
+
+        y_scalar = y_scalar.mean(dim=2)
+        y_profile = y_profile.reshape(-1, self.input_profile_num*self.vertical_level_num)
+        #print(f'before concat y_profile shape is {y_profile.shape} and y_scalar shape is {y_scalar.shape}')
+        y = torch.cat((y_profile, y_scalar), dim=1)
+        return y
+    
+   
         
 
             

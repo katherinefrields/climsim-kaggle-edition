@@ -28,7 +28,11 @@ class data_utils:
                  save_zarr=False,
                  save_h5=False,
                  save_npy=True,
-                 cpuonly=False):
+                 cpuonly=False,
+                 res_std = 0,
+                 res_mean = 0,
+                 preds_std = 0,
+                 preds_mean = 0,):
         if cpuonly:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
         self.input_abbrev = input_abbrev
@@ -57,6 +61,10 @@ class data_utils:
         self.input_max = input_max
         self.input_min = input_min
         self.output_scale = output_scale
+        self.res_std = res_std
+        self.res_mean = res_mean
+        self.preds_std = preds_std
+        self.preds_mean = preds_mean
         self.normalize = normalize
         self.lats = self.grid_info['lat'].values
         self.lons = self.grid_info['lon'].values

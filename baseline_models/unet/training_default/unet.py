@@ -301,27 +301,6 @@ class Unet(modulus.Module):
         #     x = x.clone()
         #     x[:,-8:-3] = x[:,-8:-3].clone().zero_()
 
-        # split x into x_profile and x_scalar
-        #x_profile = x[:,:self.input_profile_num*self.vertical_level_num]
-        #x_scalar = x[:,self.input_profile_num*self.vertical_level_num:]
-
-
-        # print(x_profile.shape, x_scalar.shape, x_loc.shape)
-
-        # reshape x_profile to (batch, input_profile_num, levels)
-        #x_profile = x_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
-        # broadcast x_scalar to (batch, input_scalar_num, levels)
-        #x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
-
-        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-        #x = torch.cat((x_profile, x_scalar), dim=1)
-        # print('2:', x.shape)
-        # x = torch.cat((x_profile, x_scalar), dim=1)
-        
-        # pads the beginning of levels so that levels = seq_resolution (which by default is 64)
-        #x = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
-        # print('3:', x.shape)
-        # pass the concatenated tensor through the Unet
 
         # Encoder.
         skips = []

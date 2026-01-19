@@ -20,8 +20,8 @@ from conflictfree.grad_operator import ConFIG_update
     
     
 class JointModel(nn.Module):
-    def __init__(self, deterministic_model, res_model, res_std_path, res_mean_path, 
-                 preds_std_path, preds_mean_path,
+    def __init__(self, deterministic_model, res_model, res_std, res_mean, 
+                 preds_std, preds_mean,
                  input_profile_num, 
                  input_scalar_num, 
                  target_profile_num, 
@@ -36,18 +36,6 @@ class JointModel(nn.Module):
         super().__init__()
         self.deterministic_model = deterministic_model
         self.res_model = res_model
-        
-        res_std = torch.load(res_std_path).to(deterministic_model.device)
-        self.res_std = res_std.to(torch.float32)
-
-        res_mean = torch.load(res_mean_path).to(deterministic_model.device)
-        self.res_mean = res_mean.to(torch.float32)
-
-        preds_std = torch.load(preds_std_path).to(deterministic_model.device)
-        self.preds_std = preds_std.to(torch.float32)
-
-        preds_mean = torch.load(preds_mean_path).to(deterministic_model.device)
-        self.preds_mean = preds_mean.to(torch.float32)
         
         self.input_profile_num = input_profile_num
         self.input_scalar_num = input_scalar_num
@@ -217,8 +205,11 @@ class JointModel(nn.Module):
         
         #=====Reshape Predicted residual=====
         #reshape true residual and predicted residual back to (B, C*L)
-        denormalized_residual = normalized_residual * .5 * (self.res_std+ 1e-8) + self.res_mean
-        denormalized_predicted_residual = normalized_predicted_residual * .5 * (self.res_std+ 1e-8) + self.res_mean
+        denormalized_residual = normalized_residual / .5 * (self.res_std+ 1e-8) + self.res_mean
+        denormalized_predicted_residual = normalized_predicted_residual / .5 * (self.res_std+ 1e-8) + self.res_mean
+        
+        denormalized_residual = self.reverse_reshape_target(denormalized_residual)
+        denormalized_predicted_residual = self.reverse_reshape_target(denormalized_predicted_residual)
         
         normalized_residual = self.reverse_reshape_target(normalized_residual)
         normalized_predicted_residual = self.reverse_reshape_target(normalized_predicted_residual)

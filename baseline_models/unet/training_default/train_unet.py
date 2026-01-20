@@ -237,7 +237,7 @@ def main(cfg: DictConfig) -> float:
         model_channels = cfg.diffusion_model.model_channels,
         dropout=cfg.diffusion_model.dropout,
         condition=cfg.diffusion_model.condition,
-        condition_channels=data.target_profile_num  + data.target_scalar_num + data.input_profile_num + data.input_scalar_num,
+        condition_channels=data.target_profile_num  + data.target_scalar_num,
     ).to(dist.device)
 
     

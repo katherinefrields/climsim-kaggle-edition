@@ -16,4 +16,4 @@
 cmd="python train_unet.py --config-name=config_seed_43"
 
 cd ..
-srun -n $SLURM_NTASKS shifter bash -c "source ddp_export.sh && $cmd"
+#srun -n $SLURM_NTASKS shifter bash -c "source ddp_export.sh && $cmd"

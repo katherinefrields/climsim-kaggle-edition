@@ -433,6 +433,8 @@ class Unet(modulus.Module):
             y[:, 3, :self.strato_lev_out] = y[:, 3, :self.strato_lev_out].clone().zero_()
             y[:, 4, :self.strato_lev_out] = y[:, 4, :self.strato_lev_out].clone().zero_()
             
+        else:
+            y = x.clone()
             #y[:, 60:60+self.strato_lev_out] = y[:, 60:60+self.strato_lev_out].clone().zero_()
             #y[:, 120:120+self.strato_lev_out] = y[:, 120:120+self.strato_lev_out].clone().zero_()
             #y[:, 180:180+self.strato_lev_out] = y[:, 180:180+self.strato_lev_out].clone().zero_()

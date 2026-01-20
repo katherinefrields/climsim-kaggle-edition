@@ -212,9 +212,7 @@ class EDMPrecond(Module):
         #currently x(batch, target_profile_num*levels+target_scalar_num)
         if condition != None:
             input = torch.cat([arg, condition], dim=1)
-            print('went here')
         else:
-            print('went there')
             input = arg
             
         #=====Predict Noise=====

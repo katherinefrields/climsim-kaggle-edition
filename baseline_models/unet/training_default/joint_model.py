@@ -119,8 +119,7 @@ class JointModel(nn.Module):
         #drop_mask = (torch.rand(batch_size, 1, 1, device=condition_cat.device) < 0.1)
         #condition_cat = condition_cat * (~drop_mask)  # OR (1 - drop_mask.float())
 
-        print(f'condition_output has shape {condition_output.shape}')
-        print(f'condition_output is {condition_output}')
+    
         #noised_residual is input noisy image, D_x is predicted denoised image (B, C, L), y is predicted denoised image shape (B, C*L)
         normalized_predicted_residual = self.res_model(noised_residual,sigma, condition = condition_output)
         

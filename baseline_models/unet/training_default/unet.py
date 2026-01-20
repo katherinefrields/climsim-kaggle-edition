@@ -394,8 +394,8 @@ class Unet(modulus.Module):
             #y_profile = x[:,:self.target_profile_num,self.input_padding[0]:]
             #calculate the mean excluding the padding
             y_scalar = torch.nn.functional.relu(x[:,self.target_profile_num:,self.input_padding[0]:])
-            y_scalar = y_scalar.mean(dim=2)
-            y_scalar = y_scalar.repeat(-1, -1, self.vertical_level_num)
+            y_scalar = y_scalar.mean(dim=2).unsqueeze(2)
+            y_scalar = y_scalar.expand(-1, -1, self.vertical_level_num)
             
             #add the padding back to the beginning levels
             y_scalar = torch.nn.functional.pad(y_scalar, self.input_padding, "constant", 0.0)
@@ -404,7 +404,7 @@ class Unet(modulus.Module):
         else: # might not work????
             #y_profile = x[:,:self.target_profile_num,self.input_padding[0]:-self.input_padding[1]]
             y_scalar = torch.nn.functional.relu(x[:,self.target_profile_num:,self.input_padding[0]:-self.input_padding[1]])
-            y_scalar = y_scalar.mean(dim=2)
+            y_scalar = y_scalar.mean(dim=2).unsqueeze(2)
             y_scalar = y_scalar.repeat(-1, -1, self.vertical_level_num)
             
             y_scalar = torch.nn.functional.pad(y_scalar, self.input_padding, "constant", 0.0)

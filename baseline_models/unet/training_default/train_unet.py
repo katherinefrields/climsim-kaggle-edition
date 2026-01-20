@@ -175,7 +175,6 @@ def main(cfg: DictConfig) -> float:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
 
-    
     #print('debug: output_size', output_size, output_size//60, output_size%60)
     attn_resolutions = OmegaConf.to_container(cfg.deterministic_model.attn_resolutions, resolve = True)
     channel_mult = OmegaConf.to_container(cfg.deterministic_model.channel_mult, resolve = True)

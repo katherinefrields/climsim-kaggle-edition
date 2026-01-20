@@ -70,7 +70,7 @@ class JointModel(nn.Module):
         target = self.reshape_target(target)
         
         #=====Calculate Residual=====
-        #output = self.deterministic_model(input)
+        output = self.deterministic_model(input)
         
         residual = target - output
         residual = residual.to(output.device)

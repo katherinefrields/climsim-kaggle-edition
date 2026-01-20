@@ -60,38 +60,7 @@ class JointModel(nn.Module):
     def forward(self, input, target):
         #output is shape (B, C*L)
 
-        '''#=====Reshape Input=====
-        # split x into x_profile and x_scalar
-        x_profile = input[:,:self.input_profile_num*self.vertical_level_num]
-        x_scalar = input[:,self.input_profile_num*self.vertical_level_num:]
-
-        # reshape x_profile to (batch, input_profile_num, levels)
-        x_profile = x_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
-        # broadcast x_scalar to (batch, input_scalar_num, levels)
-        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
-
-        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-        x = torch.cat((x_profile, x_scalar), dim=1)
-        
-        # pads the beginning of levels so that levels = seq_resolution (which by default is 64)
-        input = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)'''
-        
         input = self.reshape_input(input)
-        
-        #=====Reshape Target Condition=====
-        #FINISH RESHAPING TARGET
-        '''target_profile = condition_input[:,:self.target_profile_num*self.vertical_level_num]
-        target_scalar = condition_input[:,self.target_profile_num*self.vertical_level_num:]
-        
-        # reshape x_profile to (batch, input_profile_num, levels)
-        target_profile = target_profile.reshape(-1, self.target_profile_num, self.vertical_level_num)
-        
-        # broadcast x_scalar to (batch, target_scalar_num, levels)
-        target_scalar = target_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
-        
-        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+target_scalar_num, levels)
-        target = torch.cat((target_profile, target_scalar), dim=1)
-        '''
         
         target = self.reshape_target(target)
         
@@ -110,61 +79,6 @@ class JointModel(nn.Module):
         normalized_residual = ((residual - self.res_mean)/((self.res_std+ 1e-8)))*.5
         condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
     
-        
-        '''#=====Reshape Residaul=====
-        #when you train your own model, have it 
-        x_profile = normalized_residual[:,:self.target_profile_num*self.vertical_level_num]
-        x_scalar = normalized_residual[:,self.target_profile_num*self.vertical_level_num:]
-        
-        # reshape x_profile to (batch, target_profile_num, levels)
-        x_profile = x_profile.reshape(-1, self.target_profile_num, self.vertical_level_num)
-        
-        # broadcast x_scalar to (batch, target_scalar_num, levels)
-        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
-        
-        #concatenate x_profile, x_scalar, x_loc to (batch, target_profile_num+target_scalar_num, levels)
-        x = torch.cat((x_profile, x_scalar), dim=1)
-        
-        x = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
-        #x is (B, C, L)
-        
-        #=====Reshape Output Condition=====
-        condition_profile = condition_input[:,:self.target_profile_num*self.vertical_level_num]
-        condition_scalar = condition_input[:,self.target_profile_num*self.vertical_level_num:]
-        
-        # reshape x_profile to (batch, input_profile_num, levels)
-        condition_profile = condition_profile.reshape(-1, self.target_profile_num, self.vertical_level_num)
-        
-        # broadcast x_scalar to (batch, target_scalar_num, levels)
-        condition_scalar = condition_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
-        
-        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+target_scalar_num, levels)
-        condition_cat = torch.cat((condition_profile, condition_scalar), dim=1)
-        
-        #Condition is (B, C, L)
-        
-        
-        #=====Reshape Input Condition=====
-        input = input * .5 #multiply to match diffusion input scaling
-        
-        
-        input_condition_profile = input[:,:self.input_profile_num*self.vertical_level_num]
-        input_condition_scalar = input[:,self.input_profile_num*self.vertical_level_num:]
-        
-        # reshape x_profile to (batch, target_profile_num, levels)
-        input_condition_profile = input_condition_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
-        
-        # broadcast x_scalar to (batch, target_scalar_num, levels)
-        input_condition_scalar = input_condition_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
-        
-        #concatenate x_profile, x_scalar, x_loc to (batch, target_profile_num+target_scalar_num, levels)
-        input_condition_cat = torch.cat((input_condition_profile, input_condition_scalar), dim=1)
-        
-        #Condition is (B, C, L)
-        condition_cat = torch.cat((condition_cat, input_condition_cat), dim=1)
-        
-        condition_cat = torch.nn.functional.pad(condition_cat, self.input_padding, "constant", 0.0)
-        '''
         
         ''' #Batch size
         P_mean = -1.2

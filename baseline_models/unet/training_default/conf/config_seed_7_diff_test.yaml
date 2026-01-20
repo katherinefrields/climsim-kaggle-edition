@@ -49,6 +49,10 @@ input_mean_path: '/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/norma
 input_max_path: '/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normalizations/inputs/input_max_v2_rh_mc_pervar.nc'
 input_min_path: '/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normalizations/inputs/input_min_v2_rh_mc_pervar.nc'
 output_scale_path: '/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normalizations/outputs/output_scale_std_lowerthred_v2_rh_mc.nc'
+res_std_path: /global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_res_std.pt
+res_mean_path: /global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_res_mean.pt
+preds_std_path: /global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_preds_std.pt
+preds_mean_path: /global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_preds_mean.pt
 variable_subsets: 'v2_rh_mc'
 
 # dataset preprocessing settings

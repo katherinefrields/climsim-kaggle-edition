@@ -180,6 +180,8 @@ class JointModel(nn.Module):
         #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+target_scalar_num, levels)
         target = torch.cat((target_profile, target_scalar), dim=1)
         
+        target = torch.nn.functional.pad(target, self.input_padding, "constant", 0.0)
+        
         return target
     
     #reshapes input from (B,C*L ) to (B, C, L)

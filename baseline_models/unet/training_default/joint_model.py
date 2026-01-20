@@ -65,51 +65,9 @@ class JointModel(nn.Module):
     def forward(self, input, target):
         #output is shape (B, C*L)
 
-<<<<<<< HEAD
         input = self.reshape_input(input)
         
         target = self.reshape_target(target)
-=======
-        '''#=====Reshape Input=====
-        # split x into x_profile and x_scalar
-        x_profile = input[:,:self.input_profile_num*self.vertical_level_num]
-        x_scalar = input[:,self.input_profile_num*self.vertical_level_num:]
-
-        # reshape x_profile to (batch, input_profile_num, levels)
-        x_profile = x_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
-        # broadcast x_scalar to (batch, input_scalar_num, levels)
-        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
-
-        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+input_scalar_num, levels)
-        x = torch.cat((x_profile, x_scalar), dim=1)
-        
-        # pads the beginning of levels so that levels = seq_resolution (which by default is 64)
-        input = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)'''
-        
-        
-        
-        #=====Reshape Target Condition=====
-        #FINISH RESHAPING TARGET
-        '''target_profile = condition_input[:,:self.target_profile_num*self.vertical_level_num]
-        target_scalar = condition_input[:,self.target_profile_num*self.vertical_level_num:]
-        
-        # reshape x_profile to (batch, input_profile_num, levels)
-        target_profile = target_profile.reshape(-1, self.target_profile_num, self.vertical_level_num)
-        
-        # broadcast x_scalar to (batch, target_scalar_num, levels)
-        target_scalar = target_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
-        
-        #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+target_scalar_num, levels)
-        target = torch.cat((target_profile, target_scalar), dim=1)
-        '''
-        output = self.deterministic_model(input)
-        
-        #output = self.reshape_target (initial_output)
-        print(output)
-        input = self.reshape_input(input)
-        #target = self.reshape_target(target)
-        print(target)
->>>>>>> 0f17eb0 (prepped for old model run)
         
         #=====Calculate Residual=====
         #output = self.deterministic_model(input)
@@ -221,10 +179,7 @@ class JointModel(nn.Module):
         
         #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+target_scalar_num, levels)
         target = torch.cat((target_profile, target_scalar), dim=1)
-<<<<<<< HEAD
         
-=======
->>>>>>> 0f17eb0 (prepped for old model run)
         return target
     
     #reshapes input from (B,C*L ) to (B, C, L)

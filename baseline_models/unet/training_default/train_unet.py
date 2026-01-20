@@ -51,16 +51,16 @@ def main(cfg: DictConfig) -> float:
     DistributedManager.initialize()
     dist = DistributedManager()
 
-    res_std = torch.load(cfg.res_std_path).to(device)
+    res_std = torch.load(cfg.res_std_path)
     res_std = res_std.to(torch.float32)
     
-    res_mean = torch.load(cfg.res_mean_path).to(device)
+    res_mean = torch.load(cfg.res_mean_path)
     res_mean = res_mean.to(torch.float32)
     
-    preds_std = torch.load(cfg.preds_std_path).to(device)
+    preds_std = torch.load(cfg.preds_std_path)
     preds_std = preds_std.to(torch.float32)
     
-    preds_mean = torch.load(cfg.preds_mean_path).to(device)
+    preds_mean = torch.load(cfg.preds_mean_path)
     preds_mean = preds_mean.to(torch.float32)
     
     
@@ -272,8 +272,12 @@ def main(cfg: DictConfig) -> float:
             
     
         
-    joint_model = JointModel(model, res_model, res_std, res_mean, 
-                            preds_std, preds_mean, 
+    joint_model = JointModel(model, 
+                            res_model.to(dist.device),
+                            res_std.to(dist.device),
+                            res_mean.to(dist.device),
+                            preds_std.to(dist.device),
+                            preds_mean.to(dist.device), 
                             input_profile_num = data.input_profile_num, 
                             input_scalar_num = data.input_scalar_num,
                             target_profile_num = data.target_profile_num,

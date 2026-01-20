@@ -174,6 +174,8 @@ class JointModel(nn.Module):
         
         #concatenate x_profile, x_scalar, x_loc to (batch, input_profile_num+target_scalar_num, levels)
         target = torch.cat((target_profile, target_scalar), dim=1)
+        
+        return target
     
     #reshapes input from (B,C*L ) to (B, C, L)
     def reshape_input(self, input):

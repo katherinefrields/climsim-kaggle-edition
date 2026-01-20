@@ -51,6 +51,13 @@ input_min_path: '/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normal
 output_scale_path: '/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normalizations/outputs/output_scale_std_lowerthred_v2_rh_mc.nc'
 variable_subsets: 'v2_rh_mc'
 
+res_std_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_res_std.pt'
+res_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_res_mean.pt'
+
+preds_std_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_preds_std.pt'
+preds_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_preds_mean.pt'
+
+
 # dataset preprocessing settings
 qinput_prune: True # (bool): Whether to prune the input data
 output_prune: True # (bool): Whether to prune the output data

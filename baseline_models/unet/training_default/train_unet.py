@@ -51,6 +51,19 @@ def main(cfg: DictConfig) -> float:
     DistributedManager.initialize()
     dist = DistributedManager()
 
+    res_std = torch.load(cfg.res_std_path).to(device)
+    res_std = res_std.to(torch.float32)
+    
+    res_mean = torch.load(cfg.res_mean_path).to(device)
+    res_mean = res_mean.to(torch.float32)
+    
+    preds_std = torch.load(cfg.preds_std_path).to(device)
+    preds_std = preds_std.to(torch.float32)
+    
+    preds_mean = torch.load(cfg.preds_mean_path).to(device)
+    preds_mean = preds_mean.to(torch.float32)
+    
+    
     grid_info = xr.open_dataset(cfg.grid_info_path)
     input_mean = xr.open_dataset(cfg.input_mean_path)
     input_max = xr.open_dataset(cfg.input_max_path)
@@ -258,16 +271,10 @@ def main(cfg: DictConfig) -> float:
             res_model_restart = modulus.Module.from_checkpoint(cfg.diffusion_restart_path).to(dist.device)
             res_model.load_state_dict(res_model_restart.state_dict())
             
-    res_std_path = '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_res_std.pt'
-    res_mean_path = '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_res_mean.pt'
     
-    preds_std_path = '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_preds_std.pt'
-    preds_mean_path = '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_preds_mean.pt'
-    
-
         
-    joint_model = JointModel(model, res_model, res_std_path, res_mean_path, 
-                            preds_std_path, preds_mean_path, 
+    joint_model = JointModel(model, res_model, res_std, res_mean, 
+                            preds_std, preds_mean, 
                             input_profile_num = data.input_profile_num, 
                             input_scalar_num = data.input_scalar_num,
                             target_profile_num = data.target_profile_num,
@@ -566,7 +573,7 @@ def main(cfg: DictConfig) -> float:
                 #calcluate loss using normalized residuals
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_residual, normalized_predicted_residual, weight)
                 
-                
+               
                 #output, residual, predicted_residual = joint_model(data_input, target)
                 #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
                 

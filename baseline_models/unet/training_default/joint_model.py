@@ -37,6 +37,11 @@ class JointModel(nn.Module):
         self.deterministic_model = deterministic_model
         self.res_model = res_model
         
+        self.res_std = res_std
+        self.res_mean = res_mean
+        self.preds_std = preds_std
+        self.preds_mean = preds_mean
+        
         self.input_profile_num = input_profile_num
         self.input_scalar_num = input_scalar_num
         self.target_profile_num = target_profile_num

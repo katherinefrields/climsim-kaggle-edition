@@ -428,10 +428,10 @@ class Unet(modulus.Module):
         #prunes the stratosphere values
         if self.output_prune:
             y = y.clone()
-            y[:, 1, :self.strato_lev_out] = y[:, 0, :self.strato_lev_out].clone().zero_()
-            y[:, 2, :self.strato_lev_out] = y[:, 0, :self.strato_lev_out].clone().zero_()
-            y[:, 3, :self.strato_lev_out] = y[:, 0, :self.strato_lev_out].clone().zero_()
-            y[:, 4, :self.strato_lev_out] = y[:, 0, :self.strato_lev_out].clone().zero_()
+            y[:, 1, :self.strato_lev_out] = y[:, 1, :self.strato_lev_out].clone().zero_()
+            y[:, 2, :self.strato_lev_out] = y[:, 2, :self.strato_lev_out].clone().zero_()
+            y[:, 3, :self.strato_lev_out] = y[:, 3, :self.strato_lev_out].clone().zero_()
+            y[:, 4, :self.strato_lev_out] = y[:, 4, :self.strato_lev_out].clone().zero_()
             
             #y[:, 60:60+self.strato_lev_out] = y[:, 60:60+self.strato_lev_out].clone().zero_()
             #y[:, 120:120+self.strato_lev_out] = y[:, 120:120+self.strato_lev_out].clone().zero_()

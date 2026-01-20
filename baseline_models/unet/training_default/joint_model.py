@@ -137,7 +137,7 @@ class JointModel(nn.Module):
         
        
         
-        return output, normalized_residual, normalized_predicted_residual, denormalized_residual, denormalized_predicted_residual, weight
+        return output, target, normalized_residual, normalized_predicted_residual, denormalized_residual, denormalized_predicted_residual, weight
 
     def compute_loss(self, criterion, output, target, x, D_x, weight):
         """

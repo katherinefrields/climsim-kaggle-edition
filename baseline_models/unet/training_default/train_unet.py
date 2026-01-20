@@ -480,7 +480,8 @@ def main(cfg: DictConfig) -> float:
                 
                 #scaled predicted
                 #scaled predicted
-                output, normalized_residual, normalized_predicted_residual, _, _, weight = joint_model(data_input, target)
+                #returns reshaped target
+                output, target, normalized_residual, normalized_predicted_residual, _, _, weight = joint_model(data_input, target)
                 
                 #calcluate loss using normalized residuals
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_residual, normalized_predicted_residual, weight)
@@ -571,7 +572,7 @@ def main(cfg: DictConfig) -> float:
                 
                 
                 #scaled predicted
-                output, normalized_residual, normalized_predicted_residual, _, _, weight = joint_model(data_input, target)
+                output, target, normalized_residual, normalized_predicted_residual, _, _, weight = joint_model(data_input, target)
                 
                 #calcluate loss using normalized residuals
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_residual, normalized_predicted_residual, weight)

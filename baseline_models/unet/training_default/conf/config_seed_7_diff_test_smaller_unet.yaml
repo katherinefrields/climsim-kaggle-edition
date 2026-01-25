@@ -84,7 +84,7 @@ expname: 'refactored_testing_1000_steps_larger_noise'
 num_workers: 32
 batch_size: 512 #1024
 epochs: 1
-learning_rate: 0.00001
+learning_rate: 0.000001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'
 optimizer: 'AdamW'

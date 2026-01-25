@@ -75,7 +75,7 @@ class JointModel(nn.Module):
         
         residual = target - output
         residual = residual.to(output.device)
-        residual = torch.zeroes_like(residual)
+        residual = torch.zeros_like(residual)
         
         #residual = self.reverse_reshape_target(residual)
         #residual = self.reshape_target(residual)

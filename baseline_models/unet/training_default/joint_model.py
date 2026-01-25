@@ -146,6 +146,7 @@ class JointModel(nn.Module):
         denormalized_predicted_residual = self.reverse_reshape_target(denormalized_predicted_residual)
         
         print(f'location 3 denormalized_predicted_residual requires grad = {denormalized_predicted_residual.requires_grad}')
+        print(f'location 4 denormalized_residual requires grad = {denormalized_residual.requires_grad}')
         
         
         #(B,C,L) --> (B, C*L) 
@@ -174,6 +175,10 @@ class JointModel(nn.Module):
 
     def backward(self, deterministic_loss, res_loss, joint_optimizer):
          # 1. Zero all grads
+         
+        for p in self.res_model.parameters():
+            print(f'p_grad is {p.grad}')
+            
         joint_optimizer.zero_grad()
 
         # 2. Block all gradients from deterministic model
@@ -186,11 +191,8 @@ class JointModel(nn.Module):
 
         # 3. Backprop only through res_model
         res_loss.backward()
-
-        
             
-        for p in self.res_model.parameters():
-            print(f'p_grad is {p.grad}')
+        
     
     #reshapes target from (B,C*L ) to (B, C, L)
     def reshape_target(self, target):

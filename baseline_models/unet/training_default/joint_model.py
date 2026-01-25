@@ -125,7 +125,7 @@ class JointModel(nn.Module):
     
         #shape (B,C,L)
         normalized_predicted_residual = self.res_model(noised_residual,sigma, condition = condition_output)
-        
+        print(f'self.res_std mean is {self.res_std.flatten().mean()}')
         #=====Reshape Predicted residual=====
         #reshape true residual and predicted residual back to (B, C*L)
         denormalized_residual = normalized_residual / .5 * (self.res_std+ 1e-8) + self.res_mean

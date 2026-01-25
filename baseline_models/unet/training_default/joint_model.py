@@ -181,6 +181,7 @@ class JointModel(nn.Module):
         
         # 4. Update only res_model parameters
         for p in self.deterministic_model.parameters():
+            p.requires_grad = False
             p.grad = None
 
         # 3. Backprop only through res_model

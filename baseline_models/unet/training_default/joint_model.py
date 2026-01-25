@@ -127,7 +127,7 @@ class JointModel(nn.Module):
     
         #shape (B,C,L)
         normalized_predicted_residual = self.res_model(noised_residual,sigma, condition = condition_output)
-        print(f'self.res_std mean is {self.res_std.flatten().mean()}')
+        #print(f'self.res_std mean is {self.res_std.flatten().mean()}')
         #=====Reshape Predicted residual=====
         #reshape true residual and predicted residual back to (B, C*L)
         denormalized_residual = normalized_residual
@@ -177,6 +177,9 @@ class JointModel(nn.Module):
         # 4. Update only res_model parameters
         for p in self.deterministic_model.parameters():
             p.grad = None
+            
+        for p in self.res_model.parameters():
+            print(f'p_grad is {p.grad}')
     
     #reshapes target from (B,C*L ) to (B, C, L)
     def reshape_target(self, target):

@@ -459,6 +459,8 @@ def main(cfg: DictConfig) -> float:
             for param in joint_model.module.deterministic_model.parameters():
                 param.requires_grad = False
                 
+            for param in joint_model.module.res_model.parameters():
+                param.requires_grad = True
             #train_preds = []
             #train_targets = []
             

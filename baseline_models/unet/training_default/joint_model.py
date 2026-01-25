@@ -64,7 +64,7 @@ class JointModel(nn.Module):
     #weight is the weight associated with the batch for the loss function
     def forward(self, input, target):
         #output is shape (B, C*L)
-        
+
         # (B, C*L) --> (B, C, L)
         input = self.reshape_input(input)
         target = self.reshape_target(target)

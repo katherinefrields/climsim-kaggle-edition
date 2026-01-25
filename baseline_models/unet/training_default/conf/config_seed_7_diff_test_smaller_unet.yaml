@@ -84,7 +84,7 @@ expname: 'refactored_testing_1000_steps_larger_noise'
 num_workers: 32
 batch_size: 512 #1024
 epochs: 1
-learning_rate: 0.000001
+learning_rate: 0.0001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'
 optimizer: 'AdamW'
@@ -145,5 +145,5 @@ diffusion_model:
    dropout: .10
    condition: True
    warmup_steps: 2000000
-   p_mean: -4.0
+   p_mean: -0.75
    p_std: 1.2

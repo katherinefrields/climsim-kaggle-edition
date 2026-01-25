@@ -209,14 +209,14 @@ class JointModel(nn.Module):
     #reshapes target from (B,C,L) to (B, C*L)
     def reverse_reshape_target(self, target):
         #=====Reshape Target Condition=====
-        y_profile = target[:,:self.input_profile_num,self.input_padding[0]:]
-        y_scalar = target[:,self.input_profile_num:,self.input_padding[0]:]
+        y_profile = target[:,:self.target_profile_num,self.input_padding[0]:]
+        y_scalar = target[:,self.target_profile_num:,self.input_padding[0]:]
         
         #print(f'y_profile shape is {y_profile.shape}')
         #print(f'y_scalar shape is {y_scalar.shape}')
 
         y_scalar = y_scalar.mean(dim=2)
-        y_profile = y_profile.reshape(-1, self.input_profile_num*self.vertical_level_num)
+        y_profile = y_profile.reshape(-1, self.target_profile_num*self.vertical_level_num)
         #print(f'before concat y_profile shape is {y_profile.shape} and y_scalar shape is {y_scalar.shape}')
         y = torch.cat((y_profile, y_scalar), dim=1)
         return y

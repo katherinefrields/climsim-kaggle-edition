@@ -51,11 +51,11 @@ input_min_path: '/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normal
 output_scale_path: '/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normalizations/outputs/output_scale_std_lowerthred_v2_rh_mc.nc'
 variable_subsets: 'v2_rh_mc'
 
-res_std_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_res_std.pt'
-res_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_res_mean.pt'
+res_std_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_remade_res_std.pt'
+res_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_remade_res_mean.pt'
 
-preds_std_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_preds_std.pt'
-preds_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_preds_mean.pt'
+preds_std_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_remade_preds_std.pt'
+preds_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_remade_preds_mean.pt'
 
 
 # dataset preprocessing settings
@@ -80,7 +80,7 @@ seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 diffusion_restart_path: ''
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'refactored_testing_1000_steps_larger_noise'
+expname: 'refactored_testing_redo_norms'
 num_workers: 32
 batch_size: 512 #1024
 epochs: 1

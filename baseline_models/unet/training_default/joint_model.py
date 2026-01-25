@@ -76,15 +76,17 @@ class JointModel(nn.Module):
         residual = target - output
         residual = residual.to(output.device)
         
-        residual = self.reshape_target(residual)
+        
         residual = self.reverse_reshape_target(residual)
+        residual = self.reshape_target(residual)
         
         #======Normalize input and condition data======
         normalized_residual = ((residual - self.res_mean)/((self.res_std+ 1e-8)))*.5
         condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
     
-        normalized_residual = self.reshape_target(normalized_residual)
+        
         normalized_residual = self.reverse_reshape_target(normalized_residual)
+        normalized_residual = self.reshape_target(normalized_residual)
         
         ''' #Batch size
         P_mean = -1.2

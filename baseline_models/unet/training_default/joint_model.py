@@ -75,6 +75,8 @@ class JointModel(nn.Module):
         
         residual = target - output
         residual = residual.to(output.device)
+        
+        print(f'location 1 residual requires grad = {residual.requires_grad}')
         #residual = torch.zeros_like(residual)
         
         #residual = self.reverse_reshape_target(residual)
@@ -114,6 +116,7 @@ class JointModel(nn.Module):
         n = torch.randn_like(normalized_residual) * sigma
         noised_residual = normalized_residual + n
         
+        print(f'location 2 noised_residual requires grad = {noised_residual.requires_grad}')
         
         
         # weight per batch element according to the noise that was added to it
@@ -127,6 +130,8 @@ class JointModel(nn.Module):
     
         #shape (B,C,L)
         normalized_predicted_residual = self.res_model(noised_residual,sigma, condition = condition_output)
+        
+        print(f'location 3 normalized_predicted_residual requires grad = {normalized_predicted_residual.requires_grad}')
         #print(f'self.res_std mean is {self.res_std.flatten().mean()}')
         #=====Reshape Predicted residual=====
         #reshape true residual and predicted residual back to (B, C*L)
@@ -139,6 +144,9 @@ class JointModel(nn.Module):
         #(B,C,L) --> (B, C*L) 
         denormalized_residual = self.reverse_reshape_target(denormalized_residual)
         denormalized_predicted_residual = self.reverse_reshape_target(denormalized_predicted_residual)
+        
+        print(f'location 3 denormalized_predicted_residual requires grad = {denormalized_predicted_residual.requires_grad}')
+        
         
         #(B,C,L) --> (B, C*L) 
         normalized_residual = self.reverse_reshape_target(normalized_residual)

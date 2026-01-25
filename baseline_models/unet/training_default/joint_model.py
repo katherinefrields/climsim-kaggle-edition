@@ -64,23 +64,20 @@ class JointModel(nn.Module):
     #weight is the weight associated with the batch for the loss function
     def forward(self, input, target):
         #output is shape (B, C*L)
-
-        input = self.reshape_input(input)
         
+        # (B, C*L) --> (B, C, L)
+        input = self.reshape_input(input)
         target = self.reshape_target(target)
         
         #=====Calculate Residual=====
+        #output shape is (B, C, L), scalar values are all expanded mean value across levels
         output = self.deterministic_model(input)
         
         residual = target - output
         residual = residual.to(output.device)
         
-        #residual_a = target - output
-        #residual = torch.zeros_like(residual_a)
         
         #======Normalize input and condition data======
-        #reshape mean data temperarily for broadcasting
-        
         normalized_residual = ((residual - self.res_mean)/((self.res_std+ 1e-8)))*.5
         condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
     
@@ -108,7 +105,6 @@ class JointModel(nn.Module):
         #======Noises Residual======
         n = torch.randn_like(normalized_residual) * sigma
         noised_residual = normalized_residual + n
-        #noised_residual = torch.likes(noised_residual)
         
         
         # weight per batch element according to the noise that was added to it
@@ -120,7 +116,7 @@ class JointModel(nn.Module):
         #condition_cat = condition_cat * (~drop_mask)  # OR (1 - drop_mask.float())
 
     
-        #noised_residual is input noisy image, D_x is predicted denoised image (B, C, L), y is predicted denoised image shape (B, C*L)
+        #shape (B,C,L)
         normalized_predicted_residual = self.res_model(noised_residual,sigma, condition = condition_output)
         
         #=====Reshape Predicted residual=====
@@ -128,15 +124,20 @@ class JointModel(nn.Module):
         denormalized_residual = normalized_residual / .5 * (self.res_std+ 1e-8) + self.res_mean
         denormalized_predicted_residual = normalized_predicted_residual / .5 * (self.res_std+ 1e-8) + self.res_mean
         
+        #(B,C,L) --> (B, C*L) 
         denormalized_residual = self.reverse_reshape_target(denormalized_residual)
         denormalized_predicted_residual = self.reverse_reshape_target(denormalized_predicted_residual)
         
+        #(B,C,L) --> (B, C*L) 
         normalized_residual = self.reverse_reshape_target(normalized_residual)
         normalized_predicted_residual = self.reverse_reshape_target(normalized_predicted_residual)
-        
-       
-        
-        return output, target, normalized_residual, normalized_predicted_residual, denormalized_residual, denormalized_predicted_residual, weight
+    
+        #normalized_residual = self.reverse_reshape_target(normalized_residual)
+        #normalized_predicted_residual = self.reverse_reshape_target(normalized_predicted_residual)
+        output = self.reverse_reshape_target(output)
+        target = self.reverse_reshape_target(target)
+        #output is denormalized
+        return output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight
 
     def compute_loss(self, criterion, output, target, x, D_x, weight):
         """
@@ -219,6 +220,7 @@ class JointModel(nn.Module):
         #print(f'before concat y_profile shape is {y_profile.shape} and y_scalar shape is {y_scalar.shape}')
         y = torch.cat((y_profile, y_scalar), dim=1)
         return y
+    
     
    
         

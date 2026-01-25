@@ -481,7 +481,7 @@ def main(cfg: DictConfig) -> float:
                 #scaled predicted
                 #scaled predicted
                 #returns reshaped target
-                output, target, normalized_residual, normalized_predicted_residual, _, _, weight = joint_model(data_input, target)
+                output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
                 
                 #calcluate loss using normalized residuals
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_residual, normalized_predicted_residual, weight)
@@ -538,7 +538,7 @@ def main(cfg: DictConfig) -> float:
                 train_loop.set_postfix(det_loss=deterministic_loss.item(), res_loss=res_loss.item())
                 #print(torch.cuda.memory_summary())
                 current_step += 1
-                del data_input, target, output, normalized_residual, normalized_predicted_residual
+                del data_input, target, output, normalized_residual, normalized_predicted_residual , denormalized_predicted_residual, denormalized_residual
                 
             #np.save(os.path.join('/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/', f'train_preds_epoch_{epoch+1}.npy'), train_preds)
             #np.save(os.path.join('/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/', f'train_targets_epoch_{epoch+1}.npy'), train_targets)    
@@ -572,7 +572,7 @@ def main(cfg: DictConfig) -> float:
                 
                 
                 #scaled predicted
-                output, target, normalized_residual, normalized_predicted_residual, _, _, weight = joint_model(data_input, target)
+                output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
                 
                 #calcluate loss using normalized residuals
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_residual, normalized_predicted_residual, weight)
@@ -594,7 +594,7 @@ def main(cfg: DictConfig) -> float:
                 current_residual_val_loss_avg = residual_val_loss / num_samples_processed
                 val_loop.set_postfix(det_loss=current_deterministic_val_loss_avg, res_loss = current_residual_val_loss_avg)
                 current_step += 1
-                del data_input, target, output, normalized_residual, normalized_predicted_residual
+                del data_input, target, output, normalized_residual, normalized_predicted_residual, denormalized_predicted_residual, denormalized_residual
 
             #debugging purposes
             #val_preds = np.stack(val_preds, axis=0)

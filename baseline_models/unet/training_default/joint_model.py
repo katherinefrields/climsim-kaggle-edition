@@ -190,8 +190,8 @@ class JointModel(nn.Module):
     def backward(self, deterministic_loss, res_loss, joint_optimizer):
          # 1. Zero all grads
          
-        for p in self.res_model.parameters():
-            print(f'p_grad is {p.grad}')
+        #for p in self.res_model.parameters():
+        #    print(f'p_grad is {p.grad}')
             
         joint_optimizer.zero_grad()
 

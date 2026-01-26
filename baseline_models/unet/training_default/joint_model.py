@@ -179,7 +179,7 @@ class JointModel(nn.Module):
         Customize loss combination here.
         """
         deterministic_loss = criterion(output, target)
-        res_loss =  (weight*((x - D_x) ** 2)).mean() # calculate over C and L features
+        res_loss =  weight*((x - D_x) ** 2) # calculate over C and L features
         #print(f'predicted value is {D_x}')
         #print(f'true value is {x}')
         #res_loss = (unweighted_res_loss * weight).mean()  # weighted residual loss

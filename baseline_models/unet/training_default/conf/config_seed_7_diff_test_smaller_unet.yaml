@@ -80,7 +80,7 @@ seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 diffusion_restart_path: ''
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'fixed_norms_5000_steps_larger_LR'
+expname: 'fixed_norms_5000_steps_smaller_noise'
 num_workers: 32
 batch_size: 512 #1024
 epochs: 1
@@ -145,5 +145,5 @@ diffusion_model:
    dropout: .10
    condition: True
    warmup_steps: 2000000
-   p_mean: -1.2
+   p_mean: -4.0
    p_std: 1.2

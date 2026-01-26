@@ -109,7 +109,7 @@ scheduler_warmup:
    warmup_steps: 20
    warmup_strategy: 'cos'
    init_lr: 1e-7
-early_stop_step: 2500
+early_stop_step: 5000
 logger: 'wandb'
 wandb:
    project: "residual_diffusion"

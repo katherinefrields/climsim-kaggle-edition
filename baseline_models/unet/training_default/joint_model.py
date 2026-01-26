@@ -121,7 +121,7 @@ class JointModel(nn.Module):
         
         # weight per batch element according to the noise that was added to it
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
-        
+        print (f'weight is exploding {weight > 100000}')
         #this was used for classifier free guidance
         # ---- INSERT CONDITIONING DROPOUT HERE ----
         #drop_mask = (torch.rand(batch_size, 1, 1, device=condition_cat.device) < 0.1)

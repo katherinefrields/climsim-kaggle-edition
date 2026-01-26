@@ -84,7 +84,8 @@ class JointModel(nn.Module):
         
         #======Normalize input and condition data======
         #normalized_residual = residual
-        normalized_residual = ((residual - self.res_mean)/((self.res_std+ 1e-8)))*.5
+        safe_std = torch.clamp(self.res_std, min=1e-2)
+        normalized_residual = ((residual - self.res_mean)/((safe_std+ 1e-8)))*.5
         condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
     
         
@@ -139,8 +140,8 @@ class JointModel(nn.Module):
         #denormalized_residual = normalized_residual
         #denormalized_predicted_residual = normalized_predicted_residual
         
-        denormalized_residual = normalized_residual / .5 * (self.res_std+ 1e-8) + self.res_mean
-        denormalized_predicted_residual = normalized_predicted_residual / .5 * (self.res_std+ 1e-8) + self.res_mean
+        denormalized_residual = normalized_residual / .5 * (safe_std + 1e-8) + self.res_mean
+        denormalized_predicted_residual = normalized_predicted_residual / .5 * (safe_std + 1e-8) + self.res_mean
         
         #(B,C,L) --> (B, C*L) 
         #denormalized_residual = self.reverse_reshape_target(denormalized_residual)

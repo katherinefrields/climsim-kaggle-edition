@@ -143,16 +143,16 @@ class JointModel(nn.Module):
         denormalized_predicted_residual = normalized_predicted_residual / .5 * (self.res_std+ 1e-8) + self.res_mean
         
         #(B,C,L) --> (B, C*L) 
-        denormalized_residual = self.reverse_reshape_target(denormalized_residual)
-        denormalized_predicted_residual = self.reverse_reshape_target(denormalized_predicted_residual)
+        #denormalized_residual = self.reverse_reshape_target(denormalized_residual)
+        #denormalized_predicted_residual = self.reverse_reshape_target(denormalized_predicted_residual)
         
         print(f'location 3 denormalized_predicted_residual requires grad = {denormalized_predicted_residual.requires_grad}')
         print(f'location 4 denormalized_residual requires grad = {denormalized_residual.requires_grad}')
         
         
         #(B,C,L) --> (B, C*L) 
-        normalized_residual = self.reverse_reshape_target(normalized_residual)
-        normalized_predicted_residual = self.reverse_reshape_target(normalized_predicted_residual)
+        #normalized_residual = self.reverse_reshape_target(normalized_residual)
+        #normalized_predicted_residual = self.reverse_reshape_target(normalized_predicted_residual)
     
         #normalized_residual = self.reverse_reshape_target(normalized_residual)
         #normalized_predicted_residual = self.reverse_reshape_target(normalized_predicted_residual)
@@ -179,7 +179,7 @@ class JointModel(nn.Module):
         Customize loss combination here.
         """
         deterministic_loss = criterion(output, target)
-        res_loss =  weight*((x - D_x) ** 2) # calculate over C and L features
+        res_loss =  (weight*((x - D_x) ** 2)).mean() # calculate over C and L features
         #print(f'predicted value is {D_x}')
         #print(f'true value is {x}')
         #res_loss = (unweighted_res_loss * weight).mean()  # weighted residual loss

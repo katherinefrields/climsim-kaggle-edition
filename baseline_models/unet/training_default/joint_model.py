@@ -160,16 +160,16 @@ class JointModel(nn.Module):
         target = self.reverse_reshape_target(target)
         #output is denormalized
         
-        if normalized_predicted_residual.flatten().max() > 100:
+        if normalized_predicted_residual.flatten().max() > 1000:
             print (f'normalized_predicted_residual is exploding: {normalized_predicted_residual.flatten().max()}')
             
-        if normalized_residual.flatten().max() > 100:
+        if normalized_residual.flatten().max() > 1000:
             print (f'normalized_residual is exploding {normalized_residual.flatten().max()}')
             
-        if denormalized_predicted_residual.flatten().max() > 100:
+        if denormalized_predicted_residual.flatten().max() > 1000:
             print (f'denormalized_predicted_residual is exploding {denormalized_predicted_residual.flatten().max()}')
             
-        if denormalized_residual.flatten().max() > 100:
+        if denormalized_residual.flatten().max() > 1000:
             print (f'denormalized_residual is exploding {denormalized_residual.flatten().max()}')
             
         return output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight

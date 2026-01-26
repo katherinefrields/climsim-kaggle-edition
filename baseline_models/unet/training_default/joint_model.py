@@ -121,7 +121,7 @@ class JointModel(nn.Module):
         
         # weight per batch element according to the noise that was added to it
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
-        if weight > 100:
+        if weight.flatten().mean() > 100:
             print (f'weight is exploding')
         #this was used for classifier free guidance
         # ---- INSERT CONDITIONING DROPOUT HERE ----

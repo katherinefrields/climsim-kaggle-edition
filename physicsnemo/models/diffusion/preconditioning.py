@@ -229,12 +229,13 @@ class EDMPrecond(Module):
             )
         D_x = c_skip * x_n + c_out * F_x.to(torch.float32)
         
-        D_x[:, 1, 0:12] = D_x[:, 1,0:12].clone().zero_()
-        D_x[:, 2,0:12] = D_x[:, 2,0:12].clone().zero_()
-        D_x[:, 3,0:12] = D_x[:, 3,0:12].clone().zero_()
-        D_x[:, 4,0:12] = D_x[:, 4,0:12].clone().zero_()
+        y = D_x.clone()
+        y[:, 1, 0:12] = y[:, 1,0:12].clone().zero_()
+        y[:, 2,0:12] = y[:, 2,0:12].clone().zero_()
+        y[:, 3,0:12] = y[:, 3,0:12].clone().zero_()
+        y[:, 4,0:12] = y[:, 4,0:12].clone().zero_()
         
-        return D_x
+        return y
     @staticmethod
     def round_sigma(sigma: Union[float, List, torch.Tensor]):
         """

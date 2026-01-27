@@ -80,7 +80,7 @@ seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 diffusion_restart_path: ''
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'rerun_standard_model_denormalized'
+expname: 'rerun_standard_model_pruned_fixed_test'
 num_workers: 32
 batch_size: 512 #1024
 epochs: 1
@@ -109,7 +109,7 @@ scheduler_warmup:
    warmup_steps: 20
    warmup_strategy: 'cos'
    init_lr: 1e-7
-early_stop_step: 50000000
+early_stop_step: 1000
 logger: 'wandb'
 wandb:
    project: "residual_diffusion"

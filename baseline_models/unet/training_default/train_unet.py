@@ -471,8 +471,8 @@ def main(cfg: DictConfig) -> float:
                 
             for param in joint_model.module.res_model.parameters():
                 param.requires_grad = True
-            train_preds = []
-            train_targets = []
+            #train_preds = []
+            #train_targets = []
             
             for data_input, target in train_loop:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
@@ -500,8 +500,8 @@ def main(cfg: DictConfig) -> float:
                 
                 
                 
-                train_targets.append(target.cpu().numpy())
-                train_preds.append(output.cpu().numpy())
+                #train_targets.append(target.cpu().numpy())
+                #train_preds.append(output.cpu().numpy())
                 
                 #calcluate loss using normalized residuals
                 
@@ -552,8 +552,8 @@ def main(cfg: DictConfig) -> float:
                 current_step += 1
                 del data_input, target, output, normalized_residual, normalized_predicted_residual , denormalized_predicted_residual, denormalized_residual
                 
-            np.save(train_preds_path, train_preds)
-            np.save(train_targets_path, train_targets)       
+            #np.save(train_preds_path, train_preds)
+            #np.save(train_targets_path, train_targets)       
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
             
             model.eval()
@@ -567,8 +567,8 @@ def main(cfg: DictConfig) -> float:
             
             
             #for debugging
-            val_preds = []
-            val_targets = []
+            #val_preds = []
+            #val_targets = []
             
             
             for data_input, target in val_loop:
@@ -594,8 +594,8 @@ def main(cfg: DictConfig) -> float:
                 #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
                 
                 
-                val_targets.append(target.cpu().numpy())
-                val_preds.append(output.cpu().numpy())
+                #val_targets.append(target.cpu().numpy())
+                #val_preds.append(output.cpu().numpy())
                 
                 deterministic_val_loss += deterministic_loss.item() * data_input.size(0)
                 residual_val_loss += res_loss.item() * data_input.size(0)
@@ -609,11 +609,11 @@ def main(cfg: DictConfig) -> float:
                 del data_input, target, output, normalized_residual, normalized_predicted_residual, denormalized_predicted_residual, denormalized_residual
 
             #debugging purposes
-            val_preds = np.concatenate(val_preds, axis=0)
-            val_targets = np.concatenate(val_targets, axis=0)
+            #val_preds = np.concatenate(val_preds, axis=0)
+            #val_targets = np.concatenate(val_targets, axis=0)
             
-            np.save(val_preds_path, val_preds)
-            np.save(val_targets_path, val_targets)
+            #np.save(val_preds_path, val_preds)
+            #np.save(val_targets_path, val_targets)
     
             
             # if dist.rank == 0:

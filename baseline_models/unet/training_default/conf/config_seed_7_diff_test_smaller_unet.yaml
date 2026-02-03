@@ -57,6 +57,12 @@ res_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/
 preds_std_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_remade_preds_std.pt'
 preds_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_remade_preds_mean.pt'
 
+val_preds_path: '/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/new_val_preds_epoch_1.npy'
+val_targets_path: '/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/new_val_targets_epoch_1.npy'
+
+train_preds_path: '/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/new_train_preds_epoch_1.npy'
+train_targets_path: '/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/new_train_targets_epoch_1.npy'
+
 
 # dataset preprocessing settings
 qinput_prune: True # (bool): Whether to prune the input data
@@ -80,7 +86,7 @@ seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 diffusion_restart_path: ''
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'rerun_standard_model_pruned_fixed_test'
+expname: 'rerun_standard_model_tuned_noise'
 num_workers: 32
 batch_size: 512 #1024
 epochs: 1
@@ -145,5 +151,5 @@ diffusion_model:
    dropout: .10
    condition: True
    warmup_steps: 2000000
-   p_mean: -4.0
-   p_std: 1.2
+   p_mean: .85
+   p_std: 1.0

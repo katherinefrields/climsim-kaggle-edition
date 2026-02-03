@@ -304,6 +304,11 @@ class EDMPrecond(Module):
                 d_prime = (x_next - denoised) / t_next
                 x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
         #plt.show()
+        
+        x_next[:, 1, 0:12] = x_next[:, 1,0:12].clone().zero_()
+        x_next[:, 2,0:12] = x_next[:, 2,0:12].clone().zero_()
+        x_next[:, 3,0:12] = x_next[:, 3,0:12].clone().zero_()
+        x_next[:, 4,0:12] = x_next[:, 4,0:12].clone().zero_()
         return x_next
 
 

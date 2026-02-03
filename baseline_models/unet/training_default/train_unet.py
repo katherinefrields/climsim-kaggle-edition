@@ -609,8 +609,8 @@ def main(cfg: DictConfig) -> float:
                 del data_input, target, output, normalized_residual, normalized_predicted_residual, denormalized_predicted_residual, denormalized_residual
 
             #debugging purposes
-            val_preds = np.stack(val_preds, axis=0)
-            val_targets = np.stack(val_targets, axis=0)
+            val_preds = np.concatenate(val_preds, axis=0)
+            val_targets = np.concatenate(val_targets, axis=0)
             
             np.save(val_preds_path, val_preds)
             np.save(val_targets_path, val_targets)

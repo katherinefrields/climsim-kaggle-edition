@@ -88,7 +88,7 @@ class JointModel(nn.Module):
         normalized_residual = ((residual)/((safe_std+ 1e-8)))*.5
         condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
     
-        
+        condition_data = condition_output.concatenate(input, dim=1)
         #normalized_residual = self.reverse_reshape_target(normalized_residual)
         #normalized_residual = self.reshape_target(normalized_residual)
         
@@ -131,7 +131,7 @@ class JointModel(nn.Module):
 
     
         #shape (B,C,L)
-        normalized_predicted_residual = self.res_model(noised_residual,sigma, condition = condition_output)
+        normalized_predicted_residual = self.res_model(noised_residual,sigma, condition = condition_data)
         
         #print(f'location 3 normalized_predicted_residual requires grad = {normalized_predicted_residual.requires_grad}')
         #print(f'self.res_std mean is {self.res_std.flatten().mean()}')

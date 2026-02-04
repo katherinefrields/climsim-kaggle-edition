@@ -212,6 +212,7 @@ class EDMPrecond(Module):
         #currently x(batch, target_profile_num*levels+target_scalar_num)
         if condition != None:
             input = torch.cat([arg, condition], dim=1)
+            print(f'conditioning applied in EDMPrecond Forward. Shape: {input.shape}')
         else:
             input = arg
             

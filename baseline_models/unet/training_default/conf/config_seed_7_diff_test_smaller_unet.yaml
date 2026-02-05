@@ -151,5 +151,5 @@ diffusion_model:
    dropout: .10
    condition: True
    warmup_steps: 2000000
-   p_mean: .98
+   p_mean: .40
    p_std: 1.23

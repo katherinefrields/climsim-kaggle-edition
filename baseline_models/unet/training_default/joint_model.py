@@ -109,12 +109,25 @@ class JointModel(nn.Module):
         #trying this rand shape. it was different in the EDM Sampler -->
         #rnd_normal = torch.randn(x.shape, device=x.device)
         
+        nu = 3
+        
         #apply the same noise to all features in the batch
         rnd_normal = torch.randn([batch_size,1,  1], device=residual.device)
         sigma = (rnd_normal * self.p_std + self.p_mean).exp()
         
         #======Noises Residual======
-        n = torch.randn_like(normalized_residual) * sigma
+        #n = torch.randn_like(normalized_residual) * sigma
+        
+        sigma = sigma * torch.sqrt(nu/(nu-2))
+        
+    
+        # --- Student-t noise (Pandey et al. 2024) ---
+        z = torch.randn_like(normalized_residual)    # Gaussian
+        kappa = torch.distributions.Chi2(df=nu).sample(normalized_residual.shape).to(normalized_residual.device)
+        t_noise = z / torch.sqrt(kappa / nu)         # Student-t(ν)
+        n = t_noise * sigma                          # scale by sigma
+        # --------------------------------------------
+    
         noised_residual = normalized_residual + n
         
         #print(f'location 2 noised_residual requires grad = {noised_residual.requires_grad}')

@@ -7,6 +7,7 @@ import torch.optim as optim
 import torch.nn as nn
 from dataclasses import dataclass
 import modulus
+import math
 
 from torch.nn.functional import silu
 from typing import List
@@ -113,12 +114,12 @@ class JointModel(nn.Module):
         
         #apply the same noise to all features in the batch
         rnd_normal = torch.randn([batch_size,1,  1], device=residual.device)
-        sigma = (rnd_normal * self.p_std + self.p_mean).exp()
+        unscaled_sigma = (rnd_normal * self.p_std + self.p_mean).exp()
         
         #======Noises Residual======
         #n = torch.randn_like(normalized_residual) * sigma
         
-        sigma = sigma * torch.sqrt(nu/(nu-2))
+        sigma = unscaled_sigma * math.sqrt(nu/(nu-2))
         
     
         # --- Student-t noise (Pandey et al. 2024) ---

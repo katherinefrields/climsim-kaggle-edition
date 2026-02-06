@@ -109,29 +109,29 @@ class JointModel(nn.Module):
         
         #trying this rand shape. it was different in the EDM Sampler -->
         #rnd_normal = torch.randn(x.shape, device=x.device)
-        
         nu = 3
-        
-        #apply the same noise to all features in the batch
-        rnd_normal = torch.randn([batch_size,1,  1], device=residual.device)
-        unscaled_sigma = (rnd_normal * self.p_std + self.p_mean).exp()
-        
-        #======Noises Residual======
-        #n = torch.randn_like(normalized_residual) * sigma
-        
-        sigma = unscaled_sigma * math.sqrt(nu/(nu-2))
-        
-    
-        # --- Student-t noise (Pandey et al. 2024) ---
-        z = torch.randn_like(normalized_residual)    # Gaussian
-        kappa = torch.distributions.Chi2(df=nu).sample(normalized_residual.shape).to(normalized_residual.device)
-        t_noise = z / torch.sqrt(kappa / nu)         # Student-t(ν)
-        n = t_noise * sigma                          # scale by sigma
+
+        # apply the same noise level σ to all features in the batch
+        rnd_normal = torch.randn([batch_size, 1, 1], device=residual.device)
+        sigma = (rnd_normal * self.p_std + self.p_mean).exp()   # no scaling applied
+
+        # --- Student‑t noise (Pandey et al. 2024) ---
+        # Gaussian base noise
+        z = torch.randn_like(normalized_residual)
+
+        # One kappa per sample (correct multivariate Student‑t)
+        B = normalized_residual.shape[0]
+        kappa = torch.distributions.Chi2(df=nu).sample((B,)).to(normalized_residual.device)
+        kappa = (kappa / nu).view(B, 1, 1)   # broadcast to (B, C, L)
+
+        # Student‑t noise
+        t_noise = z / torch.sqrt(kappa)
+
+        # Apply σ
+        n = t_noise * sigma
         # --------------------------------------------
-    
+
         noised_residual = normalized_residual + n
-        
-        #print(f'location 2 noised_residual requires grad = {noised_residual.requires_grad}')
         
         
         # weight per batch element according to the noise that was added to it

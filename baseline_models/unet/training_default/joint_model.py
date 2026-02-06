@@ -30,7 +30,7 @@ class JointModel(nn.Module):
                  condition_channel_num,
                  vertical_level_num=60, 
                  img_resolution=64, sigma_data = .5, 
-                 p_mean = -4.0, p_std=1.2):
+                 p_mean = -4.0, p_std=1.2, nu = 3):
         """
         deterministic_model, res_model: already-instantiated nn.Module objects
         """
@@ -56,6 +56,7 @@ class JointModel(nn.Module):
         
         self.p_mean = p_mean
         self.p_std = p_std
+        self.nu = nu
 
      #output is (B, C*L)
     #normalized true residual is (B, C*L)
@@ -109,7 +110,7 @@ class JointModel(nn.Module):
         
         #trying this rand shape. it was different in the EDM Sampler -->
         #rnd_normal = torch.randn(x.shape, device=x.device)
-        nu = 3
+        nu = self.nu
 
         # apply the same noise level σ to all features in the batch
         rnd_normal = torch.randn([batch_size, 1, 1], device=residual.device)

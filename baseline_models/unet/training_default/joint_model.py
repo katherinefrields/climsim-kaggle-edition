@@ -143,7 +143,8 @@ class JointModel(nn.Module):
         
         t_distribution = StudentT(df=self.nu, loc=0, scale=sigma)
         n = t_distribution.sample(sample_shape = torch.Size([B,C,L])).squeeze(-1)
-        
+        print(f'n shape is {n.shape}')
+        print(f'normalized_residual shape is {normalized_residual.shape}')
         noised_residual = normalized_residual + n
 
         sigma = sigma*torch.sqrt(self.nu/(self.nu-2))

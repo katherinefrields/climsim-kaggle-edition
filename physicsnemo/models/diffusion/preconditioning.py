@@ -30,6 +30,7 @@ import torch
 from physicsnemo.models.diffusion.utils import _wrapped_property
 from physicsnemo.models.meta import ModelMetaData
 from physicsnemo.models.module import Module
+from torch.distributions.studentT import StudentT
 
 network_module = importlib.import_module("physicsnemo.models.diffusion")
 
@@ -269,7 +270,8 @@ class EDMPrecond(Module):
         t_steps = torch.cat([self.round_sigma(t_steps), torch.zeros_like(t_steps[:1])]) # t_N = 0
 
         # Main sampling loop.
-        x_next = latents.to(torch.float64) * t_steps[0]
+        #x_next = latents.to(torch.float64) * t_steps[0]
+        x_next = latents.to(torch.float64)
         for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
             # --- QQ Plot ---
             #ax[i] = sm.qqplot(x_next[0].flatten().cpu(), line='s') # 's' for standardized line

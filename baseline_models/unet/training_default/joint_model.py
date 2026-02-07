@@ -11,6 +11,8 @@ import math
 
 from torch.nn.functional import silu
 from typing import List
+from torch.distributions.studentT import StudentT
+
 
 
 from climsim_utils.data_utils import *
@@ -93,7 +95,10 @@ class JointModel(nn.Module):
         condition_data = torch.cat((condition_output, input), dim=1)
         #normalized_residual = self.reverse_reshape_target(normalized_residual)
         #normalized_residual = self.reshape_target(normalized_residual)
-        
+        B,C,L = residual.shape[0],residual.shape[1],residual.shape[2]
+        rnd_normal = torch.randn([B, 1, 1], device=residual.device)
+        sigma = (rnd_normal * self.p_std + self.p_mean).exp()   # no scaling applied
+            
         '''
         #Batch size
         P_mean = -1.2
@@ -105,35 +110,43 @@ class JointModel(nn.Module):
             P_mean + P_std * torch.randn(batch_size, device=output.device)
         )
         '''
-       
-        batch_size = residual.shape[0]
+        '''
+            batch_size = residual.shape[0]
+            
+            #trying this rand shape. it was different in the EDM Sampler -->
+            #rnd_normal = torch.randn(x.shape, device=x.device)
+            nu = self.nu
+
+            # apply the same noise level σ to all features in the batch
+            rnd_normal = torch.randn([batch_size, 1, 1], device=residual.device)
+            sigma = (rnd_normal * self.p_std + self.p_mean).exp()   # no scaling applied
+
+            # --- Student‑t noise (Pandey et al. 2024) ---
+            # Gaussian base noise
+            z = torch.randn_like(normalized_residual)
+
+            # One kappa per sample (correct multivariate Student‑t)
+            B = normalized_residual.shape[0]
+            kappa = torch.distributions.Chi2(df=nu).sample((B,)).to(normalized_residual.device)
+            kappa = (kappa / nu).view(B, 1, 1)   # broadcast to (B, C, L)
+
+            # Student‑t noise
+            t_noise = z / torch.sqrt(kappa)
+            
+            
+
+            # Apply σ
+            n = t_noise * sigma
+            # --------------------------------------------
+
+            noised_residual = normalized_residual + n'''
         
-        #trying this rand shape. it was different in the EDM Sampler -->
-        #rnd_normal = torch.randn(x.shape, device=x.device)
-        nu = self.nu
-
-        # apply the same noise level σ to all features in the batch
-        rnd_normal = torch.randn([batch_size, 1, 1], device=residual.device)
-        sigma = (rnd_normal * self.p_std + self.p_mean).exp()   # no scaling applied
-
-        # --- Student‑t noise (Pandey et al. 2024) ---
-        # Gaussian base noise
-        z = torch.randn_like(normalized_residual)
-
-        # One kappa per sample (correct multivariate Student‑t)
-        B = normalized_residual.shape[0]
-        kappa = torch.distributions.Chi2(df=nu).sample((B,)).to(normalized_residual.device)
-        kappa = (kappa / nu).view(B, 1, 1)   # broadcast to (B, C, L)
-
-        # Student‑t noise
-        t_noise = z / torch.sqrt(kappa)
-
-        # Apply σ
-        n = t_noise * sigma
-        # --------------------------------------------
-
+        t_distribution = StudentT(df=self.nu, loc=0, scale=sigma)
+        n = t_distribution.sample(sample_shape = torch.Size([B,C,L])).squeeze(-1)
+        
         noised_residual = normalized_residual + n
-        
+
+        sigma = sigma*torch.sqrt(self.nu/(self.nu-2))
         
         # weight per batch element according to the noise that was added to it
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2

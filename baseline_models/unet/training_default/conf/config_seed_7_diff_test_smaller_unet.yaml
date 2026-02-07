@@ -86,7 +86,7 @@ seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 diffusion_restart_path: ''
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 't_dim_5000_steps_wider_sigma'
+expname: 't_sampling_fixed_test'
 num_workers: 32
 batch_size: 512 #1024
 epochs: 1
@@ -115,7 +115,7 @@ scheduler_warmup:
    warmup_steps: 20
    warmup_strategy: 'cos'
    init_lr: 1e-7
-early_stop_step: 5000
+early_stop_step: 100
 logger: 'wandb'
 wandb:
    project: "residual_diffusion"
@@ -151,6 +151,6 @@ diffusion_model:
    dropout: .10
    condition: True
    warmup_steps: 2000000
-   p_mean: .55
-   p_std: 1.48
+   p_mean: .60
+   p_std: 1.0
    nu: 3

@@ -295,7 +295,8 @@ def main(cfg: DictConfig) -> float:
                             condition_channel_num = res_model.condition_channels,
                             p_mean = cfg.diffusion_model.p_mean,
                             p_std = cfg.diffusion_model.p_std,
-                            nu = cfg.diffusion_model.nu).to(dist.device)
+                            nu = cfg.diffusion_model.nu,
+                            t_sampling=cfg.diffusion_model.t_sampling).to(dist.device)
     
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to

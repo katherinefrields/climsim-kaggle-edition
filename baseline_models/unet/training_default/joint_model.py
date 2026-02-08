@@ -32,7 +32,7 @@ class JointModel(nn.Module):
                  condition_channel_num,
                  vertical_level_num=60, 
                  img_resolution=64, sigma_data = .5, 
-                 p_mean = -4.0, p_std=1.2, nu = 3):
+                 p_mean = -4.0, p_std=1.2, nu = 3, t_sampling = False):
         """
         deterministic_model, res_model: already-instantiated nn.Module objects
         """
@@ -59,6 +59,8 @@ class JointModel(nn.Module):
         self.p_mean = p_mean
         self.p_std = p_std
         self.nu = nu
+        
+        self.t_sampling = t_sampling
 
      #output is (B, C*L)
     #normalized true residual is (B, C*L)

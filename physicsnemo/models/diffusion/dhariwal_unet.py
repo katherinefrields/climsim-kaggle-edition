@@ -159,6 +159,7 @@ class DhariwalUNet(Module):
         img_resolution: int,
         in_channels: int,
         out_channels: int,
+        condition_channels: int,
         label_dim: int = 0,
         augment_dim: int = 0,
         model_channels: int = 192,
@@ -217,6 +218,13 @@ class DhariwalUNet(Module):
             if label_dim
             else None
         )
+        self.map_cond = Linear(
+            in_features=condition_channels,
+            out_features=emb_channels,
+            bias=False,
+            init_mode="kaiming_normal"
+)
+
 
         #print(f'score unet in_channels is {in_channels}, out_channels is {out_channels}')
         
@@ -286,13 +294,16 @@ class DhariwalUNet(Module):
         "Should be set to ``True`` to enable automatic mixed precision.",
     )
 
-    def forward(self, x, noise_labels, class_labels, augment_labels=None):
+    def forward(self, x, cond, noise_labels, class_labels, augment_labels=None):
         # Mapping.
         emb = self.map_noise(noise_labels)
         if self.map_augment is not None and augment_labels is not None:
             emb = emb + self.map_augment(augment_labels)
         emb = silu(self.map_layer0(emb))
         emb = self.map_layer1(emb)
+        # Inject conditioning here
+        if cond is not None:
+            emb = emb + self.map_cond(cond)
         if self.map_label is not None:
             tmp = class_labels
             if self.training and self.label_dropout:

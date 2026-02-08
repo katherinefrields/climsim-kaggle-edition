@@ -154,7 +154,8 @@ class EDMPrecond(Module):
         model_class = getattr(network_module, model_type)
         self.model = model_class(
             img_resolution=img_resolution,
-            in_channels=img_in_channels+ condition_channels,
+            in_channels=img_in_channels,
+            condition_channels = condition_channels,
             out_channels=img_out_channels,
             label_dim=label_dim,
             **model_kwargs,
@@ -212,18 +213,25 @@ class EDMPrecond(Module):
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
         if condition != None:
-            input = torch.cat([arg, condition], dim=1)
+            #input = torch.cat([arg, condition], dim=1)
             #print(f'conditioning applied in EDMPrecond Forward. Shape: {input.shape}')
-        else:
-            input = arg
-            
-        #=====Predict Noise=====
-        F_x = self.model(
-            input.to(dtype),
+            F_x = self.model(
+            arg.to(dtype),
+            condition,
             c_noise.flatten(),
             class_labels=class_labels,
             **model_kwargs,
-        )
+            )
+        else:
+            F_x = self.model(
+            arg.to(dtype),
+            c_noise.flatten(),
+            class_labels=class_labels,
+            **model_kwargs,
+            )
+            
+        #=====Predict Noise=====
+       
 
         if (F_x.dtype != dtype) and not torch.is_autocast_enabled():
             raise ValueError(

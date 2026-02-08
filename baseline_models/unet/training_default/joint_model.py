@@ -75,24 +75,20 @@ class JointModel(nn.Module):
         
         #=====Calculate Residual=====
         #output shape is (B, C, L), scalar values are all expanded mean value across levels
-        output = self.deterministic_model(input)
+        output, latent_condition = self.deterministic_model(input)
         
         residual = target - output
         residual = residual.to(output.device)
         
-        #print(f'location 1 residual requires grad = {residual.requires_grad}')
-        #residual = torch.zeros_like(residual)
-        
-        #residual = self.reverse_reshape_target(residual)
-        #residual = self.reshape_target(residual)
         
         #======Normalize input and condition data======
         #normalized_residual = residual
         safe_std = torch.clamp(self.res_std, min=1e-2)
-        normalized_residual = ((residual)/((safe_std+ 1e-8)))*.5
-        condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
-
-        condition_data = torch.cat((condition_output, input), dim=1)
+        normalized_residual = ((residual)/((safe_std+ 1e-8)))
+        #condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
+        condition_data = latent_condition
+        print(f'condition_data shape is {condition_data.shape}')
+        #condition_data = torch.cat((latent_condition, input), dim=1)
         #normalized_residual = self.reverse_reshape_target(normalized_residual)
         #normalized_residual = self.reshape_target(normalized_residual)
         '''
@@ -151,33 +147,36 @@ class JointModel(nn.Module):
         
         B, C, L = normalized_residual.shape
         
-       
         #use a seperate sigma for each batch element, but the same sigma across all features in the batch element
         rnd_normal = torch.randn([B, 1, 1], device=residual.device)
         sigma = (rnd_normal * self.p_std + self.p_mean).exp()   # no scaling applied
         
-        # Gaussian base noise
-        z = torch.randn((B, C, L), device=residual.device)
-        nu = torch.tensor([self.nu]).to(residual.device)
-        # One kappa per sample
-        kappa = torch.distributions.Chi2(df=nu).sample((B,)).to(residual.device)
-        kappa = (kappa / nu).view(B, 1, 1)
-
-        # Student‑t noise
-        t_noise = z / torch.sqrt(kappa)
-
-        # Normalize to unit variance (REQUIRED for EDM)
-        #t_noise = t_noise * math.sqrt((self.nu - 2) / self.nu)
-
-        # Apply sigma
-        sigma = sigma.view(B, 1, 1)
-        n = t_noise * sigma
-        print(f'n shape is {n.shape}')
-        print(f'normalized_residual shape is {normalized_residual.shape}')
-        noised_residual = normalized_residual + n
-
-        sigma = sigma*torch.sqrt(nu/(nu-2))
         
+        if self.t_sampling == False:
+            n = torch.randn_like(normalized_residual) * sigma
+            noised_residual = normalized_residual + n
+        else:
+            # Gaussian base noise
+            z = torch.randn((B, C, L), device=residual.device)
+            nu = torch.tensor([self.nu]).to(residual.device)
+            # One kappa per sample
+            kappa = torch.distributions.Chi2(df=nu).sample((B,)).to(residual.device)
+            kappa = (kappa / nu).view(B, 1, 1)
+
+            # Student‑t noise
+            t_noise = z / torch.sqrt(kappa)
+
+            # Normalize to unit variance (REQUIRED for EDM)
+            #t_noise = t_noise * math.sqrt((self.nu - 2) / self.nu)
+
+            # Apply sigma
+            sigma = sigma.view(B, 1, 1)
+            n = t_noise * sigma
+            print(f'n shape is {n.shape}')
+            print(f'normalized_residual shape is {normalized_residual.shape}')
+            noised_residual = normalized_residual + n
+            sigma = sigma*torch.sqrt(nu/(nu-2))
+            
         # weight per batch element according to the noise that was added to it
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
         '''if weight.flatten().mean() > 100:
@@ -191,30 +190,10 @@ class JointModel(nn.Module):
         #shape (B,C,L)
         normalized_predicted_residual = self.res_model(noised_residual,sigma, condition = condition_data)
         
-        #print(f'location 3 normalized_predicted_residual requires grad = {normalized_predicted_residual.requires_grad}')
-        #print(f'self.res_std mean is {self.res_std.flatten().mean()}')
-        #=====Reshape Predicted residual=====
-        #reshape true residual and predicted residual back to (B, C*L)
-        #denormalized_residual = normalized_residual
-        #denormalized_predicted_residual = normalized_predicted_residual
         
         denormalized_residual = normalized_residual / .5 * (safe_std + 1e-8)
         denormalized_predicted_residual = normalized_predicted_residual / .5 * (safe_std + 1e-8)
         
-        #(B,C,L) --> (B, C*L) 
-        #denormalized_residual = self.reverse_reshape_target(denormalized_residual)
-        #denormalized_predicted_residual = self.reverse_reshape_target(denormalized_predicted_residual)
-        
-        #print(f'location 3 denormalized_predicted_residual requires grad = {denormalized_predicted_residual.requires_grad}')
-        #print(f'location 4 denormalized_residual requires grad = {denormalized_residual.requires_grad}')
-        
-        
-        #(B,C,L) --> (B, C*L) 
-        #normalized_residual = self.reverse_reshape_target(normalized_residual)
-        #normalized_predicted_residual = self.reverse_reshape_target(normalized_predicted_residual)
-    
-        #normalized_residual = self.reverse_reshape_target(normalized_residual)
-        #normalized_predicted_residual = self.reverse_reshape_target(normalized_predicted_residual)
         output = self.reverse_reshape_target(output)
         target = self.reverse_reshape_target(target)
         #output is denormalized

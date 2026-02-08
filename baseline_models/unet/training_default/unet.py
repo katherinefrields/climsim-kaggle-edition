@@ -368,6 +368,7 @@ class Unet(modulus.Module):
         #runs our data through the normalization and convolutional layers at the very end
         for name, block in self.dec_aux_norm.items():
             tmp = block(x)
+            condition_output = tmp.detach().clone()
             if torch.isnan(tmp).any():
                 print(f"NaN detected after layer {name} in dec_aux_norm")
 
@@ -441,7 +442,7 @@ class Unet(modulus.Module):
             #y[:, 120:120+self.strato_lev_out] = y[:, 120:120+self.strato_lev_out].clone().zero_()
             #y[:, 180:180+self.strato_lev_out] = y[:, 180:180+self.strato_lev_out].clone().zero_()
             #y[:, 240:240+self.strato_lev_out] = y[:, 240:240+self.strato_lev_out].clone().zero_()
-        return y
+        return y, condition_output
     
     
     

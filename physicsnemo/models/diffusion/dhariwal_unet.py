@@ -223,7 +223,7 @@ class DhariwalUNet(Module):
             out_features=emb_channels,
             bias=False,
             init_mode="kaiming_normal"
-)
+            )
 
 
         #print(f'score unet in_channels is {in_channels}, out_channels is {out_channels}')

@@ -95,9 +95,15 @@ class JointModel(nn.Module):
         condition_data = torch.cat((condition_output, input), dim=1)
         #normalized_residual = self.reverse_reshape_target(normalized_residual)
         #normalized_residual = self.reshape_target(normalized_residual)
+        '''
         B,C,L = residual.shape[0],residual.shape[1],residual.shape[2]
-        rnd_normal = torch.randn([B, 1, 1], device=residual.device)
+        
+        rnd_normal = torch.randn([B,1,1], device=residual.device)
         sigma = (rnd_normal * self.p_std + self.p_mean).exp()   # no scaling applied
+        t_distribution = StudentT(df=self.nu, loc=0, scale=sigma)
+        n = t_distribution.sample(sample_shape = torch.Size([B,C,L])).squeeze(-1)
+        '''
+        
             
         '''
         #Batch size
@@ -141,8 +147,30 @@ class JointModel(nn.Module):
 
             noised_residual = normalized_residual + n'''
         
-        t_distribution = StudentT(df=self.nu, loc=0, scale=sigma)
-        n = t_distribution.sample(sample_shape = torch.Size([B,C,L])).squeeze(-1)
+        
+        
+        B, C, L = normalized_residual.shape
+        
+        #use a seperate sigma for each batch element, but the same sigma across all features in the batch element
+        rnd_normal = torch.randn([B, 1, 1], device=residual.device)
+        sigma = (rnd_normal * self.p_std + self.p_mean).exp()   # no scaling applied
+        
+        # Gaussian base noise
+        z = torch.randn((B, C, L), device=residual.device)
+
+        # One kappa per sample
+        kappa = torch.distributions.Chi2(df=self.nu).sample((B,)).to(residual.device)
+        kappa = (kappa / self.nu).view(B, 1, 1)
+
+        # Student‑t noise
+        t_noise = z / torch.sqrt(kappa)
+
+        # Normalize to unit variance (REQUIRED for EDM)
+        #t_noise = t_noise * math.sqrt((self.nu - 2) / self.nu)
+
+        # Apply sigma
+        sigma = sigma.view(B, 1, 1)
+        n = t_noise * sigma
         print(f'n shape is {n.shape}')
         print(f'normalized_residual shape is {normalized_residual.shape}')
         noised_residual = normalized_residual + n

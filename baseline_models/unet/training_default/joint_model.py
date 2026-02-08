@@ -89,7 +89,7 @@ class JointModel(nn.Module):
         normalized_residual = ((residual)/((safe_std+ 1e-8)))
         #condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
         condition_data = latent_condition
-        print(f'condition_data shape is {condition_data.shape}')
+        
         #condition_data = torch.cat((latent_condition, input), dim=1)
         #normalized_residual = self.reverse_reshape_target(normalized_residual)
         #normalized_residual = self.reshape_target(normalized_residual)

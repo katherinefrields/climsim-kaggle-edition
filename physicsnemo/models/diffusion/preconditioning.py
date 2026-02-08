@@ -217,8 +217,8 @@ class EDMPrecond(Module):
             #print(f'conditioning applied in EDMPrecond Forward. Shape: {input.shape}')
             F_x = self.model(
             arg.to(dtype),
-            condition,
             c_noise.flatten(),
+            condition,
             class_labels=class_labels,
             **model_kwargs,
             )

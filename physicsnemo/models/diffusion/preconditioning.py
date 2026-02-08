@@ -285,6 +285,7 @@ class EDMPrecond(Module):
             #ax[i] = sm.qqplot(x_next[0].flatten().cpu(), line='s') # 's' for standardized line
             #ax[i].set_title(f"QQ for {i} Step")
             
+            
             x_cur = x_next
             
             # Increase noise temporarily.
@@ -298,7 +299,7 @@ class EDMPrecond(Module):
 
             #print(f'condition_input shape is {condition_input.shape}')
             #uses reshaped x_hat
-            denoised = self.forward(x_hat, condition_input, t_hat)
+            denoised = self.forward(x_hat, t_hat, condition_input)
             #print(f'xhat shape is {x_hat.shape}')
             #print(f'denoised shape is {denoised.shape}')
             denoised.to(torch.float64)
@@ -309,7 +310,7 @@ class EDMPrecond(Module):
 
             # Apply 2nd order correction.
             if i < num_steps - 1:
-                denoised = self.forward(x_next, condition_input, t_next)
+                denoised = self.forward(x_next, t_next, condition_input)
                 denoised.to(torch.float64)
                 d_prime = (x_next - denoised) / t_next
                 x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)

@@ -158,10 +158,10 @@ class JointModel(nn.Module):
         
         # Gaussian base noise
         z = torch.randn((B, C, L), device=residual.device)
-
+        nu = torch.tensor([self.nu]).to(residual.device)
         # One kappa per sample
-        kappa = torch.distributions.Chi2(df=torch.tensor([self.nu])).sample((B,)).to(residual.device)
-        kappa = (kappa / torch.tensor([self.nu])).view(B, 1, 1)
+        kappa = torch.distributions.Chi2(df=torch.tensor([nu])).sample((B,)).to(residual.device)
+        kappa = (kappa / torch.tensor([nu])).view(B, 1, 1)
 
         # Student‑t noise
         t_noise = z / torch.sqrt(kappa)
@@ -176,7 +176,7 @@ class JointModel(nn.Module):
         print(f'normalized_residual shape is {normalized_residual.shape}')
         noised_residual = normalized_residual + n
 
-        sigma = sigma*torch.sqrt(torch.tensor([self.nu])/(torch.tensor([self.nu])-2))
+        sigma = sigma*torch.sqrt(torch.tensor([nu])/(torch.tensor([nu])-2))
         
         # weight per batch element according to the noise that was added to it
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2

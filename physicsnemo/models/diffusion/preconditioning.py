@@ -165,7 +165,7 @@ class EDMPrecond(Module):
         self,
         x_n,
         sigma,
-        condition=None,
+        condition=True,
         class_labels=None,
         force_fp32=False,
         **model_kwargs,
@@ -212,7 +212,7 @@ class EDMPrecond(Module):
 
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
-        if condition != None:
+        if condition == True:
             #input = torch.cat([arg, condition], dim=1)
             #print(f'conditioning applied in EDMPrecond Forward. Shape: {input.shape}')
             F_x = self.model(

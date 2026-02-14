@@ -296,6 +296,10 @@ class DhariwalUNet(Module):
 
     def forward(self, x, cond, noise_labels, class_labels, augment_labels=None):
         # Mapping.
+        if self.training:
+            print("cond norm:", cond.norm(dim=1).mean().item(),
+                "map_cond grad:", self.map_cond.weight.grad is not None)
+
         emb = self.map_noise(noise_labels)
         if self.map_augment is not None and augment_labels is not None:
             emb = emb + self.map_augment(augment_labels)

@@ -220,7 +220,7 @@ def main(cfg: DictConfig) -> float:
     res_channel_mult = OmegaConf.to_container(cfg.diffusion_model.channel_mult, resolve = True)
     #res_resample_filter = OmegaConf.to_container(cfg.diffusion_model.resample_filter, resolve = True)
     
-    if cfg.cond_type == 'input_output':
+    if cfg.diffusion_model.cond_type == 'input_output':
         cond_channels = (data.target_profile_num  + data.target_scalar_num + data.input_profile_num + data.input_scalar_num)*64
     else:
         cond_channels = 8192

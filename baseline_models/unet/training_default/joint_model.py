@@ -77,8 +77,9 @@ class JointModel(nn.Module):
         
         #=====Calculate Residual=====
         #output shape is (B, C, L), scalar values are all expanded mean value across levels
-        output, latent_condition = self.deterministic_model(input)
+        output, _ = self.deterministic_model(input)
         
+        latent_condition = torch.cat(input, output, dim=1)
         residual = target - output
         residual = residual.to(output.device)
         

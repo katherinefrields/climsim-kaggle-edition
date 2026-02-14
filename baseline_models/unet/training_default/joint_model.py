@@ -79,7 +79,7 @@ class JointModel(nn.Module):
         #output shape is (B, C, L), scalar values are all expanded mean value across levels
         output, _ = self.deterministic_model(input)
         
-        latent_condition = torch.cat(input, output, dim=1)
+        latent_condition = torch.cat((input, output), dim=1)
         residual = target - output
         residual = residual.to(output.device)
         

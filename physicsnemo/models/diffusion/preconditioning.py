@@ -118,6 +118,7 @@ class EDMPrecond(Module):
         img_out_channels=None,
         condition=False,
         condition_channels = 0,
+        condition_location = 'middle',
         **model_kwargs,
     ):
         super().__init__(meta=EDMPrecondMetaData)
@@ -148,6 +149,7 @@ class EDMPrecond(Module):
         
         self.sigma_condition_data = sigma_condition_data
         self.condition_mean_data = condition_mean_data
+        self.condition_location = condition_location
         
         self.input_padding = (img_resolution - vertical_level_num,0)
         

@@ -169,6 +169,7 @@ class DhariwalUNet(Module):
         attn_resolutions: List[int] = [32, 16, 8],
         dropout: float = 0.10,
         label_dropout: float = 0.0,
+        condition_location = 'middle'
     ):
         super().__init__(meta=MetaData())
         self.label_dropout = label_dropout
@@ -218,12 +219,22 @@ class DhariwalUNet(Module):
             if label_dim
             else None
         )
-        self.map_cond = Linear(
-            in_features=condition_channels,
-            out_features=emb_channels,
-            bias=False,
-            init_mode="kaiming_normal"
+        self.condition_location = condition_location
+        
+        if self.condition_location == 'embedding':
+            self.map_cond = Linear(
+                in_features=condition_channels,
+                out_features=emb_channels,
+                bias=False,
+                init_mode="kaiming_normal"
+                )
+        elif condition_location == 'middle':
+            self.cond_proj = Conv1d(
+                in_channels=condition_channels,   # e.g. 128
+                out_channels=model_channels * channel_mult[-1],  # bottleneck channels
+                kernel=1
             )
+
 
 
         #print(f'score unet in_channels is {in_channels}, out_channels is {out_channels}')
@@ -259,9 +270,20 @@ class DhariwalUNet(Module):
         self.dec = torch.nn.ModuleDict()
         for level, mult in reversed(list(enumerate(channel_mult))):
             res = img_resolution >> level
-            if level == len(channel_mult) - 1:
+            '''if level == len(channel_mult) - 1:
                 self.dec[f"{res}x{res}_in0"] = UNetBlock(
                     in_channels=cout, out_channels=cout, attention=True, **block_kwargs
+                )'''
+            if level == len(channel_mult) - 1:
+                bottleneck_channels = cout
+                if condition_location == 'middle':
+                    bottleneck_channels += model_channels * channel_mult[-1]
+
+                self.dec[f"{res}x{res}_in0"] = UNetBlock(
+                    in_channels=bottleneck_channels,
+                    out_channels=cout,
+                    attention=True,
+                    **block_kwargs
                 )
                 self.dec[f"{res}x{res}_in1"] = UNetBlock(
                     in_channels=cout, out_channels=cout, **block_kwargs
@@ -296,9 +318,6 @@ class DhariwalUNet(Module):
 
     def forward(self, x, cond, noise_labels, class_labels, augment_labels=None):
         # Mapping.
-        if self.training:
-            print("cond norm:", cond.norm(dim=1).mean().item(),
-                "map_cond grad:", self.map_cond.weight.grad is not None)
 
         emb = self.map_noise(noise_labels)
         if self.map_augment is not None and augment_labels is not None:
@@ -306,7 +325,7 @@ class DhariwalUNet(Module):
         emb = silu(self.map_layer0(emb))
         emb = self.map_layer1(emb)
         # Inject conditioning here
-        if cond is not None:
+        if cond is not None and self.condition_location == 'embedding':
             emb = emb + self.map_cond(cond)
         if self.map_label is not None:
             tmp = class_labels
@@ -324,6 +343,12 @@ class DhariwalUNet(Module):
         for block in self.enc.values():
             x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
             skips.append(x)
+            # Inject conditioning at the bottleneck
+        if cond is not None and self.condition_location == 'middle':
+            # cond is (B, C_cond, L)
+            cond_mid = self.cond_proj(cond)     # (B, bottleneck_channels, L)
+            x = torch.cat([x, cond_mid], dim=1)
+
             #print(f'{x.shape} after encoder block {block}')
 
         #print(f'decoder blocks are (up,down): {[(s.up, s.down) for s in self.dec.values()]}')

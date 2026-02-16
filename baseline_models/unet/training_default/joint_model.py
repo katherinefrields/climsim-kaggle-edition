@@ -30,6 +30,7 @@ class JointModel(nn.Module):
                  target_profile_num, 
                  target_scalar_num, 
                  condition_channel_num,
+                 condition_type = 'input_output',
                  vertical_level_num=60, 
                  img_resolution=64, sigma_data = .5, 
                  p_mean = -4.0, p_std=1.2, nu = 3, t_sampling = False):
@@ -51,6 +52,7 @@ class JointModel(nn.Module):
         self.target_scalar_num = target_scalar_num
         
         self.condition_channel_num = condition_channel_num
+        self.condition_type = condition_type
         
         self.vertical_level_num = vertical_level_num
         self.input_padding = (4,0)
@@ -77,9 +79,9 @@ class JointModel(nn.Module):
         
         #=====Calculate Residual=====
         #output shape is (B, C, L), scalar values are all expanded mean value across levels
-        output, _ = self.deterministic_model(input)
+        output, latent_output = self.deterministic_model(input)
         
-        latent_condition = torch.cat((input, output), dim=1)
+        
         residual = target - output
         residual = residual.to(output.device)
         
@@ -88,13 +90,21 @@ class JointModel(nn.Module):
         #normalized_residual = residual
         safe_std = torch.clamp(self.res_std, min=1e-2)
         normalized_residual = ((residual)/((safe_std+ 1e-8)))
-        #condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
+        condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
         
-        
-        #print(latent_condition.shape)
+        if self.condition_location == 'embedding':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+            else:
+                latent_condition = latent_output
+            condition_data = latent_condition.reshape(latent_condition.shape[0], -1)
+        elif self.condition_location == 'middle':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+            condition_data = latent_condition
+            #print(latent_condition.shape)
 
-        latent_condition = latent_condition.reshape(latent_condition.shape[0], -1)
-        condition_data = latent_condition
+        
         
         #condition_data = torch.cat((latent_condition, input), dim=1)
         #normalized_residual = self.reverse_reshape_target(normalized_residual)

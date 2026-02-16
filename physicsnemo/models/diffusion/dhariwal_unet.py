@@ -174,6 +174,7 @@ class DhariwalUNet(Module):
         super().__init__(meta=MetaData())
         self.label_dropout = label_dropout
         self.attn_resolutions = attn_resolutions
+        self.channel_mult = channel_mult
         emb_channels = model_channels * channel_mult_emb
         init = dict(
             init_mode="kaiming_uniform",
@@ -338,6 +339,7 @@ class DhariwalUNet(Module):
         # Build conditioning pyramid
         cond_pyr = {}
         if cond is not None and self.condition_location == 'cross':
+
             for res in self.attn_resolutions:   # 32, 16, 8
                 cond_res = torch.nn.functional.interpolate(
                     cond, size=res, mode="nearest"

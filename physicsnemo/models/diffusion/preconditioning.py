@@ -116,6 +116,8 @@ class EDMPrecond(Module):
         model_type="DhariwalUNet",
         img_in_channels=None,
         img_out_channels=None,
+        attn_resolutions = [16, 8],
+        channel_mult=[1,2,2,2],
         condition=False,
         condition_channels = 0,
         condition_location = 'middle',
@@ -139,6 +141,9 @@ class EDMPrecond(Module):
         
         self.condition = condition
         self.condition_channels = condition_channels
+        self.attn_resolutions = attn_resolutions
+        self.channel_mult = channel_mult
+        
         
         self.input_profile_num = input_profile_num # number of input profile variables
         self.input_scalar_num = input_scalar_num # number of input scalar variables
@@ -159,6 +164,8 @@ class EDMPrecond(Module):
             in_channels=img_in_channels,
             condition_channels = condition_channels,
             condition_location = condition_location,
+            attn_resolutions = attn_resolutions,
+            channel_mult = channel_mult,
             out_channels=img_out_channels,
             label_dim=label_dim,
             **model_kwargs,

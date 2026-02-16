@@ -352,7 +352,9 @@ class DhariwalUNet(Module):
             cond_mid = torch.nn.functional.interpolate(cond, size=x.shape[-1], mode='nearest')
             # now cond_mid: (B, C_cond, 8)
             cond_mid = self.cond_proj(cond_mid)
-            
+        if cond is not None and self.condition_location == 'cross':
+            x = x + self.cross_attn(x, cond)
+    
             # cond is (B, C_cond, L)
             #cond_mid = self.cond_proj(cond)     # (B, bottleneck_channels, L)
             x = torch.cat([x, cond_mid], dim=1)

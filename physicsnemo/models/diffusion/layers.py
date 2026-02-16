@@ -395,6 +395,41 @@ class Conv1d(torch.nn.Module):
             x = torch.nn.functional.conv1d(x, w, bias=b, padding=w.shape[-1] // 2)
         return x
 '''
+
+class CrossAttention1D(torch.nn.Module):
+    def __init__(self, dim, cond_dim, num_heads=4):
+        super().__init__()
+        self.num_heads = num_heads
+        self.scale = (dim // num_heads) ** -0.5
+
+        self.to_q = torch.nn.Linear(dim, dim)
+        self.to_k = torch.nn.Linear(cond_dim, dim)
+        self.to_v = torch.nn.Linear(cond_dim, dim)
+        self.to_out = torch.nn.Linear(dim, dim)
+
+    def forward(self, x, cond):
+        # x: (B, C, L) → (B, L, C)
+        x = x.permute(0, 2, 1)
+        cond = cond.permute(0, 2, 1)
+
+        B, L, C = x.shape
+        H = self.num_heads
+
+        q = self.to_q(x).view(B, L, H, C // H)
+        k = self.to_k(cond).view(B, L, H, C // H)
+        v = self.to_v(cond).view(B, L, H, C // H)
+
+        attn = (q * self.scale) @ k.transpose(-2, -1)
+        attn = attn.softmax(dim=-1)
+
+        out = (attn @ v).reshape(B, L, C)
+        out = self.to_out(out)
+
+        # back to (B, C, L)
+        return out.permute(0, 2, 1)
+
+
+
 #Conv2d edited to 1d based on unet modificaitons 
 class Conv1d(torch.nn.Module):
     """

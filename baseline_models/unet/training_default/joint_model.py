@@ -100,7 +100,7 @@ class JointModel(nn.Module):
             else:
                 latent_condition = latent_output
             condition_data = latent_condition.reshape(latent_condition.shape[0], -1)
-        elif self.condition_location == 'middle':
+        elif self.condition_location == 'middle' or self.condition_location == 'cross':
             if self.condition_type == 'input_output':
                 latent_condition = torch.cat((input, condition_output), dim=1)
             condition_data = latent_condition

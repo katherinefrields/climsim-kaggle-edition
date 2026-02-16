@@ -322,15 +322,35 @@ class DhariwalUNet(Module):
                 )
                 
         # Cross-attention modules at the same resolutions as self-attention
-        self.cross_attn = torch.nn.ModuleDict()
+        # After building self.enc and self.dec
 
-        for res in attn_resolutions:   # [32, 16, 8]
-            dim = self.res_channels[res]   # ← correct channel count
-            self.cross_attn[f"{res}"] = CrossAttention1D(
-                dim=dim,
-                cond_dim=condition_channels,
-                num_heads=4,
-            )
+        self.cross_attn_enc = torch.nn.ModuleDict()
+        self.cross_attn_dec = torch.nn.ModuleDict()
+
+        # encoder dims
+        for name, block in self.enc.items():
+            if isinstance(block, UNetBlock):
+                res = int(name.split("x")[0])
+                if res in attn_resolutions:
+                    dim = block.out_channels
+                    self.cross_attn_enc[f"{res}"] = CrossAttention1D(
+                        dim=dim,
+                        cond_dim=condition_channels,
+                        num_heads=4,
+                    )
+
+        # decoder dims
+        for name, block in self.dec.items():
+            if isinstance(block, UNetBlock):
+                res = int(name.split("x")[0])
+                if res in attn_resolutions:
+                    dim = block.out_channels
+                    self.cross_attn_dec[f"{res}"] = CrossAttention1D(
+                        dim=dim,
+                        cond_dim=condition_channels,
+                        num_heads=4,
+                    )
+
 
 
 
@@ -386,34 +406,25 @@ class DhariwalUNet(Module):
             #print(f'{x.shape} after encoder block {block}')
 
         #print(f'decoder blocks are (up,down): {[(s.up, s.down) for s in self.dec.values()]}')
+        # Encoder
         skips = []
         for name, block in self.enc.items():
             x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
-            
-            # cross-attn at encoder resolutions 
-            res = int(name.split("x")[0]) 
-            #fix later to actually only apply the cross attn to the last block at each resolution
-            if ( cond is not None and res in self.attn_resolutions and x.shape[1] == self.res_channels[res] ):
-                x = x + self.cross_attn[f"{res}"](x, cond_pyr[f"{res}"])
-            
+            res = int(name.split("x")[0])
+            if cond is not None and res in self.attn_resolutions and f"{res}" in self.cross_attn_enc:
+                x = x + self.cross_attn_enc[f"{res}"](x, cond_pyr[f"{res}"])
             skips.append(x)
-            #print(f'{x.shape} after encoder block {block}')
 
-
-  
-        # Decoder.
-        for block in self.dec.values():
+        # Decoder
+        for name, block in self.dec.items():
             if x.shape[1] != block.in_channels:
                 x = torch.cat([x, skips.pop()], dim=1)
             x = block(x, emb)
-            
-            # cross-attn at decoder resolutions
-            res = int(name.split("x")[0]) 
-            
-            #Update this just like hte encoder
-            if cond is not None and res in self.attn_resolutions and x.shape[1] == self.res_channels[res]: 
-                x = x + self.cross_attn[f"{res}"](x, cond_pyr[f"{res}"])
-                
+            res = int(name.split("x")[0])
+            if cond is not None and res in self.attn_resolutions and f"{res}" in self.cross_attn_dec:
+                x = x + self.cross_attn_dec[f"{res}"](x, cond_pyr[f"{res}"])
+
+                        
             #print(f'{x.shape} after decoder block {block}')
         x = self.out_conv(silu(self.out_norm(x)))
         return x

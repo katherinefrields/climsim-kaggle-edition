@@ -323,33 +323,33 @@ class DhariwalUNet(Module):
                 
         # Cross-attention modules at the same resolutions as self-attention
         # After building self.enc and self.dec
-
         self.cross_attn_enc = torch.nn.ModuleDict()
         self.cross_attn_dec = torch.nn.ModuleDict()
 
-        # encoder dims
+        # encoder cross-attn
         for name, block in self.enc.items():
             if isinstance(block, UNetBlock):
                 res = int(name.split("x")[0])
                 if res in attn_resolutions:
-                    dim = block.out_channels
-                    self.cross_attn_enc[f"{res}"] = CrossAttention1D(
+                    dim = block.out_channels          # channels of x at this block
+                    self.cross_attn_enc[f"{name}"] = CrossAttention1D(
                         dim=dim,
                         cond_dim=condition_channels,
                         num_heads=4,
                     )
 
-        # decoder dims
+        # decoder cross-attn
         for name, block in self.dec.items():
             if isinstance(block, UNetBlock):
                 res = int(name.split("x")[0])
                 if res in attn_resolutions:
-                    dim = block.out_channels
-                    self.cross_attn_dec[f"{res}"] = CrossAttention1D(
+                    dim = block.out_channels          # channels of x at this block
+                    self.cross_attn_dec[f"{name}"] = CrossAttention1D(
                         dim=dim,
                         cond_dim=condition_channels,
                         num_heads=4,
                     )
+
 
 
 
@@ -410,9 +410,12 @@ class DhariwalUNet(Module):
         skips = []
         for name, block in self.enc.items():
             x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
-            res = int(name.split("x")[0])
-            if cond is not None and res in self.attn_resolutions and f"{res}" in self.cross_attn_enc:
-                x = x + self.cross_attn_enc[f"{res}"](x, cond_pyr[f"{res}"])
+
+            if cond is not None and name in self.cross_attn_enc:
+                res = int(name.split("x")[0])
+                cond_res = cond_pyr[f"{res}"]         # already interpolated to res
+                x = x + self.cross_attn_enc[name](x, cond_res)
+
             skips.append(x)
 
         # Decoder
@@ -420,9 +423,12 @@ class DhariwalUNet(Module):
             if x.shape[1] != block.in_channels:
                 x = torch.cat([x, skips.pop()], dim=1)
             x = block(x, emb)
-            res = int(name.split("x")[0])
-            if cond is not None and res in self.attn_resolutions and f"{res}" in self.cross_attn_dec:
-                x = x + self.cross_attn_dec[f"{res}"](x, cond_pyr[f"{res}"])
+
+            if cond is not None and name in self.cross_attn_dec:
+                res = int(name.split("x")[0])
+                cond_res = cond_pyr[f"{res}"]
+                x = x + self.cross_attn_dec[name](x, cond_res)
+
 
                         
             #print(f'{x.shape} after decoder block {block}')

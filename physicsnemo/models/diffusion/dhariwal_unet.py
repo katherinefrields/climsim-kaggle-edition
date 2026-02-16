@@ -330,7 +330,7 @@ class DhariwalUNet(Module):
         for name, block in self.enc.items():
             if isinstance(block, UNetBlock):
                 res = int(name.split("x")[0])
-                if res in attn_resolutions:
+                if isinstance(block, UNetBlock) and getattr(block, "attention", False):
                     dim = block.out_channels          # channels of x at this block
                     self.cross_attn_enc[f"{name}"] = CrossAttention1D(
                         dim=dim,
@@ -340,7 +340,7 @@ class DhariwalUNet(Module):
 
         # decoder cross-attn
         for name, block in self.dec.items():
-            if isinstance(block, UNetBlock):
+            if isinstance(block, UNetBlock) and getattr(block, "attention", False):
                 res = int(name.split("x")[0])
                 if res in attn_resolutions:
                     dim = block.out_channels          # channels of x at this block

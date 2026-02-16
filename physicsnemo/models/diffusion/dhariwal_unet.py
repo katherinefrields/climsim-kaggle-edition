@@ -409,7 +409,9 @@ class DhariwalUNet(Module):
             
             # cross-attn at decoder resolutions
             res = int(name.split("x")[0]) 
-            if cond is not None and res in self.attn_resolutions: 
+            
+            #Update this just like hte encoder
+            if cond is not None and res in self.attn_resolutions and x.shape[1] == self.res_channels[res]: 
                 x = x + self.cross_attn[f"{res}"](x, cond_pyr[f"{res}"])
                 
             #print(f'{x.shape} after decoder block {block}')

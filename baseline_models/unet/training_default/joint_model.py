@@ -31,6 +31,7 @@ class JointModel(nn.Module):
                  target_scalar_num, 
                  condition_channel_num,
                  condition_type = 'input_output',
+                 condtition_location = 'embedding',
                  vertical_level_num=60, 
                  img_resolution=64, sigma_data = .5, 
                  p_mean = -4.0, p_std=1.2, nu = 3, t_sampling = False):
@@ -53,6 +54,7 @@ class JointModel(nn.Module):
         
         self.condition_channel_num = condition_channel_num
         self.condition_type = condition_type
+        self.condition_location = condtition_location
         
         self.vertical_level_num = vertical_level_num
         self.input_padding = (4,0)
@@ -118,7 +120,6 @@ class JointModel(nn.Module):
         n = t_distribution.sample(sample_shape = torch.Size([B,C,L])).squeeze(-1)
         '''
         
-            
         '''
         #Batch size
         P_mean = -1.2

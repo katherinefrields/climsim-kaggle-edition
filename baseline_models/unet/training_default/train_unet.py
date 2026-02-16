@@ -301,6 +301,7 @@ def main(cfg: DictConfig) -> float:
                             target_scalar_num = data.target_scalar_num, 
                             condition_channel_num = res_model.condition_channels,
                             condition_type = cfg.diffusion_model.condition_type,
+                            condtition_location=cfg.diffusion_model.condition_location,
                             p_mean = cfg.diffusion_model.p_mean,
                             p_std = cfg.diffusion_model.p_std,
                             nu = cfg.diffusion_model.nu,

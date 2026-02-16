@@ -28,7 +28,7 @@ from physicsnemo.models.diffusion import (
     UNetBlock,
     get_group_norm,
 )
-from physicsnemo.models.diffusion.layers import Conv1d
+from physicsnemo.models.diffusion.layers import Conv1d, CrossAttention1D
 from physicsnemo.models.diffusion.utils import _recursive_property
 from physicsnemo.models.meta import ModelMetaData
 from physicsnemo.models.module import Module
@@ -230,14 +230,13 @@ class DhariwalUNet(Module):
                 )
         elif condition_location == 'middle':
             # cond: (B, C_cond, 64)
-
-
-
             self.cond_proj = Conv1d(
                 in_channels=condition_channels,   # e.g. 128
                 out_channels=model_channels * channel_mult[-1],  # bottleneck channels
                 kernel=1
             )
+            
+            
 
 
 
@@ -305,6 +304,19 @@ class DhariwalUNet(Module):
                     attention=(res in attn_resolutions),
                     **block_kwargs,
                 )
+                
+        # Cross-attention modules at the same resolutions as self-attention
+        self.cross_attn = torch.nn.ModuleDict()
+
+        for res in attn_resolutions:   # e.g. [32, 16, 8]
+            dim = model_channels * channel_mult[attn_resolutions.index(res)]
+            self.cross_attn[f"{res}"] = CrossAttention1D(
+                dim=dim,
+                cond_dim=condition_channels,
+                num_heads=4,
+            )
+
+
         self.out_norm = get_group_norm(num_channels=cout)
         self.out_conv = Conv1d(
             in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
@@ -322,6 +334,16 @@ class DhariwalUNet(Module):
 
     def forward(self, x, cond, noise_labels, class_labels, augment_labels=None):
         # Mapping.
+        # Build conditioning pyramid
+        if cond is not None and self.condition_location == 'cross':
+            cond_pyr = {}
+            if cond is not None:
+                for res in self.attn_resolutions:   # 32, 16, 8
+                    cond_res = torch.nn.functional.interpolate(
+                        cond, size=res, mode="nearest"
+                    )
+                    cond_pyr[f"{res}"] = cond_res
+
 
         emb = self.map_noise(noise_labels)
         if self.map_augment is not None and augment_labels is not None:
@@ -343,30 +365,35 @@ class DhariwalUNet(Module):
         #print(f'shape of x to DhariwalUNet: {x.shape}')
         #print(f'encoder blocks are (up,down): {[(s.up, s.down) for s in self.enc.values()]}')
         # Encoder.
-        skips = []
-        for block in self.enc.values():
-            x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
-            skips.append(x)
-            # Inject conditioning at the bottleneck
-        if cond is not None and self.condition_location == 'middle':
-            cond_mid = torch.nn.functional.interpolate(cond, size=x.shape[-1], mode='nearest')
-            # now cond_mid: (B, C_cond, 8)
-            cond_mid = self.cond_proj(cond_mid)
-        if cond is not None and self.condition_location == 'cross':
-            x = x + self.cross_attn(x, cond)
-    
-            # cond is (B, C_cond, L)
-            #cond_mid = self.cond_proj(cond)     # (B, bottleneck_channels, L)
-            x = torch.cat([x, cond_mid], dim=1)
-
+ 
             #print(f'{x.shape} after encoder block {block}')
 
         #print(f'decoder blocks are (up,down): {[(s.up, s.down) for s in self.dec.values()]}')
+        skips = []
+        for name, block in self.enc.items():
+            x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
+            
+            # cross-attn at encoder resolutions 
+            res = int(name.split("x")[0]) 
+            if cond is not None and res in self.attn_resolutions: 
+                x = x + self.cross_attn[f"{res}"](x, cond_pyr[f"{res}"])
+            
+            skips.append(x)
+            #print(f'{x.shape} after encoder block {block}')
+
+
+  
         # Decoder.
         for block in self.dec.values():
             if x.shape[1] != block.in_channels:
                 x = torch.cat([x, skips.pop()], dim=1)
             x = block(x, emb)
+            
+            # cross-attn at decoder resolutions
+            res = int(name.split("x")[0]) 
+            if cond is not None and res in self.attn_resolutions: 
+                x = x + self.cross_attn[f"{res}"](x, cond_pyr[f"{res}"])
+                
             #print(f'{x.shape} after decoder block {block}')
         x = self.out_conv(silu(self.out_norm(x)))
         return x

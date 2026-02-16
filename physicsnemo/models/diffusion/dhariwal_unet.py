@@ -271,6 +271,20 @@ class DhariwalUNet(Module):
                 )
         skips = [block.out_channels for block in self.enc.values()]
 
+        # I should be able to remove this and refactor later
+        # Map resolution → channel count from encoder
+        self.res_channels = {}
+
+        for name, block in self.enc.items():
+            if isinstance(block, UNetBlock):
+                res = int(name.split("x")[0])
+                self.res_channels[res] = block.out_channels
+            else:
+                # First conv layer
+                res = int(name.split("x")[0])
+                self.res_channels[res] = block.out_channels
+
+
         # Decoder.
         self.dec = torch.nn.ModuleDict()
         for level, mult in reversed(list(enumerate(channel_mult))):
@@ -310,13 +324,14 @@ class DhariwalUNet(Module):
         # Cross-attention modules at the same resolutions as self-attention
         self.cross_attn = torch.nn.ModuleDict()
 
-        for res in attn_resolutions:   # e.g. [32, 16, 8]
-            dim = model_channels * channel_mult[attn_resolutions.index(res)]
+        for res in attn_resolutions:   # [32, 16, 8]
+            dim = self.res_channels[res]   # ← correct channel count
             self.cross_attn[f"{res}"] = CrossAttention1D(
                 dim=dim,
                 cond_dim=condition_channels,
                 num_heads=4,
             )
+
 
 
         self.out_norm = get_group_norm(num_channels=cout)

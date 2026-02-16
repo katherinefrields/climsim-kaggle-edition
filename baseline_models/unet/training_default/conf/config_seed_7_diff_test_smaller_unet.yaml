@@ -156,4 +156,4 @@ diffusion_model:
    nu: 5
    t_sampling: False
    condition_type: 'input_output'
-   condition_location: 'middle'
+   condition_location: 'cross'

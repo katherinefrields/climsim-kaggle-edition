@@ -392,7 +392,8 @@ class DhariwalUNet(Module):
             
             # cross-attn at encoder resolutions 
             res = int(name.split("x")[0]) 
-            if cond is not None and res in self.attn_resolutions: 
+            #fix later to actually only apply the cross attn to the last block at each resolution
+            if ( cond is not None and res in self.attn_resolutions and x.shape[1] == self.res_channels[res] ):
                 x = x + self.cross_attn[f"{res}"](x, cond_pyr[f"{res}"])
             
             skips.append(x)

@@ -228,6 +228,10 @@ def main(cfg: DictConfig) -> float:
     elif cfg.diffusion_model.condition_location == 'middle':
         if cfg.diffusion_model.condition_type == 'input_output':
             cond_channels = data.target_profile_num  + data.target_scalar_num + data.input_profile_num + data.input_scalar_num
+    elif cfg.diffusion_model.condition_location == 'cross':
+        if cfg.diffusion_model.condition_type == 'input_output':
+            cond_channels = data.target_profile_num  + data.target_scalar_num + data.input_profile_num + data.input_scalar_num
+        
     
     res_model = EDMPrecond(
         img_resolution=cfg.diffusion_model.seq_resolution,         # vertical levels

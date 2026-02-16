@@ -173,6 +173,7 @@ class DhariwalUNet(Module):
     ):
         super().__init__(meta=MetaData())
         self.label_dropout = label_dropout
+        self.attn_resolutions = attn_resolutions
         emb_channels = model_channels * channel_mult_emb
         init = dict(
             init_mode="kaiming_uniform",

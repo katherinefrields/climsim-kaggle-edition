@@ -229,6 +229,10 @@ class DhariwalUNet(Module):
                 init_mode="kaiming_normal"
                 )
         elif condition_location == 'middle':
+            # cond: (B, C_cond, 64)
+
+
+
             self.cond_proj = Conv1d(
                 in_channels=condition_channels,   # e.g. 128
                 out_channels=model_channels * channel_mult[-1],  # bottleneck channels
@@ -345,8 +349,12 @@ class DhariwalUNet(Module):
             skips.append(x)
             # Inject conditioning at the bottleneck
         if cond is not None and self.condition_location == 'middle':
+            cond_mid = torch.nn.functional.interpolate(cond, size=x.shape[-1], mode='nearest')
+            # now cond_mid: (B, C_cond, 8)
+            cond_mid = self.cond_proj(cond_mid)
+            
             # cond is (B, C_cond, L)
-            cond_mid = self.cond_proj(cond)     # (B, bottleneck_channels, L)
+            #cond_mid = self.cond_proj(cond)     # (B, bottleneck_channels, L)
             x = torch.cat([x, cond_mid], dim=1)
 
             #print(f'{x.shape} after encoder block {block}')

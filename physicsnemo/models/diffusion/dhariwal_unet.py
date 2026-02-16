@@ -336,14 +336,13 @@ class DhariwalUNet(Module):
     def forward(self, x, cond, noise_labels, class_labels, augment_labels=None):
         # Mapping.
         # Build conditioning pyramid
+        cond_pyr = {}
         if cond is not None and self.condition_location == 'cross':
-            cond_pyr = {}
-            if cond is not None:
-                for res in self.attn_resolutions:   # 32, 16, 8
-                    cond_res = torch.nn.functional.interpolate(
-                        cond, size=res, mode="nearest"
-                    )
-                    cond_pyr[f"{res}"] = cond_res
+            for res in self.attn_resolutions:   # 32, 16, 8
+                cond_res = torch.nn.functional.interpolate(
+                    cond, size=res, mode="nearest"
+                )
+                cond_pyr[f"{res}"] = cond_res
 
 
         emb = self.map_noise(noise_labels)

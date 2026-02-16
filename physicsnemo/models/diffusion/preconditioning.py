@@ -158,6 +158,7 @@ class EDMPrecond(Module):
             img_resolution=img_resolution,
             in_channels=img_in_channels,
             condition_channels = condition_channels,
+            condition_location = condition_location,
             out_channels=img_out_channels,
             label_dim=label_dim,
             **model_kwargs,

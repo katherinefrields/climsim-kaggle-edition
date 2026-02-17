@@ -175,6 +175,7 @@ class DhariwalUNet(Module):
         self.label_dropout = label_dropout
         self.attn_resolutions = attn_resolutions
         self.channel_mult = channel_mult
+        self.model_channels = model_channels
         emb_channels = model_channels * channel_mult_emb
         init = dict(
             init_mode="kaiming_uniform",

@@ -31,12 +31,13 @@ from physicsnemo.models.diffusion.utils import _wrapped_property
 from physicsnemo.models.meta import ModelMetaData
 from physicsnemo.models.module import Module
 from torch.distributions.studentT import StudentT
+import modulus
 
 network_module = importlib.import_module("physicsnemo.models.diffusion")
 
 
 @dataclass
-class EDMPrecondMetaData(ModelMetaData):
+class EDMPrecondMetaData(modulus.ModelMetaData):
     """EDMPrecond meta data"""
 
     name: str = "EDMPrecond"
@@ -55,7 +56,7 @@ class EDMPrecondMetaData(ModelMetaData):
     auto_grad: bool = False
 
 
-class EDMPrecond(Module):
+class EDMPrecond(modulus.Module):
     """
     Improved preconditioning proposed in the paper "Elucidating the Design Space of
     Diffusion-Based Generative Models" (EDM)

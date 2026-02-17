@@ -32,6 +32,7 @@ from physicsnemo.models.diffusion.layers import Conv1d, CrossAttention1D
 from physicsnemo.models.diffusion.utils import _recursive_property
 from physicsnemo.models.meta import ModelMetaData
 from physicsnemo.models.module import Module
+import modulus
 
 # ------------------------------------------------------------------------------
 # Backbone architectures
@@ -39,11 +40,11 @@ from physicsnemo.models.module import Module
 
 
 @dataclass
-class MetaData(ModelMetaData):
+class MetaData(modulus.ModelMetaData):
     name: str = "DhariwalUNet"
     # Optimization
-    jit: bool = False
-    cuda_graphs: bool = False
+    jit: bool = True
+    cuda_graphs: bool = True
     amp_cpu: bool = False
     amp_gpu: bool = True
     torch_fx: bool = False
@@ -59,7 +60,7 @@ class MetaData(ModelMetaData):
 # NOTE: this module can actually be replicated as a special case of the
 # SongUnet class (with very minior extension of the SongUnet class). We should
 # consider inheriting the more general SongUnet class here.
-class DhariwalUNet(Module):
+class DhariwalUNet(modulus.Module):
     r"""
     This architecture is a diffusion backbone for 2D image generation. It
     reimplements the `ADM architecture <https://arxiv.org/abs/2105.05233>`_, a U-Net variant, with optional

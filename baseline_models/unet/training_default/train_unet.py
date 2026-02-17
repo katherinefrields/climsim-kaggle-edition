@@ -710,8 +710,11 @@ def main(cfg: DictConfig) -> float:
         #load res model from checkpoint
         print(f'loading res model from checkpoint: {top_res_checkpoints[0][1]}')
         
-        from physicsnemo.models.module import Module
+        #from physicsnemo.models.module import Module
         res_model_reload = modulus.Module.from_checkpoint(top_res_checkpoints[0][1])
+        
+        print("Saved __args__:", getattr(ckpt, "__args__", None))
+        print("Saved meta:", getattr(ckpt, "meta", None))
         
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
         res_model_reload.save(save_file_res)

@@ -42,8 +42,8 @@ class EDMPrecondMetaData(modulus.ModelMetaData):
 
     name: str = "EDMPrecond"
     # Optimization
-    jit: bool = False
-    cuda_graphs: bool = False
+    jit: bool = True
+    cuda_graphs: bool = True
     amp_cpu: bool = False
     amp_gpu: bool = True
     torch_fx: bool = False

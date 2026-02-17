@@ -156,7 +156,6 @@ class DhariwalUNet(Module):
 
     def __init__(
         self,
-        *,
         img_resolution: int,
         in_channels: int,
         out_channels: int,

@@ -170,11 +170,11 @@ class EDMPrecond(modulus.Module):
         self.model = model_class(
             img_resolution=img_resolution,
             in_channels=img_in_channels,
+            out_channels=img_out_channels,
             condition_channels = condition_channels,
             condition_location = condition_location,
             attn_resolutions = attn_resolutions,
             channel_mult = channel_mult,
-            out_channels=img_out_channels,
             label_dim=label_dim,
             **model_kwargs,
         )  # TODO needs better handling

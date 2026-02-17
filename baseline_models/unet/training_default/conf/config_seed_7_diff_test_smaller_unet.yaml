@@ -86,7 +86,7 @@ seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 diffusion_restart_path: ''
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/diff_model.pt'
-expname: 'testing_new_save_new_2'
+expname: 'testing_new_save_new_3'
 num_workers: 32
 batch_size: 512 #1024
 epochs: 1

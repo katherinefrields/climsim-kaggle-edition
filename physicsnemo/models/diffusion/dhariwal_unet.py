@@ -163,13 +163,13 @@ class DhariwalUNet(Module):
         label_dim: int = 0,
         augment_dim: int = 0,
         model_channels: int = 192,
-        channel_mult: List[int] = [1, 2, 3, 4],
+        channel_mult: List[int] = [1, 2, 2, 2],
         channel_mult_emb: int = 4,
         num_blocks: int = 3,
         attn_resolutions: List[int] = [32, 16, 8],
         dropout: float = 0.10,
         label_dropout: float = 0.0,
-        condition_location = 'middle'
+        condition_location = 'cross'
     ):
         super().__init__(meta=MetaData())
         self.label_dropout = label_dropout

@@ -711,10 +711,10 @@ def main(cfg: DictConfig) -> float:
         print(f'loading res model from checkpoint: {top_res_checkpoints[0][1]}')
         
         from physicsnemo.models.module import Module
-        res_model_reload = Module.from_checkpoint(top_res_checkpoints[0][1])
+        res_model_reload = modulus.Module.from_checkpoint(top_res_checkpoints[0][1])
         
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
-        Module.save(res_model_reload, save_file_res)
+        res_model_reload.save(save_file_res)
         
         
         # convert the model to torchscript
@@ -726,8 +726,16 @@ def main(cfg: DictConfig) -> float:
         scripted_model.save(save_file_torch)
         
         
-        save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
-        torch.save(res_model_reload, save_file_torch_res)
+        #save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
+        #torch.save(res_model_reload, save_file_torch_res)
+        
+        #convert the diff model to torchscript
+        device = torch.device("cpu")
+        model_inf_res = modulus.Module.from_checkpoint(save_file_res).to(device)
+        scripted_model_res = torch.jit.script(model_inf_res)
+        scripted_model_res = scripted_model_res.eval()
+        save_file_torch_res = os.path.join(save_path_res, 'res_model.pt')
+        scripted_model_res.save(save_file_torch_res)
         
     
         

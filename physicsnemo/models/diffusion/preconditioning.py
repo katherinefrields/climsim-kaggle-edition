@@ -160,6 +160,13 @@ class EDMPrecond(modulus.Module):
         self.input_padding = (img_resolution - vertical_level_num,0)
         
         model_class = getattr(network_module, model_type)
+        
+        #remove model_kwargs wrapper on key words arguements, instead just passing in the key word arguements themselves
+        if "model_kwargs" in model_kwargs:
+            model_kwargs = dict(model_kwargs)
+            model_kwargs.pop("model_kwargs")
+
+
         self.model = model_class(
             img_resolution=img_resolution,
             in_channels=img_in_channels,

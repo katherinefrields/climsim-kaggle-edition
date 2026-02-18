@@ -281,7 +281,7 @@ class Conv2d(torch.nn.Module):
         f = f.ger(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
         self.register_buffer("resample_filter", f if up or down else None)
 
-    def forward(self, x, emb: List[torch.tensor] = None):
+    def forward(self, x, emb = None):
         weight, bias, resample_filter = self.weight, self.bias, self.resample_filter
         _validate_amp(self.amp_mode)
         if not self.amp_mode:

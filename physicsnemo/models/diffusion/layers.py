@@ -543,15 +543,15 @@ class Conv1d(torch.nn.Module):
         weight, bias, resample_filter = self.weight, self.bias, self.resample_filter
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
-            if self.weight is not None and self.weight.dtype != x.dtype:
-                weight = self.weight.to(x.dtype, device=x.device)
-            if self.bias is not None and self.bias.dtype != x.dtype:
-                bias = self.bias.to(x.dtype, device=x.device)
+            if weight is not None and weight.dtype != x.dtype:
+                weight = weight.to(dtype = x.dtype, device=x.device)
+            if bias is not None and bias.dtype != x.dtype:
+                bias = bias.to(dtype = x.dtype, device=x.device)
             if (
-                self.resample_filter is not None
-                and self.resample_filter.dtype != x.dtype
+                resample_filter is not None
+                and resample_filter.dtype != x.dtype
             ):
-                resample_filter = self.resample_filter.to(x.dtype)
+                resample_filter = resample_filter.to(x.dtype)
         if weight is not None:
             weight = weight.to(device=x.device)
         if bias is not None:

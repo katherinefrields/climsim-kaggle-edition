@@ -71,7 +71,7 @@ def weight_init(shape: tuple, mode: str, fan_in: int, fan_out: int):
         return np.sqrt(1 / fan_in) * torch.randn(*shape)
     raise ValueError(f'Invalid init mode "{mode}"')
 
-
+@torch.jit.ignore
 def _recursive_property(prop_name: str, prop_type: type, doc: str) -> property:
     """
     Property factory that sets the property on a Module ``self`` and

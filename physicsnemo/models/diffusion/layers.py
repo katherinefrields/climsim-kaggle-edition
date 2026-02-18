@@ -25,7 +25,7 @@ import math
 from typing import Any, Dict, List, Literal, Set
 
 import numpy as np
-import nvtx
+#import nvtx
 import torch
 import torch
 import torch.nn as nn
@@ -1344,38 +1344,39 @@ class UNetBlock(torch.nn.Module):
         self._register_load_state_dict_pre_hook(self._migrate_attention_module)
 
     def forward(self, x, emb):
-        with (
+        #removed by Katherine Frields for git compatability
+        '''with (
             nvtx.annotate(message="UNetBlock", color="purple")
             if self.profile_mode
             else contextlib.nullcontext()
-        ):
-            #print(f'running unet block down = {self.down}')
-            orig = x
-            x = self.conv0(self.norm0(x))
-            params = self.affine(emb).unsqueeze(2)
-            _validate_amp(self.amp_mode)
-            if not self.amp_mode:
-                if params.dtype != x.dtype:
-                    params = params.to(dtype =x.dtype)  # type: ignore
+        ):'''
+        #print(f'running unet block down = {self.down}')
+        orig = x
+        x = self.conv0(self.norm0(x))
+        params = self.affine(emb).unsqueeze(2)
+        _validate_amp(self.amp_mode)
+        if not self.amp_mode:
+            if params.dtype != x.dtype:
+                params = params.to(dtype =x.dtype)  # type: ignore
 
-            if self.adaptive_scale:
-                scale, shift = params.chunk(chunks=2, dim=1)
-                x = silu(torch.addcmul(shift, self.norm1(x), scale + 1))
-            else:
-                x = self.norm1(x.add_(params))
+        if self.adaptive_scale:
+            scale, shift = params.chunk(chunks=2, dim=1)
+            x = silu(torch.addcmul(shift, self.norm1(x), scale + 1))
+        else:
+            x = self.norm1(x.add_(params))
 
-            x = self.conv1(
-                torch.nn.functional.dropout(x, p=self.dropout, training=self.training)
-            )
-            
-            #print(f'current shape of x before unet skip {x.shape}. Shape of skip layer {orig.shape}')
-            x = x.add_(self.skip(orig) if self.skip is not None else orig)
+        x = self.conv1(
+            torch.nn.functional.dropout(x, p=self.dropout, training=self.training)
+        )
+        
+        #print(f'current shape of x before unet skip {x.shape}. Shape of skip layer {orig.shape}')
+        x = x.add_(self.skip(orig) if self.skip is not None else orig)
+        x = x * self.skip_scale
+
+        if self.attn:
+            x = self.attn(x)
             x = x * self.skip_scale
-
-            if self.attn:
-                x = self.attn(x)
-                x = x * self.skip_scale
-            return x
+        return x
 
     def __setattr__(self, name, value):
         """Prevent setting attributes with reserved names.

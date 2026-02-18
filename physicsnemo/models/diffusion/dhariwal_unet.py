@@ -46,7 +46,7 @@ class MetaData(modulus.ModelMetaData):
     jit: bool = True
     cuda_graphs: bool = True
     amp_cpu: bool = False
-    amp_gpu: bool = True
+    amp_gpu: bool = False
     torch_fx: bool = False
     # Data type
     bf16: bool = True

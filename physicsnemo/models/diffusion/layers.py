@@ -51,16 +51,22 @@ def _validate_amp(amp_mode: bool) -> None:
     amp_mode : bool
         Your intended AMP flag. Set False when you require full precision.
     """
-
+    '''
+    removed try catch blocks to enable torch jit
     try:
         cuda_amp = bool(torch.is_autocast_enabled())
-    except AttributeError:  # very old PyTorch
-        cuda_amp = False
+    except AttributeError:
+        cpu_amp = False
     try:
         cpu_amp = bool(torch.is_autocast_enabled())
     except AttributeError:
-        cpu_amp = False
+        cpu_amp = False'''
 
+   
+    cuda_amp = bool(torch.is_autocast_enabled())
+    
+    cpu_amp = bool(torch.is_autocast_enabled())
+        
     if not amp_mode and (cuda_amp or cpu_amp):
         active = []
         if cuda_amp:

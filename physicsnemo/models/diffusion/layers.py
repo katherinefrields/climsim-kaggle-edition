@@ -835,8 +835,8 @@ class GroupNorm(torch.nn.Module):
         self.bias = torch.nn.Parameter(torch.zeros(num_channels))
         self.act = act.lower() if act else act
         self.act_fn = None
-        if self.act is not None:
-            self.act_fn = self.get_activation_function()
+        #if self.act is not None: removed by Katherine Frields for jit compatability
+        #    self.act_fn = self.get_activation_function()
         self.amp_mode = amp_mode
 
     def forward(self, x):
@@ -891,8 +891,9 @@ class GroupNorm(torch.nn.Module):
             
             x = x * weight + bias
 
-        if self.act_fn is not None:
-            x = self.act_fn(x)
+        if self.act is not None:
+            x = self.get_activation_function(x)
+            #x = self.act_fn(x)
         return x
 
     def get_activation_function(self):

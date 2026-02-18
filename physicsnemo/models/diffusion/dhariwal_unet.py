@@ -415,10 +415,9 @@ class DhariwalUNet(modulus.Module):
         # Encoder
         skips = []
         for name, block in self.enc.items():
-            if isinstance(block, UNetBlock):
-                x = block(x,emb)
-            else:
-                x = block(x)
+
+            x = block(x,emb)
+            
             #x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
 
             if cond is not None and name in self.cross_attn_enc:

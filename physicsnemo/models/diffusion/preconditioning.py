@@ -187,8 +187,7 @@ class EDMPrecond(modulus.Module):
         sigma,
         condition,
         class_labels=None,
-        force_fp32=False,
-        **model_kwargs,
+        force_fp32=False
     ):
         #=====Cast to floats=====
         x_n = x_n.to(torch.float32)
@@ -240,14 +239,12 @@ class EDMPrecond(modulus.Module):
             condition,
             c_noise.flatten(),
             class_labels=class_labels,
-            **model_kwargs,
             )
         else:
             F_x = self.model(
             arg.to(dtype),
             c_noise.flatten(),
             class_labels=class_labels,
-            **model_kwargs,
             )
             
         #=====Predict Noise=====

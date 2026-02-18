@@ -892,7 +892,7 @@ class GroupNorm(torch.nn.Module):
             x = x * weight + bias
 
         if self.act is not None:
-            x = self.get_activation_function(x)
+            x = self.get_activation_function()(x)
             #x = self.act_fn(x)
         return x
 

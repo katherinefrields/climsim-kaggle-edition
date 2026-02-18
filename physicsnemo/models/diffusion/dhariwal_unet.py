@@ -425,7 +425,7 @@ class DhariwalUNet(modulus.Module):
                 for k, attn in self.cross_attn_enc.items():
                     if k == name:
                         x = x + attn(x, cond_res)
-                        break
+                    
                 #x = x + self.cross_attn_enc[name](x, cond_res) removed by Katherine Frields for JIT compatibility
 
             skips.append(x)

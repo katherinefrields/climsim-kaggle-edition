@@ -118,11 +118,12 @@ class EDMPrecond(modulus.Module):
         img_in_channels=None,
         img_out_channels=None,
         attn_resolutions = [16, 8],
+        num_blocks = 5,
+        model_channels = 128,
         channel_mult=[1,2,2,2],
         condition=False,
         condition_channels = 0,
-        condition_location = 'middle',
-        **model_kwargs,
+        condition_location = 'middle'
     ):
         super().__init__(meta=EDMPrecondMetaData)
         self.img_resolution = img_resolution
@@ -144,7 +145,8 @@ class EDMPrecond(modulus.Module):
         self.condition_channels = condition_channels
         self.attn_resolutions = attn_resolutions
         self.channel_mult = channel_mult
-        
+        self.num_blocks = num_blocks
+        self.model_channels = model_channels
         
         self.input_profile_num = input_profile_num # number of input profile variables
         self.input_scalar_num = input_scalar_num # number of input scalar variables
@@ -173,10 +175,11 @@ class EDMPrecond(modulus.Module):
             out_channels=img_out_channels,
             condition_channels = condition_channels,
             condition_location = condition_location,
-            attn_resolutions = attn_resolutions,
+            model_channels = model_channels,
             channel_mult = channel_mult,
-            label_dim=label_dim,
-            **model_kwargs,
+            num_blocks = num_blocks,
+            attn_resolutions = attn_resolutions,
+            condition_location = condition_location,
         )  # TODO needs better handling
 
     def forward(

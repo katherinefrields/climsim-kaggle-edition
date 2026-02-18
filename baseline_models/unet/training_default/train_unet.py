@@ -232,27 +232,29 @@ def main(cfg: DictConfig) -> float:
         #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
         #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
         #starting with unconditional
+        img_channels= data.target_profile_num  + data.target_scalar_num,
         input_profile_num = data.target_profile_num,
         input_scalar_num = data.target_scalar_num,
-        img_channels= data.target_profile_num  + data.target_scalar_num,
+        use_fp16=False,
+        model_type="DhariwalUNet",  # or another backbone
         img_in_channels= data.target_profile_num  + data.target_scalar_num,
         img_out_channels=data.target_profile_num  + data.target_scalar_num,# predicting tendency output variables residuals
         #label_dim=0,               # not class-conditional
-        use_fp16=False,
+        
         #sigma_min=0.002,
-        sigma_max=1,
+        #sigma_max=1,
         #sigma_data=res_std,
         #sigma_condition_data = preds_std,
         #mean_data=res_mean,
         #condition_mean_data=preds_mean,
-        model_type="DhariwalUNet",  # or another backbone
-        #model_channels = cfg.model_channels,#used for score unet
+        
+        
         attn_resolutions=res_attn_resolutions,
         num_blocks=cfg.diffusion_model.num_blocks,
+        model_channels = cfg.diffusion_model.model_channels,#used for score unet
         channel_mult=res_channel_mult,
-        model_channels = cfg.diffusion_model.model_channels,
-        dropout=cfg.diffusion_model.dropout,
         condition=cfg.diffusion_model.condition,
+        
         condition_channels= cond_channels,
         condition_location = cfg.diffusion_model.condition_location,
         

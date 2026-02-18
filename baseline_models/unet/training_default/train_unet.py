@@ -57,10 +57,6 @@ def main(cfg: DictConfig) -> float:
     train_preds_path = cfg.train_preds_path
     train_targets_path = cfg.train_targets_path
     
-    
-    
-    
-    
     res_std = torch.load(cfg.res_std_path)
     res_std = res_std.to(torch.float32)
     
@@ -112,8 +108,6 @@ def main(cfg: DictConfig) -> float:
 
     input_sub, input_div, out_scale = data.save_norm(write=False)
     
-    
-
     train_dataset = TrainingDataset(parent_path = cfg.data_path,
                                     input_sub = input_sub,
                                     input_div = input_div,
@@ -713,8 +707,8 @@ def main(cfg: DictConfig) -> float:
         #from physicsnemo.models.module import Module
         res_model_reload = modulus.Module.from_checkpoint(top_res_checkpoints[0][1])
         
-        print("Saved __args__:", getattr(ckpt, "__args__", None))
-        print("Saved meta:", getattr(ckpt, "meta", None))
+        print("Saved __args__:", getattr(res_model_reload, "__args__", None))
+        print("Saved meta:", getattr(res_model_reload, "meta", None))
         
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
         res_model_reload.save(save_file_res)

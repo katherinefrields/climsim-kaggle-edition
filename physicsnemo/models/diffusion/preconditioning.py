@@ -179,7 +179,6 @@ class EDMPrecond(modulus.Module):
             channel_mult = channel_mult,
             num_blocks = num_blocks,
             attn_resolutions = attn_resolutions,
-            condition_location = condition_location,
         )  # TODO needs better handling
 
     def forward(

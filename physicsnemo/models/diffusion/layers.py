@@ -160,7 +160,7 @@ class Linear(torch.nn.Module):
             else None
         )
 
-    def forward(self, x, emb: List[torch.tensor] = None):
+    def forward(self, x, emb = None):
         weight, bias = self.weight, self.bias
         _validate_amp(self.amp_mode)
         if not self.amp_mode:

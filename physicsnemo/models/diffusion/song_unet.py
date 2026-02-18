@@ -33,7 +33,7 @@ from physicsnemo.models.diffusion import (
     UNetBlock,
     get_group_norm,
 )
-from physicsnemo.models.diffusion.utils import _recursive_property
+#from physicsnemo.models.diffusion.utils import _recursive_property
 from physicsnemo.models.meta import ModelMetaData
 from physicsnemo.models.module import Module
 

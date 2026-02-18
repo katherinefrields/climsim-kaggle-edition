@@ -29,7 +29,7 @@ from physicsnemo.models.diffusion import (
     get_group_norm,
 )
 from physicsnemo.models.diffusion.layers import Conv1d, CrossAttention1D
-from physicsnemo.models.diffusion.utils import _recursive_property
+#from physicsnemo.models.diffusion.utils import _recursive_property
 from physicsnemo.models.meta import ModelMetaData
 from physicsnemo.models.module import Module
 import modulus
@@ -362,7 +362,7 @@ class DhariwalUNet(modulus.Module):
             in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
         )
 
-    # Properties that are recursively set on submodules
+    '''# Properties that are recursively set on submodules
     profile_mode = _recursive_property(
         "profile_mode", bool, "Should be set to ``True`` to enable profiling."
     )
@@ -370,7 +370,7 @@ class DhariwalUNet(modulus.Module):
         "amp_mode",
         bool,
         "Should be set to ``True`` to enable automatic mixed precision.",
-    )
+    )'''
 
     def forward(self, x, cond, noise_labels, class_labels, augment_labels=None):
         # Mapping.

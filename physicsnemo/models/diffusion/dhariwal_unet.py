@@ -419,8 +419,14 @@ class DhariwalUNet(modulus.Module):
 
             if cond is not None and name in self.cross_attn_enc:
                 res = int(name.split("x")[0])
-                cond_res = cond_pyr[f"{res}"]         # already interpolated to res
-                x = x + self.cross_attn_enc[name](x, cond_res)
+                cond_res = cond_pyr[f"{res}"] # already interpolated to res
+                
+                # JIT-friendly: enumerate ModuleDict and call the matching module 
+                for k, attn in self.cross_attn_enc.items():
+                    if k == name:
+                        x = x + attn(x, cond_res)
+                        break
+                #x = x + self.cross_attn_enc[name](x, cond_res) removed by Katherine Frields for JIT compatibility
 
             skips.append(x)
 
@@ -433,7 +439,13 @@ class DhariwalUNet(modulus.Module):
             if cond is not None and name in self.cross_attn_dec:
                 res = int(name.split("x")[0])
                 cond_res = cond_pyr[f"{res}"]
-                x = x + self.cross_attn_dec[name](x, cond_res)
+                # JIT-friendly: enumerate ModuleDict and call the matching module 
+                for k, attn in self.cross_attn_dec.items():
+                    if k == name:
+                        x = x + attn(x, cond_res)
+                        break
+                    
+                #x = x + self.cross_attn_dec[name](x, cond_res)
 
 
                         

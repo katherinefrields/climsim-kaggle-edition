@@ -27,6 +27,9 @@ from typing import Any, Dict, List, Literal, Set
 import numpy as np
 import nvtx
 import torch
+import torch
+import torch.nn as nn
+
 from einops import rearrange
 from torch.nn.functional import elu, gelu, leaky_relu, relu, sigmoid, silu, tanh
 
@@ -41,6 +44,28 @@ if torch.cuda.is_available():
         _is_apex_available = True
     except ImportError:
         pass
+    
+# added by Katherine Frields for jit compatability
+def _get_activation_module(act: str) -> torch.nn.Module:
+    if act is None:
+        return nn.Identity()
+    a = act.lower()
+    if a == "silu":
+        return nn.SiLU()
+    if a == "relu":
+        return nn.ReLU()
+    if a == "leaky_relu":
+        return nn.LeakyReLU()
+    if a == "sigmoid":
+        return nn.Sigmoid()
+    if a == "tanh":
+        return nn.Tanh()
+    if a == "gelu":
+        # torch.nn.GELU is scriptable
+        return nn.GELU()
+    if a == "elu":
+        return nn.ELU()
+    raise ValueError(f"Unknown activation function: {act}")
 
 
 def _validate_amp(amp_mode: bool) -> None:
@@ -833,8 +858,13 @@ class GroupNorm(torch.nn.Module):
         self.eps = eps
         self.weight = torch.nn.Parameter(torch.ones(num_channels))
         self.bias = torch.nn.Parameter(torch.zeros(num_channels))
-        self.act = act.lower() if act else act
-        self.act_fn = None
+        
+        self.act = act.lower() if act else None # added by Katherine Frields for jit compatability
+        self.act_fn = _get_activation_module(self.act) # added by Katherine Frields for jit compatability
+
+
+        #self.act = act.lower() if act else act
+        #self.act_fn = None
         #if self.act is not None: removed by Katherine Frields for jit compatability
         #    self.act_fn = self.get_activation_function()
         self.amp_mode = amp_mode
@@ -890,13 +920,21 @@ class GroupNorm(torch.nn.Module):
             bias = bias.reshape(1, -1, 1) #added by Katherine Frields for jit compatability
             
             x = x * weight + bias
+        
+        # added by Katherine Frields for jit compatability
+        if self.act_fn is not None:
+            x = self.act_fn(x)
 
-        if self.act is not None:
-            x = self.get_activation_function()(x)
+
+        #if self.act is not None:
+            #x = self.get_activation_function()(x)
             #x = self.act_fn(x)
         return x
 
-    def get_activation_function(self):
+  
+
+
+    '''def get_activation_function(self):
         """
         Get activation function given string input
         """
@@ -914,7 +952,7 @@ class GroupNorm(torch.nn.Module):
         act_fn = activation_map.get(self.act, None)
         if act_fn is None:
             raise ValueError(f"Unknown activation function: {self.act}")
-        return act_fn
+        return act_fn'''
 
 
 class AttentionOp(torch.autograd.Function):

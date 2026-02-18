@@ -1373,7 +1373,7 @@ class UNetBlock(torch.nn.Module):
         x = x.add_(self.skip(orig) if self.skip is not None else orig)
         x = x * self.skip_scale
 
-        if self.attn:
+        if self.attn is not None:
             x = self.attn(x)
             x = x * self.skip_scale
         return x

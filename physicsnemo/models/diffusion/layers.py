@@ -160,7 +160,7 @@ class Linear(torch.nn.Module):
             else None
         )
 
-    def forward(self, x, emb: Optional[Tensor] = None):
+    def forward(self, x, emb: Optional[torch.tensor] = None):
         weight, bias = self.weight, self.bias
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
@@ -281,7 +281,7 @@ class Conv2d(torch.nn.Module):
         f = f.ger(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
         self.register_buffer("resample_filter", f if up or down else None)
 
-    def forward(self, x, emb: Optional[Tensor] = None):
+    def forward(self, x, emb: Optional[torch.tensor] = None):
         weight, bias, resample_filter = self.weight, self.bias, self.resample_filter
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
@@ -567,7 +567,7 @@ class Conv1d(torch.nn.Module):
         self.register_buffer("resample_filter", f if up or down else None)
         #self.register_buffer("resample_filter", f if up or down else torch.empty(0))# changed by Katherine Frields to enable jit, was None before set alternative resampel to 0 instead of None for the pursposes of jit
 
-    def forward(self, x, emb: Optional[Tensor] = None):
+    def forward(self, x, emb: Optional[torch.tensor] = None):
         weight, bias, resample_filter = self.weight, self.bias, self.resample_filter
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
@@ -869,7 +869,7 @@ class GroupNorm(torch.nn.Module):
         #    self.act_fn = self.get_activation_function()
         self.amp_mode = amp_mode
 
-    def forward(self, x, emb: Optional[Tensor] = None):
+    def forward(self, x, emb: Optional[torch.tensor] = None):
         weight, bias = self.weight, self.bias
         
          # ADDED CODE
@@ -1084,7 +1084,7 @@ class Attention(torch.nn.Module):
             **init_zero,
         )
 
-    def forward(self, x: torch.Tensor, emb: Optional[Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, emb: Optional[torch.tensor] = None) -> torch.Tensor:
         '''x1: torch.Tensor = self.qkv(self.norm(x))
 
         # # NOTE: V1.0.1 implementation
@@ -1521,7 +1521,7 @@ class PositionalEmbedding(torch.nn.Module):
         x = torch.cat([x.sin(), x.cos()], dim=1)
         return x
 
-    def forward(self, x, emb: Optional[Tensor] = None):
+    def forward(self, x, emb: Optional[torch.tensor] = None):
         if self.embed_fn == "cos_sin":
             x = self._cos_sin_embedding(x)
         elif self.embed_fn == "np_sin_cos":
@@ -1558,7 +1558,7 @@ class FourierEmbedding(torch.nn.Module):
         self.register_buffer("freqs", torch.randn(num_channels // 2) * scale)
         self.amp_mode = amp_mode
 
-    def forward(self, x, emb: Optional[Tensor] = None):
+    def forward(self, x, emb: Optional[torch.tensor] = None):
         freqs = self.freqs
         _validate_amp(self.amp_mode)
         if not self.amp_mode:

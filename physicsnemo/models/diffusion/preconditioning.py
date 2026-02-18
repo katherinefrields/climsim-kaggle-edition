@@ -164,9 +164,9 @@ class EDMPrecond(modulus.Module):
         model_class = getattr(network_module, model_type)
         
         #remove model_kwargs wrapper on key words arguements, instead just passing in the key word arguements themselves
-        if "model_kwargs" in model_kwargs:
+        '''if "model_kwargs" in model_kwargs:
             model_kwargs = dict(model_kwargs)
-            model_kwargs.pop("model_kwargs")
+            model_kwargs.pop("model_kwargs")'''
 
 
         self.model = model_class(

@@ -140,9 +140,9 @@ class Linear(torch.nn.Module):
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
             if self.weight is not None and self.weight.dtype != x.dtype:
-                weight = self.weight.to(x.dtype)
+                weight = self.weight.to(dtype = x.dtype)
             if self.bias is not None and self.bias.dtype != x.dtype:
-                bias = self.bias.to(x.dtype)
+                bias = self.bias.to(dtype =x.dtype)
                 
         if weight is not None:
             weight = weight.to(device=x.device)
@@ -537,7 +537,10 @@ class Conv1d(torch.nn.Module):
         )
         f = torch.as_tensor(resample_filter, dtype=torch.float32)
         f = f.unsqueeze(0).unsqueeze(1) / f.sum()
+        
+        #OLD
         self.register_buffer("resample_filter", f if up or down else None)
+        #self.register_buffer("resample_filter", f if up or down else torch.empty(0))# changed by Katherine Frields to enable jit, was None before set alternative resampel to 0 instead of None for the pursposes of jit
 
     def forward(self, x):
         weight, bias, resample_filter = self.weight, self.bias, self.resample_filter
@@ -547,11 +550,9 @@ class Conv1d(torch.nn.Module):
                 weight = weight.to(dtype = x.dtype, device=x.device)
             if bias is not None and bias.dtype != x.dtype:
                 bias = bias.to(dtype = x.dtype, device=x.device)
-            if (
-                resample_filter is not None
-                and resample_filter.dtype != x.dtype
-            ):
-                resample_filter = resample_filter.to(x.dtype)
+            if resample_filter is not None:
+                if resample_filter.dtype != x.dtype:
+                    resample_filter = resample_filter.to(x.dtype, device = x.device)
         if weight is not None:
             weight = weight.to(device=x.device)
         if bias is not None:
@@ -851,16 +852,16 @@ class GroupNorm(torch.nn.Module):
         
          # ADDED CODE
         if weight.device != x.device:
-            weight = weight = weight.to(x.device)
+            weight = weight = weight.to(dtype =x.device)
         if bias is not None and bias.device != x.device:
-            bias = bias.to(x.device)
+            bias = bias.to(dtype =x.device)
             
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
             if weight.dtype != x.dtype:
-                weight = self.weight.to(x.dtype, device=x.device)
+                weight = self.weight.to(dtype =x.dtype, device=x.device)
             if bias.dtype != x.dtype:
-                bias = self.bias.to(x.dtype, device=x.device)
+                bias = self.bias.to(dtype =x.dtype, device=x.device)
         if weight is not None:
             weight = weight.to(device=x.device)
         if bias is not None:
@@ -1317,7 +1318,7 @@ class UNetBlock(torch.nn.Module):
             _validate_amp(self.amp_mode)
             if not self.amp_mode:
                 if params.dtype != x.dtype:
-                    params = params.to(x.dtype)  # type: ignore
+                    params = params.to(dtype =x.dtype)  # type: ignore
 
             if self.adaptive_scale:
                 scale, shift = params.chunk(chunks=2, dim=1)

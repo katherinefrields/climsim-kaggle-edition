@@ -646,7 +646,7 @@ def main(cfg: DictConfig) -> float:
                 launchlog.log_epoch({"loss_det_valid": current_deterministic_val_loss_avg, "los_res_valid": current_residual_val_loss_avg})
 
                 #currently saving the model with the best deterministic performance
-                current_metric = current_deterministic_val_loss_avg
+                current_metric = current_residual_val_loss_avg
                 
                 # Save the top checkpoints
                 if cfg.top_ckpt_mode == 'min':
@@ -725,16 +725,16 @@ def main(cfg: DictConfig) -> float:
         scripted_model.save(save_file_torch)
         
         
-        #save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
-        #torch.save(res_model_reload, save_file_torch_res)
+        save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
+        torch.save(res_model, save_file_torch_res)
         
         #convert the diff model to torchscript
-        device = torch.device("cpu")
-        model_inf_res = modulus.Module.from_checkpoint(save_file_res).to(device)
+        #device = torch.device("cpu")
+       # model_inf_res = modulus.Module.from_checkpoint(save_file_res).to(device)
         #scripted_model_res = torch.jit.script(model_inf_res)
         #scripted_model_res = scripted_model_res.eval()
-        save_file_torch_res = os.path.join(save_path_res, 'res_model.pt')
-        torch.save(model_inf_res, save_file_torch_res)
+        #save_file_torch_res = os.path.join(save_path_res, 'res_model.pt')
+        #torch.save(res_model, save_file_torch_res)
         #scripted_model_res.save(save_file_torch_res)
         
     

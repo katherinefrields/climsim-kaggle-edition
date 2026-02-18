@@ -1445,7 +1445,7 @@ class PositionalEmbedding(torch.nn.Module):
         if freq_embed_dim is None:
             freq_embed_dim = num_channels
         self.freq_embed_dim = freq_embed_dim
-
+        self.mlp = torch.nn.Identity()# added by Katherine Frields to enable jit
         if learnable:
             if mlp_hidden_dim is None:
                 mlp_hidden_dim = 2 * num_channels

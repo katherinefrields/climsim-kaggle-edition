@@ -731,10 +731,11 @@ def main(cfg: DictConfig) -> float:
         #convert the diff model to torchscript
         device = torch.device("cpu")
         model_inf_res = modulus.Module.from_checkpoint(save_file_res).to(device)
-        scripted_model_res = torch.jit.script(model_inf_res)
-        scripted_model_res = scripted_model_res.eval()
+        #scripted_model_res = torch.jit.script(model_inf_res)
+        #scripted_model_res = scripted_model_res.eval()
         save_file_torch_res = os.path.join(save_path_res, 'res_model.pt')
-        scripted_model_res.save(save_file_torch_res)
+        torch.save(model_inf_res, save_file_torch_res)
+        #scripted_model_res.save(save_file_torch_res)
         
     
         

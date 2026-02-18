@@ -872,16 +872,23 @@ class GroupNorm(torch.nn.Module):
         else:
             # Use custom GroupNorm implementation that supports channels last
             # memory layout for inference
-            x = rearrange(x, "b (g c) h -> b g c h", g=self.num_groups)
-
+            #x = rearrange(x, "b (g c) h -> b g c h", g=self.num_groups)
+            x = x.reshape(x.shape[0], self.num_groups, x.shape[1] // self.num_groups, x.shape[2]) #added by Katherine Frields for jit compatability
             mean = x.mean(dim=[2, 3], keepdim=True)
             var = x.var(dim=[2, 3], keepdim=True)
 
             x = (x - mean) * (var + self.eps).rsqrt()
-            x = rearrange(x, "b g c h -> b (g c) h")
+            #x = rearrange(x, "b g c h -> b (g c) h")
+            x = x.reshape(x.shape[0], x.shape[1] * x.shape[2], x.shape[3])#added by Katherine Frields for jit compatability
 
-            weight = rearrange(weight, "c -> 1 c 1")
-            bias = rearrange(bias, "c -> 1 c 1")
+
+            #weight = rearrange(weight, "c -> 1 c 1") 
+            # from shape (C,) -> (1, C, 1)
+            weight = weight.reshape(1, -1, 1) #added by Katherine Frields for jit compatability
+
+            #bias = rearrange(bias, "c -> 1 c 1")
+            bias = bias.reshape(1, -1, 1) #added by Katherine Frields for jit compatability
+            
             x = x * weight + bias
 
         if self.act_fn is not None:

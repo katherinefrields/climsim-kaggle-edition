@@ -68,7 +68,8 @@ def _validate_amp(amp_mode: bool) -> None:
     cpu_amp = bool(torch.is_autocast_enabled())
         
     if not amp_mode and (cuda_amp or cpu_amp):
-        active = []
+        #ensures that the list is recognized as the proper type for torch jit
+        active = torch.jit.annotate(List[str], [])
         if cuda_amp:
             active.append("cuda")
         if cpu_amp:

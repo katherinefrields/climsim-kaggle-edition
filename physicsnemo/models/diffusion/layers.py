@@ -844,7 +844,7 @@ class GroupNorm(torch.nn.Module):
         
          # ADDED CODE
         if weight.device != x.device:
-            weight = weight = weight.to(dtype =x.device)
+            weight = weight.to(dtype =x.device)
         if bias is not None and bias.device != x.device:
             bias = bias.to(dtype =x.device)
             

@@ -226,6 +226,9 @@ class DhariwalUNet(modulus.Module):
         )
         self.condition_location = condition_location
         
+        self.map_cond = torch.nn.Identity()
+        self.cond_proj = torch.nn.Identity()
+        
         if self.condition_location == 'embedding':
             self.map_cond = Linear(
                 in_features=condition_channels,

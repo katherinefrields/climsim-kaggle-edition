@@ -52,7 +52,7 @@ def _validate_amp(amp_mode: bool) -> None:
         Your intended AMP flag. Set False when you require full precision.
     """
     '''
-    removed try catch blocks to enable torch jit
+    removed try catch blocks to enable torch jit # changed by Katherine Frields to enable jit
     try:
         cuda_amp = bool(torch.is_autocast_enabled())
     except AttributeError:
@@ -69,7 +69,7 @@ def _validate_amp(amp_mode: bool) -> None:
         
     if not amp_mode and (cuda_amp or cpu_amp):
         #ensures that the list is recognized as the proper type for torch jit
-        active = torch.jit.annotate(List[str], [])
+        active = torch.jit.annotate(List[str], []) # added by Katherine Frields to enable jit
         if cuda_amp:
             active.append("cuda")
         if cpu_amp:
@@ -1454,7 +1454,8 @@ class PositionalEmbedding(torch.nn.Module):
                 torch.nn.SiLU(),
                 torch.nn.Linear(mlp_hidden_dim, num_channels, bias=True),
             )
-
+        self.register_buffer("freqs", torch.empty(0))# added by Katherine Frields to enable jit
+        
         if self.embed_fn == "np_sin_cos":
             half_embed_dim = freq_embed_dim // 2
             pow = np.arange(half_embed_dim, dtype=np.float32) / half_embed_dim

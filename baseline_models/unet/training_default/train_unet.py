@@ -705,13 +705,13 @@ def main(cfg: DictConfig) -> float:
         print(f'loading res model from checkpoint: {top_res_checkpoints[0][1]}')
         
         #from physicsnemo.models.module import Module
-        res_model_reload = modulus.Module.from_checkpoint(top_res_checkpoints[0][1])
+        res_model = modulus.Module.from_checkpoint(top_res_checkpoints[0][1])
         
-        print("Saved __args__:", getattr(res_model_reload, "__args__", None))
-        print("Saved meta:", getattr(res_model_reload, "meta", None))
+        print("Saved __args__:", getattr(res_model, "__args__", None))
+        print("Saved meta:", getattr(res_model, "meta", None))
         
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
-        res_model_reload.save(save_file_res)
+        res_model.save(save_file_res)
         
         
         # convert the model to torchscript

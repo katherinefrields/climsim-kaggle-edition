@@ -420,19 +420,19 @@ class DhariwalUNet(modulus.Module):
             x = block(x,emb)
             
             #x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
-
-            if cond is not None and name in self.cross_attn_enc:
-                res = int(name.split("x")[0])
-                cond_res = cond_pyr[f"{res}"] # already interpolated to res
-                
-                # JIT-friendly: enumerate ModuleDict and call the matching module 
-                for k, attn in self.cross_attn_enc.items():
-                    if k == name:
-                        x = x + attn(x, cond_res)
+            if self.condition_location == 'cross':
+                if cond is not None and name in self.cross_attn_enc:
+                    res = int(name.split("x")[0])
+                    cond_res = cond_pyr[f"{res}"] # already interpolated to res
                     
-                #x = x + self.cross_attn_enc[name](x, cond_res) removed by Katherine Frields for JIT compatibility
+                    # JIT-friendly: enumerate ModuleDict and call the matching module 
+                    for k, attn in self.cross_attn_enc.items():
+                        if k == name:
+                            x = x + attn(x, cond_res)
+                        
+                    #x = x + self.cross_attn_enc[name](x, cond_res) removed by Katherine Frields for JIT compatibility
 
-            skips.append(x)
+                skips.append(x)
 
         # Decoder
         for name, block in self.dec.items():
@@ -440,15 +440,16 @@ class DhariwalUNet(modulus.Module):
                 x = torch.cat([x, skips.pop()], dim=1)
             x = block(x, emb)
 
-            if cond is not None and name in self.cross_attn_dec:
-                res = int(name.split("x")[0])
-                cond_res = cond_pyr[f"{res}"]
-                # JIT-friendly: enumerate ModuleDict and call the matching module 
-                for k, attn in self.cross_attn_dec.items():
-                    if k == name:
-                        x = x + attn(x, cond_res)
-                        
-                #x = x + self.cross_attn_dec[name](x, cond_res)
+            if self.condition_location == 'cross':
+                if cond is not None and name in self.cross_attn_dec:
+                    res = int(name.split("x")[0])
+                    cond_res = cond_pyr[f"{res}"]
+                    # JIT-friendly: enumerate ModuleDict and call the matching module 
+                    for k, attn in self.cross_attn_dec.items():
+                        if k == name:
+                            x = x + attn(x, cond_res)
+                            
+                    #x = x + self.cross_attn_dec[name](x, cond_res)
 
 
                         

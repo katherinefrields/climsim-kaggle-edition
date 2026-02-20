@@ -86,10 +86,10 @@ seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/testing_save_diff_model/diff_model/diff_model.mdlus'
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: '3_epoch_cross_attention_run'
+expname: 'corr_diff_test_run_1'
 num_workers: 32
 batch_size: 512 #1024
-epochs: 3
+epochs: 1
 learning_rate: 0.0001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'
@@ -115,7 +115,7 @@ scheduler_warmup:
    warmup_steps: 20
    warmup_strategy: 'cos'
    init_lr: 1e-7
-early_stop_step: -1
+early_stop_step: 5000
 logger: 'wandb'
 wandb:
    project: "residual_diffusion"

@@ -356,10 +356,6 @@ class DhariwalUNet(modulus.Module):
                         num_heads=4,
                     )
 
-
-
-
-
         self.out_norm = get_group_norm(num_channels=cout)
         self.out_conv = Conv1d(
             in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
@@ -378,6 +374,11 @@ class DhariwalUNet(modulus.Module):
     def forward(self, x, cond, noise_labels, class_labels, augment_labels=None):
         # Mapping.
         # Build conditioning pyramid
+        
+        
+        if self.condition_location == 'front':
+            x.concat([x, cond], dim=1)
+            
         cond_pyr = {}
         if cond is not None and self.condition_location == 'cross':
 

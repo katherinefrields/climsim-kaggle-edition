@@ -93,7 +93,9 @@ class JointModel(nn.Module):
         safe_std = torch.clamp(self.res_std, min=1e-2)
         normalized_residual = ((residual)/((safe_std+ 1e-8)))
         condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
-        
+        if self.condition_location == 'front':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
         if self.condition_location == 'embedding':
             if self.condition_type == 'input_output':
                 latent_condition = torch.cat((input, condition_output), dim=1)

@@ -377,7 +377,7 @@ class DhariwalUNet(modulus.Module):
         
         
         if self.condition_location == 'front':
-            x.concat([x, cond], dim=1)
+            x.cat([x, cond], dim=1)
             
         cond_pyr = {}
         if cond is not None and self.condition_location == 'cross':

@@ -432,7 +432,7 @@ class DhariwalUNet(modulus.Module):
                         
                     #x = x + self.cross_attn_enc[name](x, cond_res) removed by Katherine Frields for JIT compatibility
 
-                skips.append(x)
+            skips.append(x)
 
         # Decoder
         for name, block in self.dec.items():

@@ -569,7 +569,7 @@ def main(cfg: DictConfig) -> float:
                 joint_optimizer.step()
                 
                 
-                ema.update(res_model.modules)
+                ema.update(res_model)
                 
                 # optimizer.zero_grad()
                 # output = model(data_input)

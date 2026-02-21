@@ -73,7 +73,7 @@ qn_lbd_path: '/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normaliza
 decouple_cloud: False
 aggressive_pruning: False
 strato_lev_qc: 30 # only active during aggressive pruning
-strato_lev_qinput: 22 # only active during aggressive pruning
+strato_lev_qinput: 22 # only active during aggressive pruningow 
 strato_lev_tinput: -1 # only active if strato_lev_tinput > 0
 strato_lev_out: 12
 input_clip: True
@@ -98,7 +98,7 @@ loss: 'Huber'
 scheduler_name: 'step'
 scheduler:
    step:
-      step_size: 3
+      step_size: 1 #temporarily changed for restarting
       gamma: .05
    plateau:
       patience: 2

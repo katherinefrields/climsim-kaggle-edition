@@ -775,7 +775,7 @@ def main(cfg: DictConfig) -> float:
         #save ema
         save_file_torch_ema = os.path.join(save_path, 'diff_model_ema.pt')
         torch.save({
-            "model": res_model.module.state_dict(),
+            "model": res_model.state_dict(),
             "ema": ema.shadow,
             "optimizer": joint_optimizer.state_dict(),
             "epoch": epoch,

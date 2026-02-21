@@ -229,6 +229,7 @@ class DhariwalUNet(modulus.Module):
         self.map_cond = torch.nn.Identity()
         self.cond_proj = torch.nn.Identity()
         
+        self.in_channels = in_channels
         if self.condition_location == 'embedding':
             self.map_cond = Linear(
                 in_features=condition_channels,
@@ -245,7 +246,7 @@ class DhariwalUNet(modulus.Module):
             )
         elif condition_location == 'front':
             self.in_channels = in_channels + condition_channels
-            
+        
             
 
 

@@ -331,32 +331,33 @@ class DhariwalUNet(modulus.Module):
                 
         # Cross-attention modules at the same resolutions as self-attention
         # After building self.enc and self.dec
-        self.cross_attn_enc = torch.nn.ModuleDict()
-        self.cross_attn_dec = torch.nn.ModuleDict()
+        if condition_location == 'cross':
+            self.cross_attn_enc = torch.nn.ModuleDict()
+            self.cross_attn_dec = torch.nn.ModuleDict()
 
-        # encoder cross-attn
-        for name, block in self.enc.items():
-            if isinstance(block, UNetBlock):
-                res = int(name.split("x")[0])
+            # encoder cross-attn
+            for name, block in self.enc.items():
+                if isinstance(block, UNetBlock):
+                    res = int(name.split("x")[0])
+                    if isinstance(block, UNetBlock) and getattr(block, "attention", False):
+                        dim = block.out_channels          # channels of x at this block
+                        self.cross_attn_enc[f"{name}"] = CrossAttention1D(
+                            dim=dim,
+                            cond_dim=condition_channels,
+                            num_heads=4,
+                        )
+
+            # decoder cross-attn
+            for name, block in self.dec.items():
                 if isinstance(block, UNetBlock) and getattr(block, "attention", False):
-                    dim = block.out_channels          # channels of x at this block
-                    self.cross_attn_enc[f"{name}"] = CrossAttention1D(
-                        dim=dim,
-                        cond_dim=condition_channels,
-                        num_heads=4,
-                    )
-
-        # decoder cross-attn
-        for name, block in self.dec.items():
-            if isinstance(block, UNetBlock) and getattr(block, "attention", False):
-                res = int(name.split("x")[0])
-                if res in attn_resolutions:
-                    dim = block.out_channels          # channels of x at this block
-                    self.cross_attn_dec[f"{name}"] = CrossAttention1D(
-                        dim=dim,
-                        cond_dim=condition_channels,
-                        num_heads=4,
-                    )
+                    res = int(name.split("x")[0])
+                    if res in attn_resolutions:
+                        dim = block.out_channels          # channels of x at this block
+                        self.cross_attn_dec[f"{name}"] = CrossAttention1D(
+                            dim=dim,
+                            cond_dim=condition_channels,
+                            num_heads=4,
+                        )
 
         self.out_norm = get_group_norm(num_channels=cout)
         self.out_conv = Conv1d(

@@ -84,9 +84,9 @@ input_clip_rhonly: True
 # training settings
 seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
-diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/testing_save_diff_model/diff_model/diff_model.mdlus'
+diffusion_restart_path: ''
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'corr_diff_test_run_1'
+expname: 'corr_diff_test_run_2'
 num_workers: 32
 batch_size: 512 #1024
 epochs: 1
@@ -156,4 +156,4 @@ diffusion_model:
    nu: 5
    t_sampling: False
    condition_type: 'input_output'
-   condition_location: 'cross'
+   condition_location: 'front'

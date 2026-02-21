@@ -243,6 +243,8 @@ class DhariwalUNet(modulus.Module):
                 out_channels=model_channels * channel_mult[-1],  # bottleneck channels
                 kernel=1
             )
+        elif condition_location == 'front':
+            self.in_channels = in_channels + condition_channels
             
             
 

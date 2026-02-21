@@ -86,10 +86,10 @@ seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 diffusion_restart_path: ''
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'input_output_cond_embedding_test'
+expname: 'input_output_cond_embedding_3_epoch'
 num_workers: 32
 batch_size: 512 #1024
-epochs: 1
+epochs: 3
 learning_rate: 0.0001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'
@@ -115,7 +115,7 @@ scheduler_warmup:
    warmup_steps: 20
    warmup_strategy: 'cos'
    init_lr: 1e-7
-early_stop_step: 1000
+early_stop_step: -1
 logger: 'wandb'
 wandb:
    project: "residual_diffusion"

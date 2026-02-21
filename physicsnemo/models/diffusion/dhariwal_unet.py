@@ -254,7 +254,7 @@ class DhariwalUNet(modulus.Module):
         
         # Encoder.
         self.enc = torch.nn.ModuleDict()
-        cout = in_channels
+        cout = self.in_channels
         for level, mult in enumerate(channel_mult):
             res = img_resolution >> level
             if level == 0:

@@ -253,7 +253,7 @@ class JointModel(nn.Module):
         #for p in self.res_model.parameters():
         #    print(f'p_grad is {p.grad}')
             
-        joint_optimizer.zero_grad()
+        joint_optimizer.zero_grad(set_to_none=True)
 
         # 2. Block all gradients from deterministic model
         deterministic_loss = deterministic_loss.detach()
@@ -261,7 +261,6 @@ class JointModel(nn.Module):
         # 4. Update only res_model parameters
         for p in self.deterministic_model.parameters():
             p.requires_grad = False
-            p.grad = None
 
         # 3. Backprop only through res_model
         res_loss.backward()

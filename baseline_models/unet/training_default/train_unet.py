@@ -36,6 +36,44 @@ import os, gc
 import random
 from conflictfree.grad_operator import ConFIG_update
 from conflictfree.utils import get_gradient_vector,apply_gradient_vector
+import torch
+
+class EMA:
+    def __init__(self, model, decay=0.999):
+        self.decay = decay
+        self.shadow = {}
+        self.backup = {}
+
+        # Copy initial parameters
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                self.shadow[name] = param.detach().clone()
+
+    @torch.no_grad()
+    def update(self, model):
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                new = param.detach()
+                old = self.shadow[name]
+                self.shadow[name] = old * self.decay + (1 - self.decay) * new
+
+    @torch.no_grad()
+    def apply_to(self, model):
+        """Load EMA weights into the model (for sampling)."""
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                self.backup[name] = param.data.clone()
+                param.data.copy_(self.shadow[name])
+
+    @torch.no_grad()
+    def restore(self, model):
+        """Restore original weights after sampling."""
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                param.data.copy_(self.backup[name])
+        self.backup = {}
+
+
 
 @hydra.main(version_base="1.2", config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> float:
@@ -316,7 +354,7 @@ def main(cfg: DictConfig) -> float:
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to
     # check this.
-    
+    ema = EMA(res_model, decay=0.999)
     
     if dist.distributed:
         ddps = torch.cuda.Stream()
@@ -531,6 +569,8 @@ def main(cfg: DictConfig) -> float:
                 joint_optimizer.step()
                 
                 
+                ema.update(joint_model.res_model.module)
+                
                 # optimizer.zero_grad()
                 # output = model(data_input)
                 # if cfg.do_energy_loss:
@@ -664,6 +704,8 @@ def main(cfg: DictConfig) -> float:
                     if dist.distributed:
                         model.save(ckpt_path)
                         res_model.save(ckpt_res_path)
+
+
                     else:
                         model.save(ckpt_path)
                         res_model.save(ckpt_res_path)
@@ -730,6 +772,15 @@ def main(cfg: DictConfig) -> float:
         save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
         torch.save(res_model, save_file_torch_res)
         
+        #save ema
+        save_file_torch_ema = os.path.join(save_path, 'diff_model_ema.pt')
+        torch.save({
+            "model": res_model.module.state_dict(),
+            "ema": ema.shadow,
+            "optimizer": joint_optimizer.state_dict(),
+            "epoch": epoch,
+        }, save_file_torch_ema)
+                        
         #convert the diff model to torchscript
         #device = torch.device("cpu")
        # model_inf_res = modulus.Module.from_checkpoint(save_file_res).to(device)

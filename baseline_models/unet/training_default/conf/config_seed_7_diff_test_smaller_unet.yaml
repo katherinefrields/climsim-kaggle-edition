@@ -84,12 +84,12 @@ input_clip_rhonly: True
 # training settings
 seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
-diffusion_restart_path: ''
+diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/input_output_cond_embedding_3_epoch/diff_model/ckpt/ckpt_epoch_2_metric_0.6926.mdlus'
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
 expname: 'input_output_cond_embedding_3_epoch'
 num_workers: 32
 batch_size: 512 #1024
-epochs: 3
+epochs: 2
 learning_rate: 0.0001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'

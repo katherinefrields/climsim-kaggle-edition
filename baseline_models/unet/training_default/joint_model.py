@@ -96,6 +96,7 @@ class JointModel(nn.Module):
         if self.condition_location == 'front':
             if self.condition_type == 'input_output':
                 latent_condition = torch.cat((input, condition_output), dim=1)
+                condition_data = latent_condition
         if self.condition_location == 'embedding':
             if self.condition_type == 'input_output':
                 latent_condition = torch.cat((input, condition_output), dim=1)

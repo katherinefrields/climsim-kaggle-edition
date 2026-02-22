@@ -354,7 +354,7 @@ def main(cfg: DictConfig) -> float:
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to
     # check this.
-    ema = EMA(res_model, decay=0.999)
+    #ema = EMA(res_model, decay=0.999)
     
     if dist.distributed:
         ddps = torch.cuda.Stream()
@@ -490,6 +490,7 @@ def main(cfg: DictConfig) -> float:
         
         if dist.distributed:
             train_sampler.set_epoch(epoch)
+        
         # idx_train_loader = epoch % len(train_input_path)
             #if epoch >0:
         #     #free the memory of previously defined train_dataset and train_loader
@@ -532,6 +533,9 @@ def main(cfg: DictConfig) -> float:
             for data_input, target in train_loop:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
+                if current_step % 200 == 0:
+                    torch.cuda.empty_cache()
+
                 # if cfg.output_prune: # this is currently done in the dataset class
                 #     # the following code only works for the v2/v3 output cases!
                 #     target[:,60:60+cfg.strato_lev] = 0
@@ -569,7 +573,7 @@ def main(cfg: DictConfig) -> float:
                 joint_optimizer.step()
                 
                 
-                ema.update(res_model)
+                #ema.update(res_model)
                 
                 # optimizer.zero_grad()
                 # output = model(data_input)
@@ -773,13 +777,13 @@ def main(cfg: DictConfig) -> float:
         torch.save(res_model, save_file_torch_res)
         
         #save ema
-        save_file_torch_ema = os.path.join(save_path, 'diff_model_ema.pt')
+        '''save_file_torch_ema = os.path.join(save_path, 'diff_model_ema.pt')
         torch.save({
             "model": res_model.state_dict(),
             "ema": ema.shadow,
             "optimizer": joint_optimizer.state_dict(),
             "epoch": epoch,
-        }, save_file_torch_ema)
+        }, save_file_torch_ema)'''
                         
         #convert the diff model to torchscript
         #device = torch.device("cpu")

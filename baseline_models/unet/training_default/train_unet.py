@@ -349,8 +349,7 @@ def main(cfg: DictConfig) -> float:
                             p_mean = cfg.diffusion_model.p_mean,
                             p_std = cfg.diffusion_model.p_std,
                             nu = cfg.diffusion_model.nu,
-                            t_sampling=cfg.diffusion_model.t_sampling,
-                            joint_training_step = cfg.diffusion_model.joint_training_step).to(dist.device)
+                            t_sampling=cfg.diffusion_model.t_sampling).to(dist.device)
     
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to
@@ -536,7 +535,7 @@ def main(cfg: DictConfig) -> float:
                     break
                 if current_step % 200 == 0:
                     torch.cuda.empty_cache()
-                if cfg.joint_training_step != -1 and current_step >= cfg.joint_training_step:
+                if cfg.diffusion_model.joint_training_step != -1 and current_step >= cfg.diffusion_model.joint_training_step:
                     print('Unfreezing deterministic model')
                     for param in joint_model.module.deterministic_model.parameters():
                         param.requires_grad = True

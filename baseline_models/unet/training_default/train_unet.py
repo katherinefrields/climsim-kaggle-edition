@@ -530,15 +530,16 @@ def main(cfg: DictConfig) -> float:
             #train_preds = []
             #train_targets = []
             
+            
             for data_input, target in train_loop:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
                 if current_step % 200 == 0:
                     torch.cuda.empty_cache()
-                if cfg.diffusion_model.joint_training_step != -1 and current_step >= cfg.diffusion_model.joint_training_step:
-                    print('Unfreezing deterministic model')
+                if cfg.diffusion_model.joint_training_step != -1 and current_step == cfg.diffusion_model.joint_training_step:
                     for param in joint_model.module.deterministic_model.parameters():
                         param.requires_grad = True
+                   
 
                 # if cfg.output_prune: # this is currently done in the dataset class
                 #     # the following code only works for the v2/v3 output cases!

@@ -349,7 +349,8 @@ def main(cfg: DictConfig) -> float:
                             p_mean = cfg.diffusion_model.p_mean,
                             p_std = cfg.diffusion_model.p_std,
                             nu = cfg.diffusion_model.nu,
-                            t_sampling=cfg.diffusion_model.t_sampling).to(dist.device)
+                            t_sampling=cfg.diffusion_model.t_sampling,
+                            joint_training_step = cfg.joint_training_step).to(dist.device)
     
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to
@@ -535,6 +536,10 @@ def main(cfg: DictConfig) -> float:
                     break
                 if current_step % 200 == 0:
                     torch.cuda.empty_cache()
+                if current_step >= cfg.joint_training_step:
+                    print('Unfreezing deterministic model')
+                    for param in joint_model.module.deterministic_model.parameters():
+                        param.requires_grad = True
 
                 # if cfg.output_prune: # this is currently done in the dataset class
                 #     # the following code only works for the v2/v3 output cases!
@@ -542,11 +547,6 @@ def main(cfg: DictConfig) -> float:
                 #     target[:,120:120+cfg.strato_lev] = 0
                 #     target[:,180:180+cfg.strato_lev] = 0
                 #print(f'starting step {current_step} of epoch {epoch+1}')
-                
-                if current_step == cfg.diffusion_model.warmup_steps:
-                    print('Unfreezing deterministic model')
-                    for param in joint_model.module.deterministic_model.parameters():
-                        param.requires_grad = True
                 data_input, target = data_input.to(device), target.to(device)
                 
                 #scaled predicted

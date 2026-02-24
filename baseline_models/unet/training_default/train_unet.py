@@ -572,6 +572,11 @@ def main(cfg: DictConfig) -> float:
                 joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
                 joint_optimizer.step()
                 
+                with torch.no_grad():
+                    det_param = next(joint_model.module.deterministic_model.parameters())
+                    print(current_step, det_param.norm().item())
+
+                
                 
                 #ema.update(res_model)
                 

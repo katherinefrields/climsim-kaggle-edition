@@ -110,6 +110,10 @@ class JointModel(nn.Module):
         #apply affine layers to enble dynamic normalization
         normalized_residual = self.res_affine(normalized_residual)
         condition_output = self.cond_affine(condition_output)
+        
+        print(self.res_affine.gamma.mean().item())
+        #print(self.res().item(), self.res_affine.gamma.min_affine.gamma.max().item())
+
 
 
         

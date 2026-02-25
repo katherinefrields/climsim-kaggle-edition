@@ -86,7 +86,7 @@ seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/input_output_cond_embedding_3_epoch/diff_model/ckpt/ckpt_epoch_1_metric_0.6710.mdlus'
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'dynamic_normalization_2_epoch'
+expname: 'dynamic_normalization_testing'
 num_workers: 32
 batch_size: 512 #1024
 epochs: 1

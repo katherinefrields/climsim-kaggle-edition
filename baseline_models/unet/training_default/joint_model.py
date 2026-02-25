@@ -68,12 +68,12 @@ class JointModel(nn.Module):
         self.t_sampling = t_sampling
         
         self.res_affine = nn.Sequential(
-            nn.LayerNorm([self.target_profile_num + self.target_scalar_num, 64]),
+            nn.LayerNorm([self.target_profile_num + self.target_scalar_num, 64], elementwise_affine = False),
             nn.Linear(64,64)
         )
 
         self.cond_affine = nn.Sequential(
-            nn.LayerNorm([self.target_profile_num + self.target_scalar_num, 64]),
+            nn.LayerNorm([self.target_profile_num + self.target_scalar_num, 64],  elementwise_affine = False),
             nn.Linear(64,64)
 )
 
@@ -111,8 +111,8 @@ class JointModel(nn.Module):
         normalized_residual = self.res_affine(normalized_residual)
         condition_output = self.cond_affine(condition_output)
         
-        print("gamma:", self.res_affine[0].weight.mean().item())
-        print("beta:", self.res_affine[0].bias.mean().item())
+        #print("gamma:", self.res_affine[0].weight.mean().item())
+        #print("beta:", self.res_affine[0].bias.mean().item())
 
         #print(self.res().item(), self.res_affine.gamma.min_affine.gamma.max().item())
 

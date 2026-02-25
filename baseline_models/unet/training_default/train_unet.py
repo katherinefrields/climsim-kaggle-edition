@@ -369,7 +369,7 @@ def main(cfg: DictConfig) -> float:
                 gradient_as_bucket_view=True,
                 broadcast_buffers=dist.broadcast_buffers,
                 find_unused_parameters=True,
-                static_graph=True,
+                static_graph=False,#since you have joint trianing sometimes enabled, sometimes not
             )
             
         torch.cuda.current_stream().wait_stream(ddps)

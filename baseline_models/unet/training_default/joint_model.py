@@ -67,7 +67,7 @@ class JointModel(nn.Module):
         
         self.t_sampling = t_sampling
 
-     #output is (B, C*L)
+    #output is (B, C*L)
     #normalized true residual is (B, C*L)
     #normalized_predicted_residual is (B, C*L)
     #denormalized_residual (B, C, L)
@@ -334,8 +334,10 @@ class JointModel(nn.Module):
         Customize loss combination here.
         """
         
+        predicted_residual = self.reverse_reshape_target(D_x)
+        combined_output = output + predicted_residual
+        deterministic_loss = criterion(combined_output, target)
         
-        deterministic_loss = criterion(output + D_x, target)
         res_loss =  (weight*((x - D_x) ** 2)).mean() # calculate over C and L features
         #print(f'predicted value is {D_x}')
         #print(f'true value is {x}')

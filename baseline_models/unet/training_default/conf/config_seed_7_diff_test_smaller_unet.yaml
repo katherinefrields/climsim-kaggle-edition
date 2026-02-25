@@ -86,7 +86,7 @@ seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/input_output_cond_embedding_3_epoch/diff_model/ckpt/ckpt_epoch_1_metric_0.6710.mdlus'
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'joint_training_test'#'input_output_cond_embedding_3_epoch_joint_training'
+expname: 'input_output_cond_embedding_3_epoch_joint_training_2500'
 num_workers: 32
 batch_size: 512 #1024
 epochs: 1
@@ -115,7 +115,7 @@ scheduler_warmup:
    warmup_steps: 20
    warmup_strategy: 'cos'
    init_lr: 1e-7
-early_stop_step: 100
+early_stop_step: 2500
 logger: 'wandb'
 wandb:
    project: "residual_diffusion"
@@ -157,4 +157,4 @@ diffusion_model:
    t_sampling: False
    condition_type: 'input_output'
    condition_location: 'embedding'
-   joint_training_step: 10
+   joint_training_step: 1

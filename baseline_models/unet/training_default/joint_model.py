@@ -111,7 +111,9 @@ class JointModel(nn.Module):
         normalized_residual = self.res_affine(normalized_residual)
         condition_output = self.cond_affine(condition_output)
         
-        print(self.res_affine.gamma.mean().item())
+        print("gamma:", self.res_affine[0].weight.mean().item())
+        print("beta:", self.res_affine[0].bias.mean().item())
+
         #print(self.res().item(), self.res_affine.gamma.min_affine.gamma.max().item())
 
 

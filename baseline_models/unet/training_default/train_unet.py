@@ -579,7 +579,7 @@ def main(cfg: DictConfig) -> float:
                 
                 with torch.no_grad():
                     det_param = next(joint_model.module.deterministic_model.parameters())
-                    print(current_step, det_param.norm().item())
+                    #print(current_step, det_param.norm().item())
 
                 
                 

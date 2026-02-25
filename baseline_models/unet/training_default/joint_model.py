@@ -66,6 +66,18 @@ class JointModel(nn.Module):
         self.nu = nu
         
         self.t_sampling = t_sampling
+        
+        self.res_affine = nn.Sequential(
+            nn.LayerNorm([self.target_profile_num + self.target_scalar_num, self.vertical_level_num]),
+            nn.Linear(self.vertical_level_num, self.vertical_level_num)
+        )
+
+        self.cond_affine = nn.Sequential(
+            nn.LayerNorm([self.target_profile_num + self.target_scalar_num + self.input_profile_num + self.input_scalar_num, self.vertical_level_num]),
+            nn.Linear(self.vertical_level_num, self.vertical_level_num)
+)
+
+
 
     #output is (B, C*L)
     #normalized true residual is (B, C*L)
@@ -94,6 +106,13 @@ class JointModel(nn.Module):
         safe_std = torch.clamp(self.res_std, min=1e-2)
         normalized_residual = ((residual)/((safe_std+ 1e-8)))
         condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
+        
+        #apply affine layers to enble dynamic normalization
+        normalized_residual = self.res_affine(normalized_residual)
+        condition_output = self.cond_affine(condition_output)
+
+
+        
         if self.condition_location == 'front':
             if self.condition_type == 'input_output':
                 latent_condition = torch.cat((input, condition_output), dim=1)

@@ -570,7 +570,7 @@ def main(cfg: DictConfig) -> float:
                 #calcluate loss using normalized residuals
                 #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_predicted_residual, normalized_residual, weight)
                 if joint_training_enabled:
-                    deterministic_loss, res_loss = joint_model.module.compute_joint_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
+                    deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
                     joint_model.module.joint_backward(deterministic_loss, res_loss, joint_optimizer)
                 else:
                     deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)

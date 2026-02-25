@@ -74,8 +74,8 @@ class JointModel(nn.Module):
 
         self.cond_affine = nn.Sequential(
             nn.LayerNorm([self.target_profile_num + self.target_scalar_num, 64],  elementwise_affine = False)
-            #nn.Linear(64,64)
-)
+            #nn.Linear(64,64) 
+            )
 
 
 

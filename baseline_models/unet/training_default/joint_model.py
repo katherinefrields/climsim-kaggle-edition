@@ -250,7 +250,7 @@ class JointModel(nn.Module):
         # Example weighted sum
         return deterministic_loss, res_loss
 
-    '''def backward(self, deterministic_loss, res_loss, joint_optimizer):
+    def backward(self,res_loss, joint_optimizer):
          # 1. Zero all grads
          
         #for p in self.res_model.parameters():
@@ -265,7 +265,7 @@ class JointModel(nn.Module):
 
         # 3. Backprop only through res_model
         res_loss.backward()
-            '''
+            
         
     
     #reshapes target from (B,C*L ) to (B, C, L)
@@ -331,7 +331,7 @@ class JointModel(nn.Module):
         
         
 
-    def backward(self, deterministic_loss, res_loss, joint_optimizer):
+    def joint_backward(self, deterministic_loss, res_loss, joint_optimizer):
         """
         Custom backward logic.
         """
@@ -374,7 +374,6 @@ class JointModel(nn.Module):
             grads = [flat_grads_det, flat_grads_res]
         
             ])'''
-        self.deterministic_model
         grads = []
         
         joint_optimizer.zero_grad()

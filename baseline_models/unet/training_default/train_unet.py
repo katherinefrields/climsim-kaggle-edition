@@ -530,7 +530,7 @@ def main(cfg: DictConfig) -> float:
             #train_preds = []
             #train_targets = []
             
-            
+            joint_training_enabled = False
             for data_input, target in train_loop:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
@@ -539,6 +539,7 @@ def main(cfg: DictConfig) -> float:
                 if cfg.diffusion_model.joint_training_step != -1 and current_step == cfg.diffusion_model.joint_training_step:
                     for param in joint_model.module.deterministic_model.parameters():
                         param.requires_grad = True
+                    joint_training_enabled = True
                    
 
                 # if cfg.output_prune: # this is currently done in the dataset class
@@ -568,8 +569,10 @@ def main(cfg: DictConfig) -> float:
                 
                 #calcluate loss using normalized residuals
                 #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_predicted_residual, normalized_residual, weight)
-                
-                joint_model.module.backward(deterministic_loss, res_loss, joint_optimizer)
+                if joint_training_enabled:
+                    joint_model.module.joint_backward(deterministic_loss, res_loss, joint_optimizer)
+                else:
+                    joint_model.module.backward(res_loss, joint_optimizer)    
                 joint_optimizer.step()
                 
                 with torch.no_grad():

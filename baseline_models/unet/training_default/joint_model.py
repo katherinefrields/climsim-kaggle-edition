@@ -329,7 +329,21 @@ class JointModel(nn.Module):
 
             
         
+    def compute_joint_loss(self, criterion, output, target, x, D_x, weight):
+        """
+        Customize loss combination here.
+        """
         
+        
+        deterministic_loss = criterion(output + D_x, target)
+        res_loss =  (weight*((x - D_x) ** 2)).mean() # calculate over C and L features
+        #print(f'predicted value is {D_x}')
+        #print(f'true value is {x}')
+        #res_loss = (unweighted_res_loss * weight).mean()  # weighted residual loss
+        #print(f'deterministic loss: {deterministic_loss.item()}, residual loss: {res_loss.item()}')
+        # Example weighted sum
+        return deterministic_loss, res_loss
+    
 
     def joint_backward(self, deterministic_loss, res_loss, joint_optimizer):
         """
@@ -377,11 +391,11 @@ class JointModel(nn.Module):
         grads = []
         
         joint_optimizer.zero_grad()
-        deterministic_loss.backward()
+        deterministic_loss.backward(retain_graph=True)
         grads.append(get_gradient_vector(self, none_grad_mode = 'zero'))
         
         joint_optimizer.zero_grad()
-        res_loss.backward()
+        res_loss.backward(retain_graph=True)
         grads.append(get_gradient_vector(self, none_grad_mode = 'zero'))
             
             

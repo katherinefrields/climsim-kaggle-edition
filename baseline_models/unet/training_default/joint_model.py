@@ -18,6 +18,7 @@ from torch.distributions.studentT import StudentT
 from climsim_utils.data_utils import *
 
 from conflictfree.grad_operator import ConFIG_update
+from conflictfree.utils import get_gradient_vector,apply_gradient_vector
 
 
     
@@ -238,6 +239,8 @@ class JointModel(nn.Module):
         """
         Customize loss combination here.
         """
+        
+        
         deterministic_loss = criterion(output, target)
         res_loss =  (weight*((x - D_x) ** 2)).mean() # calculate over C and L features
         #print(f'predicted value is {D_x}')
@@ -332,6 +335,7 @@ class JointModel(nn.Module):
         """
         Custom backward logic.
         """
+        '''
         #gather all gradient parameters from both models
         params_a = [p for p in self.deterministic_model.parameters() if p.requires_grad]
         params_b = [p for p in self.res_model.parameters() if p.requires_grad]
@@ -359,7 +363,7 @@ class JointModel(nn.Module):
                 for g, p in zip(grads_det, all_params)
             ])
             
-            #collect the gradients over both models according to the residual loss
+            collect the gradients over both models according to the residual loss
             grads_res = torch.autograd.grad(
                 res_loss, all_params, retain_graph=False, allow_unused=True
             )
@@ -367,10 +371,22 @@ class JointModel(nn.Module):
             flat_grads_res = torch.cat([
                 g.view(-1) if g is not None else torch.zeros_like(p).view(-1)
                 for g, p in zip(grads_res, all_params)
-            ])
-                
             grads = [flat_grads_det, flat_grads_res]
         
-        g_config=ConFIG_update(grads) # calculate the conflict-free direction
+            ])'''
+        self.deterministic_model
+        grads = []
+        
         joint_optimizer.zero_grad()
-        data_utils.joint_apply_gradient_vector(self.deterministic_model, self.res_model,g_config) # set the conflict-free direction to the network
+        deterministic_loss.backward()
+        grads.append(get_gradient_vector(self, none_grad_mode = 'zero'))
+        
+        joint_optimizer.zero_grad()
+        res_loss.backward()
+        grads.append(get_gradient_vector(self, none_grad_mode = 'zero'))
+            
+            
+        g_config=ConFIG_update(grads) # calculate the conflict-free direction
+        #joint_optimizer.zero_grad()
+        apply_gradient_vector(self, g_config)
+        #data_utils.joint_apply_gradient_vector(self.deterministic_model, self.res_model,g_config) # set the conflict-free direction to the network

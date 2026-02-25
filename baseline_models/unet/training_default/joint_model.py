@@ -68,13 +68,13 @@ class JointModel(nn.Module):
         self.t_sampling = t_sampling
         
         self.res_affine = nn.Sequential(
-            nn.LayerNorm([self.target_profile_num + self.target_scalar_num, self.vertical_level_num]),
-            nn.Linear(self.vertical_level_num, self.vertical_level_num)
+            nn.LayerNorm([self.target_profile_num + self.target_scalar_num, 64]),
+            nn.Linear(64,64)
         )
 
         self.cond_affine = nn.Sequential(
-            nn.LayerNorm([self.target_profile_num + self.target_scalar_num + self.input_profile_num + self.input_scalar_num, self.vertical_level_num]),
-            nn.Linear(self.vertical_level_num, self.vertical_level_num)
+            nn.LayerNorm([self.target_profile_num + self.target_scalar_num + self.input_profile_num + self.input_scalar_num, 64]),
+            nn.Linear(64,64)
 )
 
 

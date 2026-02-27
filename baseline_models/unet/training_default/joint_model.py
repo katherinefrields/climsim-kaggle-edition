@@ -67,15 +67,15 @@ class JointModel(nn.Module):
         
         self.t_sampling = t_sampling
         
-        self.res_affine = nn.Sequential(
+        '''self.res_affine = nn.Sequential(
             nn.LayerNorm([self.target_profile_num + self.target_scalar_num, 64], elementwise_affine = False)
             #nn.Linear(64,64)
-        )
+        )'''
 
-        self.cond_affine = nn.Sequential(
+        '''self.cond_affine = nn.Sequential(
             nn.LayerNorm([self.target_profile_num + self.target_scalar_num, 64],  elementwise_affine = False)
             #nn.Linear(64,64) 
-            )
+            )'''
 
 
 
@@ -108,8 +108,8 @@ class JointModel(nn.Module):
         condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
         
         #apply affine layers to enble dynamic normalization
-        normalized_residual = self.res_affine(normalized_residual)
-        condition_output = self.cond_affine(condition_output)
+        #normalized_residual = self.res_affine(normalized_residual)
+        #condition_output = self.cond_affine(condition_output)
         
         #print("gamma:", self.res_affine[0].weight.mean().item())
         #print("beta:", self.res_affine[0].bias.mean().item())

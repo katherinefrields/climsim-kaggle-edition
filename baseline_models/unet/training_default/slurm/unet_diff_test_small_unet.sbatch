@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -A m4334
 #SBATCH -C gpu
-#SBATCH -q premium
+#SBATCH -q regular
 #SBATCH -t 03:00:00
 #SBATCH --ntasks-per-node 4
 #SBATCH --cpus-per-task 32

@@ -59,7 +59,7 @@ class JointModel(nn.Module):
         
         self.vertical_level_num = vertical_level_num
         self.input_padding = (4,0)
-        self.sigma_data = .5
+        self.sigma_data = self.sigma_data
         
         self.p_mean = p_mean
         self.p_std = p_std
@@ -104,7 +104,7 @@ class JointModel(nn.Module):
         #======Normalize input and condition data======
         #normalized_residual = residual
         safe_std = torch.clamp(self.res_std, min=1e-2)
-        normalized_residual = ((residual)/((safe_std+ 1e-8)))
+        normalized_residual = ((residual)/((safe_std+ 1e-8)))*.5
         condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
         
         #apply affine layers to enble dynamic normalization

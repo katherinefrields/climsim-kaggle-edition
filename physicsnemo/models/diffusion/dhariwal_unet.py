@@ -409,7 +409,7 @@ class DhariwalUNet(modulus.Module):
                 ).to(tmp.dtype)
             emb = emb + self.map_label(tmp)
             
-        #emb = silu(emb) remove silu so that you can have negative tendencies fo conditioning
+        #emb = silu(emb) remove silu so that you can have negative tendencies for conditioning
 
         #print(f'shape of x to DhariwalUNet: {x.shape}')
         #print(f'encoder blocks are (up,down): {[(s.up, s.down) for s in self.enc.values()]}')

@@ -257,10 +257,10 @@ class EDMPrecond(modulus.Module):
         D_x = c_skip * x_n + c_out * F_x.to(torch.float32)
         
         y = D_x.clone()
-        y[:, 1, 0:12] = y[:, 1,0:12].clone().zero_()
+        '''y[:, 1, 0:12] = y[:, 1,0:12].clone().zero_()
         y[:, 2,0:12] = y[:, 2,0:12].clone().zero_()
         y[:, 3,0:12] = y[:, 3,0:12].clone().zero_()
-        y[:, 4,0:12] = y[:, 4,0:12].clone().zero_()
+        y[:, 4,0:12] = y[:, 4,0:12].clone().zero_()'''
         
         return y
     @staticmethod
@@ -333,10 +333,10 @@ class EDMPrecond(modulus.Module):
                 x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
         #plt.show()
         
-        x_next[:, 1, 0:12] = x_next[:, 1,0:12].clone().zero_()
+        '''x_next[:, 1, 0:12] = x_next[:, 1,0:12].clone().zero_()
         x_next[:, 2,0:12] = x_next[:, 2,0:12].clone().zero_()
         x_next[:, 3,0:12] = x_next[:, 3,0:12].clone().zero_()
-        x_next[:, 4,0:12] = x_next[:, 4,0:12].clone().zero_()
+        x_next[:, 4,0:12] = x_next[:, 4,0:12].clone().zero_()'''
         return x_next
 
 

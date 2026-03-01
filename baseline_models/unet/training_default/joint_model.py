@@ -59,7 +59,7 @@ class JointModel(nn.Module):
         
         self.vertical_level_num = vertical_level_num
         self.input_padding = (4,0)
-        self.sigma_data = self.sigma_data
+        self.sigma_data = sigma_data
         
         self.p_mean = p_mean
         self.p_std = p_std

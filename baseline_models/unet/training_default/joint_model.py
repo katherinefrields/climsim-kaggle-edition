@@ -13,7 +13,8 @@ from torch.nn.functional import silu
 from typing import List
 from torch.distributions.studentT import StudentT
 
-
+from physicsnemo.models.meta import ModelMetaData
+from physicsnemo.models.module import Module
 
 from climsim_utils.data_utils import *
 
@@ -21,9 +22,26 @@ from conflictfree.grad_operator import ConFIG_update
 from conflictfree.utils import get_gradient_vector,apply_gradient_vector
 
 
+@dataclass
+class JointModelMetaData(modulus.ModelMetaData):
+    """JointModel meta data"""
+
+    name: str = "JointModel"
+    # Optimization
+    jit: bool = True
+    cuda_graphs: bool = True
+    amp_cpu: bool = False
+    amp_gpu: bool = True
+    torch_fx: bool = False
+    # Data type
+    bf16: bool = False
+    # Inference
+    onnx: bool = False
+    # Physics informed
+    func_torch: bool = False
+    auto_grad: bool = False
     
-    
-class JointModel(nn.Module):
+class JointModel(modulus.Module):
     def __init__(self, deterministic_model, res_model, res_std, res_mean, 
                  preds_std, preds_mean,
                  input_profile_num, 
@@ -39,7 +57,7 @@ class JointModel(nn.Module):
         """
         deterministic_model, res_model: already-instantiated nn.Module objects
         """
-        super().__init__()
+        super().__init__(meta=JointModelMetaData)
         self.deterministic_model = deterministic_model
         self.res_model = res_model
         

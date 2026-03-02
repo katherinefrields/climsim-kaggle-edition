@@ -834,7 +834,9 @@ def main(cfg: DictConfig) -> float:
                                      out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
                                      qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
         save_file_wrapped = os.path.join(save_path, 'wrapped_unet_model.pt')
-        joint_inf.save(save_file_wrapped)# saves joint model mdlus
+        save_file_mdlus = os.path.join(save_path, 'wrapped_unet_model.mdlus')
+        joint_inf.save(save_file_mdlus)# saves joint model mdlus
+        torch.save(joint_inf, save_file_wrapped)# saves joint model torchscript
         
         #got rid of scripting
         #scripted_model_wrapped = torch.jit.script(wrapped_model)

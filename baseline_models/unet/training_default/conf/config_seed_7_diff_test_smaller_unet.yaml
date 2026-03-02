@@ -84,12 +84,12 @@ input_clip_rhonly: True
 # training settings
 seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
-diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/input_output_cond_embedding_3_epoch_fixed_zeroing_z_dist/diff_model/ckpt/ckpt_epoch_1_metric_0.2527.mdlus' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/dynamic_normalization_1_epoch/diff_model/ckpt/ckpt_epoch_1_metric_0.0023.mdlus' 
+diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/input_output_cond_embedding_3_epoch_fixed_zeroing_z_dist_continued/diff_model/ckpt/ckpt_epoch_2_metric_0.2441.mdlus' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/dynamic_normalization_1_epoch/diff_model/ckpt/ckpt_epoch_1_metric_0.0023.mdlus' 
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'input_output_cond_embedding_3_epoch_fixed_zeroing_z_dist_continued'
+expname: 'wrap_testing'
 num_workers: 32
 batch_size: 512 #1024
-epochs: 2
+epochs: 1
 learning_rate: .0001 #0.00005 # temporarily changed 0.0001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'
@@ -115,7 +115,7 @@ scheduler_warmup:
    warmup_steps: 20
    warmup_strategy: 'cos'
    init_lr: 1e-7
-early_stop_step: -1
+early_stop_step: 10
 logger: 'wandb'
 wandb:
    project: "residual_diffusion"

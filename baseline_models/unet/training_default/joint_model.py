@@ -260,6 +260,102 @@ class JointModel(nn.Module):
             
         return output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight
 
+
+    def inference(self, input):
+        #output is shape (B, C*L)
+        # (B, C*L) --> (B, C, L)
+        input = self.reshape_input(input)
+        
+        #=====Calculate Residual=====
+        #output shape is (B, C, L), scalar values are all expanded mean value across levels
+        output, latent_output = self.deterministic_model(input)
+        
+        #======Normalize input and condition data======
+        safe_std = torch.clamp(self.res_std, min=1e-2)
+        condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
+
+        if self.condition_location == 'front':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+                condition_data = latent_condition
+        if self.condition_location == 'embedding':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+            else:
+                latent_condition = latent_output
+            condition_data = latent_condition.reshape(latent_condition.shape[0], -1)
+        elif self.condition_location == 'middle' or self.condition_location == 'cross':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+            condition_data = latent_condition
+            #print(latent_condition.shape)
+
+        latents = torch.randn_like(output)
+        res = self.res_model.edm_sampler(latents, condition_input = condition_data, sigma_min=0.1, sigma_max=45, rho = 7, num_steps = 18) #maybe have to remove the last 4 meaningless levels??
+            
+        denormalized_predicted_residual = (res/.5)*((safe_std+ 1e-8))
+        #(B,C,L) --> (B, C*L)
+        reshaped_res = self.reverse_reshape_target(denormalized_predicted_residual)
+        #(B,C,L) --> (B, C*L)
+        output = self.reverse_reshape_target(output)
+        joint_pred = output + reshaped_res
+        
+        #condition_data = torch.cat((latent_condition, input), dim=1)
+        #normalized_residual = self.reverse_reshape_target(normalized_residual)
+        #normalized_residual = self.reshape_target(normalized_residual)
+        '''
+        B,C,L = residual.shape[0],residual.shape[1],residual.shape[2]
+        
+        rnd_normal = torch.randn([B,1,1], device=residual.device)
+        sigma = (rnd_normal * self.p_std + self.p_mean).exp()   # no scaling applied
+        t_distribution = StudentT(df=self.nu, loc=0, scale=sigma)
+        n = t_distribution.sample(sample_shape = torch.Size([B,C,L])).squeeze(-1)
+        '''
+        
+        '''
+        #Batch size
+        P_mean = -1.2
+        P_std = 1.2
+        batch_size = residual.shape[0]
+
+        # Sample log-normal σ
+        sigma = torch.exp(
+            P_mean + P_std * torch.randn(batch_size, device=output.device)
+        )
+        '''
+        '''
+            batch_size = residual.shape[0]
+            
+            #trying this rand shape. it was different in the EDM Sampler -->
+            #rnd_normal = torch.randn(x.shape, device=x.device)
+            nu = self.nu
+
+            # apply the same noise level σ to all features in the batch
+            rnd_normal = torch.randn([batch_size, 1, 1], device=residual.device)
+            sigma = (rnd_normal * self.p_std + self.p_mean).exp()   # no scaling applied
+
+            # --- Student‑t noise (Pandey et al. 2024) ---
+            # Gaussian base noise
+            z = torch.randn_like(normalized_residual)
+
+            # One kappa per sample (correct multivariate Student‑t)
+            B = normalized_residual.shape[0]
+            kappa = torch.distributions.Chi2(df=nu).sample((B,)).to(normalized_residual.device)
+            kappa = (kappa / nu).view(B, 1, 1)   # broadcast to (B, C, L)
+
+            # Student‑t noise
+            t_noise = z / torch.sqrt(kappa)
+            
+            
+
+            # Apply σ
+            n = t_noise * sigma
+            # --------------------------------------------
+
+            noised_residual = normalized_residual + n'''
+        
+        return joint_pred
+    
     def compute_loss(self, criterion, output, target, x, D_x, weight):
         """
         Customize loss combination here.

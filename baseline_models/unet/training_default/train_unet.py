@@ -782,9 +782,29 @@ def main(cfg: DictConfig) -> float:
         save_file_torch = os.path.join(save_path, 'unet_model.pt')
         scripted_model.save(save_file_torch)
         
-        
         save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
         torch.save(res_model, save_file_torch_res)
+        
+        joint_inf = JointModel(model_inf, #load in best deterministic model
+                        res_model.to(dist.device),#load in best residual model
+                        res_std.to(dist.device),
+                        res_mean.to(dist.device),
+                        preds_std.to(dist.device),
+                        preds_mean.to(dist.device), 
+                        input_profile_num = data.input_profile_num, 
+                        input_scalar_num = data.input_scalar_num,
+                        target_profile_num = data.target_profile_num,
+                        target_scalar_num = data.target_scalar_num, 
+                        condition_channel_num = res_model.condition_channels,
+                        condition_type = cfg.diffusion_model.condition_type,
+                        condtition_location=cfg.diffusion_model.condition_location,
+                        p_mean = cfg.diffusion_model.p_mean,
+                        p_std = cfg.diffusion_model.p_std,
+                        nu = cfg.diffusion_model.nu,
+                        t_sampling=cfg.diffusion_model.t_sampling).to(dist.device)
+        
+        
+        
         
         #save ema
         '''save_file_torch_ema = os.path.join(save_path, 'diff_model_ema.pt')
@@ -808,15 +828,19 @@ def main(cfg: DictConfig) -> float:
         
         # wrap model
         device = torch.device("cuda")
-        wrapped_model = WrappedModel(original_model = model_inf,
+        wrapped_model = WrappedModel(original_model = joint_inf,
                                      input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
                                      input_div = torch.tensor(input_div, dtype=torch.float32).to(device),
                                      out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
                                      qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
         save_file_wrapped = os.path.join(save_path, 'wrapped_unet_model.pt')
-        scripted_model_wrapped = torch.jit.script(wrapped_model)
-        scripted_model_wrapped = scripted_model_wrapped.eval()
-        scripted_model_wrapped.save(save_file_wrapped)
+        joint_model.save(save_file_wrapped)# saves joint model mdlus
+        
+        #got rid of scripting
+        #scripted_model_wrapped = torch.jit.script(wrapped_model)
+        
+        #scripted_model_wrapped = scripted_model_wrapped.eval()
+        #scripted_model_wrapped.save(save_file_wrapped)
         # save input and output normalizations
         data.save_norm(save_path, True)
         logger.info("saved input/output normalizations and model to: " + save_path)
@@ -839,13 +863,14 @@ def main(cfg: DictConfig) -> float:
                 
                 # wrap model
                 device = torch.device("cuda")
-                wrapped_model = WrappedModel(original_model = model_inf,
+                wrapped_model = WrappedModel(original_model = joint_inf,
                                             input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
                                             input_div = torch.tensor(input_div, dtype=torch.float32).to(device),
                                             out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
                                             qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
                 save_path_wrapped = os.path.join(wrapped_directory, filename.replace('.mdlus', '_wrapped.pt'))
-                scripted_model_wrapped = torch.jit.script(wrapped_model)
+                #scripted_model_wrapped = torch.jit.script(wrapped_model)
+                torch.save(wrapped_model, save_path_wrapped)
                 scripted_model_wrapped = scripted_model_wrapped.eval()
                 scripted_model_wrapped.save(save_path_wrapped)
                 

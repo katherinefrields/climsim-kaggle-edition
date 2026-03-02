@@ -80,7 +80,9 @@ class WrappedModel(nn.Module):
         qn_before = qc_before + qi_before
         
         x = self.preprocessing(x)
-        x, condition_data = self.original_model(x)
+        self.original_model.eval()
+        x = self.original_model.inference(x)
+        #x, condition_data = self.original_model(x)
         x = self.postprocessing(x)
         
         t_new = t_before + x[:,0:60]*1200.

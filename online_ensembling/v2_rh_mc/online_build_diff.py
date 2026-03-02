@@ -34,7 +34,7 @@ os.environ["KOKKOS_NVCC_FLAGS"] = "-arch=sm_80"
 runtype = 'branch' # startup, hybrid,  branch
 refdate = '0002-12-30' # only works for branch (and hybrid?)
 reftod = '00000' # or 21600, 43200, 64800
-clean        = True
+#clean        = True
 newcase      = True
 config       = True
 build        = True
@@ -54,8 +54,9 @@ ne,npg=4,2;  num_nodes=2  ; grid=f'ne{ne}pg{npg}_ne{ne}pg{npg}'
 # ne,npg=30,2; num_nodes=32 ; grid=f'ne{ne}pg{npg}_ne{ne}pg{npg}'
 # ne,npg=30,2; num_nodes=32 ; grid=f'ne{ne}pg{npg}_oECv3' # bi-grid for AMIP or coupled
 
-compset,arch   = 'F2010-MMF1','GNUGPU'
+#compset,arch   = 'F2010-MMF1','GNUGPU'
 # compset,arch   = 'FAQP-MMF1','GNUGPU'
+compset,arch   = 'F2010-MMF1','GNUCPU'
 # compset,arch   = 'F2010-MMF1','CORI';
 # (MMF1: Note that MMF_VT is tunred off for MMF_NN_EMULATOR in $E3SMROOT/components/eam/cime_config/config_component.xml)  
 

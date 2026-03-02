@@ -70,7 +70,7 @@ if debug_mode: case_list.append('debug')
 case='.'.join(case_list)
 #---------------------------------------f------------------------------------------------------------
 # MMF_NN_EMULATOR
-f_torch_model = ''
+f_torch_model = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/wrap_testing/wrapped_unet_model.pt'
 
 cb_spinup_step = 5
 f_cb_strato_water_constraint = '.true.'

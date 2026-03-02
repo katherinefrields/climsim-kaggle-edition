@@ -828,8 +828,7 @@ def main(cfg: DictConfig) -> float:
         
         # wrap model
         device = torch.device("cuda")
-        wrapped_model = WrappedModel(deterministic_model = model_inf,
-                                        res_model = res_model.to(device),
+        wrapped_model = WrappedModel(original_model = joint_inf,
                                      input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
                                      input_div = torch.tensor(input_div, dtype=torch.float32).to(device),
                                      out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),

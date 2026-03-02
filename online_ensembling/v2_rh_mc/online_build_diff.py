@@ -8,7 +8,7 @@ def run_cmd(cmd): print('\n'+clr.GREEN+cmd+clr.END) ; os.system(cmd); return
 #---------------------------------------------------------------------------------------------------
 import os, datetime, subprocess as sp, numpy as np
 import shutil, glob
-newcase,config,build,clean,submit,continue_run = False,False,False,False,False,False
+#newcase,config,build,clean,submit,continue_run = False,False,False,False,False,False
 
 acct = 'm4334'
 

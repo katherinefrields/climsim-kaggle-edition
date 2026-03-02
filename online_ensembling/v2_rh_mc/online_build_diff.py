@@ -20,9 +20,9 @@ top_dir  = os.getenv('HOME')
 scratch_dir = os.getenv('SCRATCH')
 case_dir = f'{scratch_dir}/hugging/E3SM-MMF-online-runs'
 src_dir  = top_dir+'/nvidia_codes/E3SM_nvlab/' # branch => whannah/mmf/ml-training
-user_cpp = '-DMMF_ML_TRAINING' # for saving ML variables
+#user_cpp = '-DMMF_ML_TRAINING' # for saving ML variables
 # user_cpp = '-DMMF_NN_EMULATOR -DMMF_NN_EMULATOR_DIAG_PARTIAL -DMMF_NN_EMULATORDEBUG -DTORCH_MMF_NN_EMULATOR_TEST' # NN hybrid test
-# user_cpp = '-DMMF_NN_EMULATOR' # NN hybrid test
+user_cpp = '-DMMF_NN_EMULATOR' # NN hybrid test
 # # src_mod_atm_dir = '/global/homes/s/sungduk/repositories/ClimSim-E3SM-Hybrid/'
 # # old ftorch path below. For some reason, the install folder is located in FTorch not src.
 # ftorch_path = '/global/cfs/cdirs/m4334/shared/FTorch/src/install'
@@ -39,8 +39,8 @@ newcase      = True
 config       = True
 build        = True
 submit       = True
-continue_run = False
-src_mod_atm  = False #what does this do? - Katherine Frields
+continue_run = False #what does this do? - Katherine Frields
+src_mod_atm  = False 
 
 debug_mode = False
 

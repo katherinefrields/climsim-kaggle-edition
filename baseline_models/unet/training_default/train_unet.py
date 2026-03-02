@@ -873,8 +873,8 @@ def main(cfg: DictConfig) -> float:
                 save_path_wrapped = os.path.join(wrapped_directory, filename.replace('.mdlus', '_wrapped.pt'))
                 #scripted_model_wrapped = torch.jit.script(wrapped_model)
                 torch.save(wrapped_model, save_path_wrapped)
-                scripted_model_wrapped = scripted_model_wrapped.eval()
-                scripted_model_wrapped.save(save_path_wrapped)
+                #scripted_model_wrapped = scripted_model_wrapped.eval()
+                #scripted_model_wrapped.save(save_path_wrapped)
                 
         logger.info("Training complete!")
 

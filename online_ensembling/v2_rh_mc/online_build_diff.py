@@ -100,7 +100,7 @@ if newcase :
    if arch=='GNUGPU' : cmd += f' -mach pm-gpu -compiler gnugpu -pecount {atm_ntasks}x{atm_nthrds} '
    if arch=='CORI'   : cmd += f' -mach cori-knl -pecount {atm_ntasks}x{atm_nthrds} '
    run_cmd(cmd)
-   os.chdir(f'{case_scripts_dir}')
+   #os.chdir(f'{case_scripts_dir}')
 if newcase :
    case_build_dir=f'{case_dir}/{case}/build'
    case_run_dir=f'{case_dir}/{case}/run'

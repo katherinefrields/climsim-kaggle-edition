@@ -39,8 +39,8 @@ newcase      = True
 config       = True
 build        = True
 submit       = True
-#continue_run = True
-src_mod_atm  = False
+continue_run = False
+src_mod_atm  = False #what does this do? - Katherine Frields
 
 debug_mode = False
 

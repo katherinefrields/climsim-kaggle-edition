@@ -34,7 +34,7 @@ os.environ["KOKKOS_NVCC_FLAGS"] = "-arch=sm_80"
 runtype = 'branch' # startup, hybrid,  branch
 refdate = '0002-12-30' # only works for branch (and hybrid?)
 reftod = '00000' # or 21600, 43200, 64800
-# clean        = True
+clean        = True
 newcase      = True
 config       = True
 build        = True

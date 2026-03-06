@@ -12,7 +12,7 @@ import shutil, glob
 
 acct = 'm4334'
 
-case_prefix = 'test_case_8'
+case_prefix = 'test_case_9'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -111,7 +111,7 @@ if newcase :
    if arch=='GNUCPU' : cmd += f' -mach docker-climsim -compiler gnu    -pecount {atm_ntasks}x{atm_nthrds} '
    if arch=='GNUGPU' : cmd += f' -mach docker-climsim -compiler gnugpu -pecount {atm_ntasks}x{atm_nthrds} '
    run_cmd(cmd)
-#os.chdir(f'{case_scripts_dir}')
+os.chdir(f'{case_scripts_dir}')
 if newcase :
    case_build_dir=f'{case_dir}/{case}/build'
    case_run_dir=f'{case_dir}/{case}/run'

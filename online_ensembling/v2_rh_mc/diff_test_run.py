@@ -16,8 +16,10 @@ case_prefix = 'test_case_4'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
-top_dir  = "/climsim"
-case_dir = '/scratch/'
+#top_dir  = "/climsim"
+#case_dir = '/scratch/'
+top_dir  = os.getenv('HOME')
+scratch_dir = os.getenv('SCRATCH')
 #case_dir = f'{scratch_dir}/hugging/E3SM-MMF-online-runs'
 src_dir  = top_dir+'/E3SM/' # branch => whannah/mmf/ml-training
 #user_cpp = '-DMMF_ML_TRAINING' # for saving ML variables

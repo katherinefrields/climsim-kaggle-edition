@@ -12,14 +12,14 @@ import shutil, glob
 
 acct = 'm4334'
 
-case_prefix = 'test_case_6'
+case_prefix = 'test_case_7'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
-#top_dir  = "/climsim"
-#case_dir = '/scratch/'
-top_dir  = os.getenv('HOME')
-scratch_dir = os.getenv('SCRATCH')
+top_dir  = "/climsim"
+scratch_dir = '/scratch'
+#top_dir  = os.getenv('HOME')
+#scratch_dir = os.getenv('SCRATCH')
 case_dir = f'{scratch_dir}/'
 src_dir  = top_dir+'/E3SM/' # branch => whannah/mmf/ml-training
 #user_cpp = '-DMMF_ML_TRAINING' # for saving ML variables
@@ -73,8 +73,8 @@ if debug_mode: case_list.append('debug')
 case='.'.join(case_list)
 #---------------------------------------f------------------------------------------------------------
 # MMF_NN_EMULATOR
-#torch_model = '/storage/shared_e3sm/saved_models/wrapper/wrapped_unet_model.pt'
-torch_model = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/wrap_testing/wrapped_unet_model.pt'
+torch_model = '/storage/shared_e3sm/saved_models/wrapper/wrapped_unet_model.pt'
+#torch_model = '/scratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/wrap_testing/wrapped_unet_model.pt'
 #torch_model = '/storage/hugging/E3SM-MMF_saved_models/diffusion_models/wrap_testing/wrapped_unet_model.pt'
 #/storage/shared_e3sm/saved_models/wrapper
 inputlength = 557

@@ -12,7 +12,7 @@ import shutil, glob
 
 acct = 'm4334'
 
-case_prefix = 'test_case_5'
+case_prefix = 'test_case_6'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -108,8 +108,8 @@ if newcase :
    if os.path.isdir(f'{case_dir}/{case}'): exit('\n'+clr.RED+f'This case already exists: \n{case_dir}/{case}'+clr.END+'\n')
    cmd = f'{src_dir}/cime/scripts/create_newcase -case {case} --script-root {case_scripts_dir} -compset {compset} -res {grid}  '
    # changed from docker-climsim to pm-cpu
-   if arch=='GNUCPU' : cmd += f' -mach pm-cpu -compiler gnu    -pecount {atm_ntasks}x{atm_nthrds} '
-   if arch=='GNUGPU' : cmd += f' -mach pm-cpu -compiler gnugpu -pecount {atm_ntasks}x{atm_nthrds} '
+   if arch=='GNUCPU' : cmd += f' -mach docker-climsim -compiler gnu    -pecount {atm_ntasks}x{atm_nthrds} '
+   if arch=='GNUGPU' : cmd += f' -mach docker-climsim -compiler gnugpu -pecount {atm_ntasks}x{atm_nthrds} '
    run_cmd(cmd)
 #os.chdir(f'{case_scripts_dir}')
 if newcase :

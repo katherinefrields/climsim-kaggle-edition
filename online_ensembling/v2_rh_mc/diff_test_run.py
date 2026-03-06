@@ -12,7 +12,7 @@ import shutil, glob
 
 acct = 'm4334'
 
-case_prefix = 'test_case_7'
+case_prefix = 'test_case_8'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -41,7 +41,7 @@ newcase      = True
 config       = True
 build        = True
 submit       = True
-continue_run = False #what does this do? - Katherine Frields
+continue_run = True #what does this do? - Katherine Frields
 src_mod_atm  = False 
 
 debug_mode = False

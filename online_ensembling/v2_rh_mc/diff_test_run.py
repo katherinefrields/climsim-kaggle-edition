@@ -13,7 +13,7 @@ import shutil, glob
 #acct = 'm4334'
 acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4334")
 
-case_prefix = 'test_case_10'
+case_prefix = 'test_case_11'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -22,7 +22,8 @@ scratch_dir = '/scratch'
 #top_dir  = os.getenv('HOME')
 #scratch_dir = os.getenv('SCRATCH')
 case_dir = f'{scratch_dir}/'
-src_dir  = top_dir+'/E3SM/' # branch => whannah/mmf/ml-training
+#src_dir  = top_dir+'/E3SM/' # branch => whannah/mmf/ml-training
+src_dir  = top_dir+'/nvidia_codes/E3SM_nvlab/' # branch => whannah/mmf/ml-training
 #user_cpp = '-DMMF_ML_TRAINING' # for saving ML variables
 # user_cpp = '-DMMF_NN_EMULATOR -DMMF_NN_EMULATOR_DIAG_PARTIAL -DMMF_NN_EMULATORDEBUG -DTORCH_MMF_NN_EMULATOR_TEST' # NN hybrid test
 user_cpp = '-DMMF_NN_EMULATOR' # NN hybrid test
@@ -37,7 +38,7 @@ os.environ["pytorch_fort_proxy_ROOT"] = pytorch_fortran_path
 runtype = 'branch' # startup, hybrid,  branch
 refdate = '0002-12-30' # only works for branch (and hybrid?)
 reftod = '00000' # or 21600, 43200, 64800
-clean        = True
+clean        = False
 newcase      = True
 config       = True
 build        = True
@@ -109,8 +110,8 @@ if newcase :
    if os.path.isdir(f'{case_dir}/{case}'): exit('\n'+clr.RED+f'This case already exists: \n{case_dir}/{case}'+clr.END+'\n')
    cmd = f'{src_dir}/cime/scripts/create_newcase -case {case} --script-root {case_scripts_dir} -compset {compset} -res {grid}  '
    # changed from docker-climsim to pm-cpu
-   if arch=='GNUCPU' : cmd += f' -mach pm-cpu -compiler gnu    -pecount {atm_ntasks}x{atm_nthrds} '
-   if arch=='GNUGPU' : cmd += f' -mach pm-cpu -compiler gnugpu -pecount {atm_ntasks}x{atm_nthrds} '
+   if arch=='GNUCPU' : cmd += f' -mach docker-climsim -compiler gnu    -pecount {atm_ntasks}x{atm_nthrds} '
+   if arch=='GNUGPU' : cmd += f' -mach docker-climsim -compiler gnugpu -pecount {atm_ntasks}x{atm_nthrds} '
    run_cmd(cmd)
 os.chdir(f'{case_scripts_dir}')
 if newcase :

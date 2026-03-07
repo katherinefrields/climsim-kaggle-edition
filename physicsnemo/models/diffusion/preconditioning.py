@@ -263,8 +263,9 @@ class EDMPrecond(modulus.Module):
         y[:, 4,0:12] = y[:, 4,0:12].clone().zero_()'''
         
         return y
+    #type annotation : Union[float, List, torch.Tensor
     @staticmethod
-    def round_sigma(sigma: Union[float, List, torch.Tensor]):
+    def round_sigma(sigma):
         """
         Convert a given sigma value(s) to a tensor representation.
 

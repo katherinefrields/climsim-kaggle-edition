@@ -10,9 +10,10 @@ import os, datetime, subprocess as sp, numpy as np
 import shutil, glob
 #newcase,config,build,clean,submit,continue_run = False,False,False,False,False,False
 
-acct = 'm4334'
+#acct = 'm4334'
+acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4334")
 
-case_prefix = 'test_case_9'
+case_prefix = 'test_case_10'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -63,7 +64,7 @@ compset,arch   = 'F2010-MMF1','GNUCPU'
 # (MMF1: Note that MMF_VT is tunred off for MMF_NN_EMULATOR in $E3SMROOT/components/eam/cime_config/config_component.xml)  
 
 # queue = 'regular'
-queue = 'debug'
+queue = 'regular'
 
 # case_list = [case_prefix,arch,compset,grid]
 case_list = [case_prefix, ]
@@ -108,8 +109,8 @@ if newcase :
    if os.path.isdir(f'{case_dir}/{case}'): exit('\n'+clr.RED+f'This case already exists: \n{case_dir}/{case}'+clr.END+'\n')
    cmd = f'{src_dir}/cime/scripts/create_newcase -case {case} --script-root {case_scripts_dir} -compset {compset} -res {grid}  '
    # changed from docker-climsim to pm-cpu
-   if arch=='GNUCPU' : cmd += f' -mach docker-climsim -compiler gnu    -pecount {atm_ntasks}x{atm_nthrds} '
-   if arch=='GNUGPU' : cmd += f' -mach docker-climsim -compiler gnugpu -pecount {atm_ntasks}x{atm_nthrds} '
+   if arch=='GNUCPU' : cmd += f' -mach pm-cpu -compiler gnu    -pecount {atm_ntasks}x{atm_nthrds} '
+   if arch=='GNUGPU' : cmd += f' -mach pm-cpu -compiler gnugpu -pecount {atm_ntasks}x{atm_nthrds} '
    run_cmd(cmd)
 os.chdir(f'{case_scripts_dir}')
 if newcase :

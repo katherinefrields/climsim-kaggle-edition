@@ -45,7 +45,7 @@ newcase      = True
 config       = True
 build        = True
 submit       = True
-continue_run = False #what does this do? - Katherine Frields
+continue_run = True #what does this do? - Katherine Frields
 src_mod_atm  = False 
 
 debug_mode = False

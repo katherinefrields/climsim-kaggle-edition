@@ -23,7 +23,9 @@ scratch_dir = '/scratch'
 #scratch_dir = os.getenv('SCRATCH')
 case_dir = f'{scratch_dir}/'
 #src_dir  = top_dir+'/E3SM/' # branch => whannah/mmf/ml-training
-src_dir  = top_dir+'/nvidia_codes/E3SM_nvlab/' # branch => whannah/mmf/ml-training
+#src_dir  = ''+'/nvidia_codes/E3SM_nvlab/' # branch => whannah/mmf/ml-training
+src_dir = 'E3SM'
+
 #user_cpp = '-DMMF_ML_TRAINING' # for saving ML variables
 # user_cpp = '-DMMF_NN_EMULATOR -DMMF_NN_EMULATOR_DIAG_PARTIAL -DMMF_NN_EMULATORDEBUG -DTORCH_MMF_NN_EMULATOR_TEST' # NN hybrid test
 user_cpp = '-DMMF_NN_EMULATOR' # NN hybrid test

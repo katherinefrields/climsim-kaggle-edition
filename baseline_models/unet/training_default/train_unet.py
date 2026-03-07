@@ -872,7 +872,7 @@ def main(cfg: DictConfig) -> float:
                                             qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
                 save_path_wrapped = os.path.join(wrapped_directory, filename.replace('.mdlus', '_wrapped.pt'))
                 
-                for name, module in model.named_modules():
+                for name, module in joint_inf.named_modules():
                     try:
                         torch.jit.script(module)
                     except Exception as e:

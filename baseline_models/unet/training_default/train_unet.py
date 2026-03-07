@@ -871,6 +871,15 @@ def main(cfg: DictConfig) -> float:
                                             out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
                                             qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
                 save_path_wrapped = os.path.join(wrapped_directory, filename.replace('.mdlus', '_wrapped.pt'))
+                
+                for name, module in model.named_modules():
+                    try:
+                        torch.jit.script(module)
+                    except Exception as e:
+                        print("FAILED:", name)
+                        print(e)
+                        break
+                    
                 scripted_model_wrapped = torch.jit.script(wrapped_model)
                 #torch.save(wrapped_model, save_path_wrapped)
                 scripted_model_wrapped = scripted_model_wrapped.eval()

@@ -11,6 +11,8 @@ class WrappedModel(nn.Module):
                  qn_lbd):
         super(WrappedModel, self).__init__()
         self.original_model = original_model
+        
+        #register as buffer to allow the model to include them during jit scripting
         self.register_buffer("input_sub", torch.as_tensor(input_sub, dtype=torch.float32))
         self.register_buffer("input_div", torch.as_tensor(input_div, dtype=torch.float32))
         self.register_buffer("out_scale", torch.as_tensor(out_scale, dtype=torch.float32))

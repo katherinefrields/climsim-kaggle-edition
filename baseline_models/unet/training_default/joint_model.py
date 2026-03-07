@@ -60,11 +60,16 @@ class JointModel(modulus.Module):
         super().__init__(meta=JointModelMetaData)
         self.deterministic_model = deterministic_model
         self.res_model = res_model
+        #self.res_std = res_std
+        #self.res_mean = res_mean
+        #self.preds_std = preds_std
+        #self.preds_mean = preds_mean
         
-        self.res_std = res_std
-        self.res_mean = res_mean
-        self.preds_std = preds_std
-        self.preds_mean = preds_mean
+        self.register_buffer("res_std", torch.as_tensor(res_std, dtype=torch.float32))
+        self.register_buffer("res_mean", torch.as_tensor(res_mean, dtype=torch.float32))
+        self.register_buffer("preds_std", torch.as_tensor(preds_std, dtype=torch.float32))
+        self.register_buffer("preds_mean", torch.as_tensor(preds_mean, dtype=torch.float32))
+        
         
         self.input_profile_num = input_profile_num
         self.input_scalar_num = input_scalar_num

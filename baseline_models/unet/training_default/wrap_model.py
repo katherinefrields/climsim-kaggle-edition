@@ -25,13 +25,13 @@ class WrappedModel(nn.Module):
         #self.out_scale = torch.tensor(out_scale, dtype=torch.float32, device = torch.device('cuda'))
         #self.qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32, device = torch.device('cuda'))
 
-    def to(self, device):
+    '''def to(self, device):
         """Ensure all tensors are moved to the correct device"""
         self.input_sub = self.input_sub.to(device)
         self.input_div = self.input_div.to(device)
         self.out_scale = self.out_scale.to(device)
         self.qn_lbd = self.qn_lbd.to(device)
-        return super().to(device)
+        return super().to(device)'''
     
     def apply_temperature_rules(self, T):
         # Create an output tensor, initialized to zero

@@ -11,10 +11,17 @@ class WrappedModel(nn.Module):
                  qn_lbd):
         super(WrappedModel, self).__init__()
         self.original_model = original_model
-        self.input_sub = torch.tensor(input_sub, dtype=torch.float32, device = torch.device('cuda'))
-        self.input_div = torch.tensor(input_div, dtype=torch.float32, device = torch.device('cuda'))
-        self.out_scale = torch.tensor(out_scale, dtype=torch.float32, device = torch.device('cuda'))
-        self.qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32, device = torch.device('cuda'))
+        self.register_buffer("input_sub", torch.as_tensor(input_sub, dtype=torch.float32))
+        self.register_buffer("input_div", torch.as_tensor(input_div, dtype=torch.float32))
+        self.register_buffer("out_scale", torch.as_tensor(out_scale, dtype=torch.float32))
+        self.register_buffer("qn_lbd", torch.as_tensor(qn_lbd, dtype=torch.float32))
+        
+        
+        #self.input_.
+        # sub = torch.tensor(input_sub, dtype=torch.float32, device = torch.device('cuda'))
+        #self.input_div = torch.tensor(input_div, dtype=torch.float32, device = torch.device('cuda'))
+        #self.out_scale = torch.tensor(out_scale, dtype=torch.float32, device = torch.device('cuda'))
+        #self.qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32, device = torch.device('cuda'))
 
     def to(self, device):
         """Ensure all tensors are moved to the correct device"""

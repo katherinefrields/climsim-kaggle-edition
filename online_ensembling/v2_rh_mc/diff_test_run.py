@@ -13,7 +13,7 @@ import shutil, glob
 #acct = 'm4334'
 acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4334")
 
-case_prefix = 'test_case_17'
+case_prefix = 'test_case_18'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 

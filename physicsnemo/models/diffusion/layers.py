@@ -1089,7 +1089,7 @@ class Attention(torch.nn.Module):
             **init_zero,
         )
 
-    def forward(self, x: torch.Tensor, emb = None) -> torch.Tensor:
+    def forward(self, x, emb = None) :
         '''x1: torch.Tensor = self.qkv(self.norm(x))
 
         # # NOTE: V1.0.1 implementation

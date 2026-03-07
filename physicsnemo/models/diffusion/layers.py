@@ -40,7 +40,7 @@ _is_apex_available = False
 if torch.cuda.is_available():
     try:
         apex_gn_module = importlib.import_module("apex.contrib.group_norm")
-        ApexGroupNorm = getattr(apex_gn_module, "DiffGroupNorm")
+        ApexGroupNorm = getattr(apex_gn_module, "GroupNorm")
         _is_apex_available = True
     except ImportError:
         pass

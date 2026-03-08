@@ -470,7 +470,7 @@ class DhariwalUNet(modulus.Module):
         #print(f'decoder blocks are (up,down): {[(s.up, s.down) for s in self.dec.values()]}')
         # Encoder
         skips = []
-        for name, kind in self.enc_order:
+        for name, kind in self.enc_order.items():
             if kind == "conv":
                 x = self.enc_conv[name](x)
             else:
@@ -492,7 +492,7 @@ class DhariwalUNet(modulus.Module):
             skips.append(x)
 
         # Decoder
-        for name, kind in self.dec_order:
+        for name, kind in self.dec_order.items():
             if kind == "block":
                 block = self.dec_block[name]
 

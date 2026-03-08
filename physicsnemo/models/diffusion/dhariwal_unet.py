@@ -424,7 +424,7 @@ class DhariwalUNet(modulus.Module):
         skips = []
         for name, block in self.enc.items():
 
-            if type(block).__name__ == 'DiffUnetBlock':
+            if type(block).__name__ == 'DiffUNetBlock':
                 x = block(x, emb)
             else:
                 x = block(x)
@@ -448,7 +448,7 @@ class DhariwalUNet(modulus.Module):
         for name, block in self.dec.items():
             if x.shape[1] != block.in_channels:
                 x = torch.cat([x, skips.pop()], dim=1)
-            if type(block).__name__ == 'DiffUnetBlock':
+            if type(block).__name__ == 'DiffUNetBlock':
                 x = block(x, emb)
             else:
                 x = block(x)

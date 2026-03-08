@@ -16,17 +16,14 @@
 # ruff: noqa
 from .utils import weight_init
 from .layers import (
-    DiffAttentionOp,
-    DiffAttention,
-    DiffConv2d,
-    DiffConv1d,
-    DiffFourierEmbedding,
-    DiffGroupNorm,
+    AttentionOp,
+    Conv2d,
+    FourierEmbedding,
+    GroupNorm,
     get_group_norm,
-    DiffCrossAttention1d,
-    DiffLinear,
-    DiffPositionalEmbedding,
-    DiffUNetBlock,
+    Linear,
+    PositionalEmbedding,
+    UNetBlock,
 )
 #from .song_unet import SongUNet, SongUNetPosEmbd, SongUNetPosLtEmbd
 from .dhariwal_unet import DhariwalUNet

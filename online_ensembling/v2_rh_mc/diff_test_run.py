@@ -223,7 +223,7 @@ if submit :
    continue_flag = 'TRUE' if continue_run else 'False'
    run_cmd(f'./xmlchange --file env_run.xml CONTINUE_RUN={continue_flag} ')   
    #-------------------------------------------------------
-   shutil.copy("/path/to/your/pytorch_proxy.py", f"{case_run_dir}/pytorch_proxy.py")
+   shutil.copy("pytorch_fortran_path/pytorch_proxy.py", f"{case_run_dir}/pytorch_proxy.py")
    run_cmd('./case.submit')
 #---------------------------------------------------------------------------------------------------
 # Print the case name again

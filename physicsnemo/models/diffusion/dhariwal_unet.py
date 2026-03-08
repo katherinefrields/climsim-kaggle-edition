@@ -300,16 +300,15 @@ class DhariwalUNet(modulus.Module):
         # I should be able to remove this and refactor later
         # Map resolution → channel count from encoder
         self.res_channels = {}
-    
-        for name, block in self.enc.items():
-            if isinstance(block, DiffUNetBlock):
-                res = int(name.split("x")[0])
-                self.res_channels[res] = block.out_channels
-            else:
-                # First conv layer
-                res = int(name.split("x")[0])
-                self.res_channels[res] = block.out_channels
-
+        
+        for name, block in self.enc_block.items():
+            res = int(name.split("x")[0])
+            self.res_channels[res] = block.out_channels
+            
+        for name, block in self.enc_conv.items():
+            res = int(name.split("x")[0])
+            self.res_channels[res] = block.out_channels
+            
 
         # Decoder.
         #self.dec = torch.nn.ModuleDict()

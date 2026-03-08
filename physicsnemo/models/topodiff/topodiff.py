@@ -27,11 +27,11 @@ import torch.nn as nn
 from torch.nn.functional import silu
 
 from ..diffusion import (
-    Conv2d,
-    GroupNorm,
+    DiffConv2d,
+    DiffGroupNorm,
     Linear,
-    PositionalEmbedding,
-    UNetBlock,
+    DiffPositionalEmbedding,
+    DiffUNetBlock,
 )
 from ..meta import ModelMetaData
 from ..module import Module
@@ -134,7 +134,7 @@ class TopoDiff(Module):
         )
 
         # Mapping.
-        self.map_noise = PositionalEmbedding(num_channels=model_channels)
+        self.map_noise = DiffPositionalEmbedding(num_channels=model_channels)
         self.map_augment = (
             Linear(
                 in_features=augment_dim,
@@ -171,17 +171,17 @@ class TopoDiff(Module):
             if level == 0:
                 cin = cout
                 cout = model_channels * mult
-                self.enc[f"{res}x{res}_conv"] = Conv2d(
+                self.enc[f"{res}x{res}_conv"] = DiffConv2d(
                     in_channels=cin, out_channels=cout, kernel=3, **init
                 )
             else:
-                self.enc[f"{res}x{res}_down"] = UNetBlock(
+                self.enc[f"{res}x{res}_down"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, down=True, **block_kwargs
                 )
             for idx in range(num_blocks):
                 cin = cout
                 cout = model_channels * mult
-                self.enc[f"{res}x{res}_block{idx}"] = UNetBlock(
+                self.enc[f"{res}x{res}_block{idx}"] = DiffUNetBlock(
                     in_channels=cin,
                     out_channels=cout,
                     attention=(res in attn_resolutions),
@@ -194,27 +194,27 @@ class TopoDiff(Module):
         for level, mult in reversed(list(enumerate(channel_mult))):
             res = img_resolution >> level
             if level == len(channel_mult) - 1:
-                self.dec[f"{res}x{res}_in0"] = UNetBlock(
+                self.dec[f"{res}x{res}_in0"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, attention=True, **block_kwargs
                 )
-                self.dec[f"{res}x{res}_in1"] = UNetBlock(
+                self.dec[f"{res}x{res}_in1"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, **block_kwargs
                 )
             else:
-                self.dec[f"{res}x{res}_up"] = UNetBlock(
+                self.dec[f"{res}x{res}_up"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, up=True, **block_kwargs
                 )
             for idx in range(num_blocks + 1):
                 cin = cout + skips.pop()
                 cout = model_channels * mult
-                self.dec[f"{res}x{res}_block{idx}"] = UNetBlock(
+                self.dec[f"{res}x{res}_block{idx}"] = DiffUNetBlock(
                     in_channels=cin,
                     out_channels=cout,
                     attention=(res in attn_resolutions),
                     **block_kwargs,
                 )
-        self.out_norm = GroupNorm(num_channels=cout)
-        self.out_conv = Conv2d(
+        self.out_norm = DiffGroupNorm(num_channels=cout)
+        self.out_conv = DiffConv2d(
             in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
         )
 
@@ -230,7 +230,7 @@ class TopoDiff(Module):
         # Encoder.
         skips = []
         for block in self.enc.values():
-            x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
+            x = block(x, emb) if isinstance(block, DiffUNetBlock) else block(x)
             skips.append(x)
 
         # Decoder.
@@ -264,11 +264,11 @@ class UNetEncoder(Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.dropout = dropout
-        self.map_noise = PositionalEmbedding(num_channels=model_channels)
+        self.map_noise = DiffPositionalEmbedding(num_channels=model_channels)
         self.output_prob = output_prob
 
         ch = int(model_channels * channel_mult[0])
-        self.conv = Conv2d(in_channels=in_channels, out_channels=ch, kernel=3)
+        self.conv = DiffConv2d(in_channels=in_channels, out_channels=ch, kernel=3)
 
         emb_channels = model_channels * channel_mult_emb
         self.time_embed = nn.Sequential(
@@ -284,7 +284,7 @@ class UNetEncoder(Module):
             for i in range(num_res_blocks):
                 down = i == num_res_blocks - 1 and level != len(channel_mult) - 1
 
-                layer = UNetBlock(
+                layer = DiffUNetBlock(
                     in_channels=ch,
                     out_channels=int(mult * model_channels),
                     emb_channels=emb_channels,
@@ -298,13 +298,13 @@ class UNetEncoder(Module):
 
         self.middle = nn.ModuleList(
             [
-                UNetBlock(
+                DiffUNetBlock(
                     in_channels=ch,
                     out_channels=ch,
                     emb_channels=emb_channels,
                     attention=True,
                 ),
-                UNetBlock(
+                DiffUNetBlock(
                     in_channels=ch,
                     out_channels=ch,
                     emb_channels=emb_channels,
@@ -315,7 +315,7 @@ class UNetEncoder(Module):
 
         self.out = nn.Sequential(
             Linear(in_features=ch, out_features=2048),
-            GroupNorm(num_channels=2048),
+            DiffGroupNorm(num_channels=2048),
             nn.ReLU(),
             nn.Dropout(p=dropout),
             nn.Linear(in_features=2048, out_features=self.out_channels),

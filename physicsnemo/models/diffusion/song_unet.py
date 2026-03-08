@@ -26,11 +26,11 @@ from torch.nn.functional import silu
 from torch.utils.checkpoint import checkpoint
 
 from physicsnemo.models.diffusion import (
-    Conv2d,
-    FourierEmbedding,
+    DiffConv2d,
+    DiffFourierEmbedding,
     Linear,
-    PositionalEmbedding,
-    UNetBlock,
+    DiffPositionalEmbedding,
+    DiffUNetBlock,
     get_group_norm,
 )
 #from physicsnemo.models.diffusion.utils import _recursive_property
@@ -356,11 +356,11 @@ class SongUNet(Module):
         # Mapping.
         if self.embedding_type != "zero":
             self.map_noise = (
-                PositionalEmbedding(
+                DiffPositionalEmbedding(
                     num_channels=noise_channels, endpoint=True, amp_mode=amp_mode
                 )
                 if embedding_type == "positional"
-                else FourierEmbedding(num_channels=noise_channels, amp_mode=amp_mode)
+                else DiffFourierEmbedding(num_channels=noise_channels, amp_mode=amp_mode)
             )
             self.map_label = (
                 Linear(
@@ -405,7 +405,7 @@ class SongUNet(Module):
             if level == 0:
                 cin = cout
                 cout = model_channels
-                self.enc[f"{res}x{res}_conv"] = Conv2d(
+                self.enc[f"{res}x{res}_conv"] = DiffConv2d(
                     in_channels=cin,
                     out_channels=cout,
                     kernel=3,
@@ -414,11 +414,11 @@ class SongUNet(Module):
                     **init,
                 )
             else:
-                self.enc[f"{res}x{res}_down"] = UNetBlock(
+                self.enc[f"{res}x{res}_down"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, down=True, **block_kwargs
                 )
                 if encoder_type == "skip":
-                    self.enc[f"{res}x{res}_aux_down"] = Conv2d(
+                    self.enc[f"{res}x{res}_aux_down"] = DiffConv2d(
                         in_channels=caux,
                         out_channels=caux,
                         kernel=0,
@@ -426,7 +426,7 @@ class SongUNet(Module):
                         resample_filter=resample_filter,
                         amp_mode=amp_mode,
                     )
-                    self.enc[f"{res}x{res}_aux_skip"] = Conv2d(
+                    self.enc[f"{res}x{res}_aux_skip"] = DiffConv2d(
                         in_channels=caux,
                         out_channels=cout,
                         kernel=1,
@@ -435,7 +435,7 @@ class SongUNet(Module):
                         **init,
                     )
                 if encoder_type == "residual":
-                    self.enc[f"{res}x{res}_aux_residual"] = Conv2d(
+                    self.enc[f"{res}x{res}_aux_residual"] = DiffConv2d(
                         in_channels=caux,
                         out_channels=cout,
                         kernel=3,
@@ -451,7 +451,7 @@ class SongUNet(Module):
                 cin = cout
                 cout = model_channels * mult
                 attn = res in attn_resolutions
-                self.enc[f"{res}x{res}_block{idx}"] = UNetBlock(
+                self.enc[f"{res}x{res}_block{idx}"] = DiffUNetBlock(
                     in_channels=cin, out_channels=cout, attention=attn, **block_kwargs
                 )
         skips = [
@@ -463,26 +463,26 @@ class SongUNet(Module):
         for level, mult in reversed(list(enumerate(channel_mult))):
             res = self.img_shape_y >> level
             if level == len(channel_mult) - 1:
-                self.dec[f"{res}x{res}_in0"] = UNetBlock(
+                self.dec[f"{res}x{res}_in0"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, attention=True, **block_kwargs
                 )
-                self.dec[f"{res}x{res}_in1"] = UNetBlock(
+                self.dec[f"{res}x{res}_in1"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, **block_kwargs
                 )
             else:
-                self.dec[f"{res}x{res}_up"] = UNetBlock(
+                self.dec[f"{res}x{res}_up"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, up=True, **block_kwargs
                 )
             for idx in range(num_blocks + 1):
                 cin = cout + skips.pop()
                 cout = model_channels * mult
                 attn = idx == num_blocks and res in attn_resolutions
-                self.dec[f"{res}x{res}_block{idx}"] = UNetBlock(
+                self.dec[f"{res}x{res}_block{idx}"] = DiffUNetBlock(
                     in_channels=cin, out_channels=cout, attention=attn, **block_kwargs
                 )
             if decoder_type == "skip" or level == 0:
                 if decoder_type == "skip" and level < len(channel_mult) - 1:
-                    self.dec[f"{res}x{res}_aux_up"] = Conv2d(
+                    self.dec[f"{res}x{res}_aux_up"] = DiffConv2d(
                         in_channels=out_channels,
                         out_channels=out_channels,
                         kernel=0,
@@ -496,7 +496,7 @@ class SongUNet(Module):
                     use_apex_gn=use_apex_gn,
                     amp_mode=amp_mode,
                 )
-                self.dec[f"{res}x{res}_aux_conv"] = Conv2d(
+                self.dec[f"{res}x{res}_aux_conv"] = DiffConv2d(
                     in_channels=cout,
                     out_channels=out_channels,
                     kernel=3,
@@ -629,7 +629,7 @@ class SongUNet(Module):
                         skips.append(x)
                     else:
                         # For UNetBlocks check if we should use gradient checkpointing
-                        if isinstance(block, UNetBlock):
+                        if isinstance(block, DiffUNetBlock):
                             if (
                                 math.floor(math.sqrt(x.shape[-2] * x.shape[-1]))
                                 > self.checkpoint_threshold

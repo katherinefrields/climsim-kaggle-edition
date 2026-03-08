@@ -22,13 +22,13 @@ import torch
 from torch.nn.functional import silu
 
 from physicsnemo.models.diffusion import (
-    Conv2d,
+    DiffConv2d,
     Linear,
-    PositionalEmbedding,
-    UNetBlock,
+    DiffPositionalEmbedding,
+    DiffUNetBlock,
     get_group_norm,
 )
-from physicsnemo.models.diffusion.layers import Conv1d, CrossAttention1D
+from physicsnemo.models.diffusion.layers import DiffConv1d, DiffCrossAttention1D
 #from physicsnemo.models.diffusion.utils import _recursive_property
 from physicsnemo.models.meta import ModelMetaData
 from physicsnemo.models.module import Module
@@ -196,7 +196,7 @@ class DhariwalUNet(modulus.Module):
         )
 
         # Mapping.
-        self.map_noise = PositionalEmbedding(num_channels=model_channels)
+        self.map_noise = DiffPositionalEmbedding(num_channels=model_channels)
         self.map_augment = (
             Linear(
                 in_features=augment_dim,
@@ -239,7 +239,7 @@ class DhariwalUNet(modulus.Module):
                 )
         elif condition_location == 'middle':
             # cond: (B, C_cond, 64)
-            self.cond_proj = Conv1d(
+            self.cond_proj = DiffConv1d(
                 in_channels=condition_channels,   # e.g. 128
                 out_channels=model_channels * channel_mult[-1],  # bottleneck channels
                 kernel=1
@@ -262,17 +262,17 @@ class DhariwalUNet(modulus.Module):
                 cin = cout
                 cout = model_channels * mult
                 #each conv padding is the square root of the dimension
-                self.enc[f"{res}x{res}_conv"] = Conv1d(
+                self.enc[f"{res}x{res}_conv"] = DiffConv1d(
                     in_channels=cin, out_channels=cout, kernel=3, **init
                 )
             else:
-                self.enc[f"{res}x{res}_down"] = UNetBlock(
+                self.enc[f"{res}x{res}_down"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, down=True, **block_kwargs
                 )
             for idx in range(num_blocks):
                 cin = cout
                 cout = model_channels * mult
-                self.enc[f"{res}x{res}_block{idx}"] = UNetBlock(
+                self.enc[f"{res}x{res}_block{idx}"] = DiffUNetBlock(
                     in_channels=cin,
                     out_channels=cout,
                     attention=(res in attn_resolutions),
@@ -285,7 +285,7 @@ class DhariwalUNet(modulus.Module):
         self.res_channels = {}
 
         for name, block in self.enc.items():
-            if isinstance(block, UNetBlock):
+            if isinstance(block, DiffUNetBlock):
                 res = int(name.split("x")[0])
                 self.res_channels[res] = block.out_channels
             else:
@@ -307,23 +307,23 @@ class DhariwalUNet(modulus.Module):
                 if condition_location == 'middle':
                     bottleneck_channels += model_channels * channel_mult[-1]
 
-                self.dec[f"{res}x{res}_in0"] = UNetBlock(
+                self.dec[f"{res}x{res}_in0"] = DiffUNetBlock(
                     in_channels=bottleneck_channels,
                     out_channels=cout,
                     attention=True,
                     **block_kwargs
                 )
-                self.dec[f"{res}x{res}_in1"] = UNetBlock(
+                self.dec[f"{res}x{res}_in1"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, **block_kwargs
                 )
             else:
-                self.dec[f"{res}x{res}_up"] = UNetBlock(
+                self.dec[f"{res}x{res}_up"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, up=True, **block_kwargs
                 )
             for idx in range(num_blocks + 1):
                 cin = cout + skips.pop()
                 cout = model_channels * mult
-                self.dec[f"{res}x{res}_block{idx}"] = UNetBlock(
+                self.dec[f"{res}x{res}_block{idx}"] = DiffUNetBlock(
                     in_channels=cin,
                     out_channels=cout,
                     attention=(res in attn_resolutions),
@@ -338,11 +338,11 @@ class DhariwalUNet(modulus.Module):
 
             # encoder cross-attn
             for name, block in self.enc.items():
-                if isinstance(block, UNetBlock):
+                if isinstance(block, DiffUNetBlock):
                     res = int(name.split("x")[0])
-                    if isinstance(block, UNetBlock) and getattr(block, "attention", False):
+                    if isinstance(block, DiffUNetBlock) and getattr(block, "attention", False):
                         dim = block.out_channels          # channels of x at this block
-                        self.cross_attn_enc[f"{name}"] = CrossAttention1D(
+                        self.cross_attn_enc[f"{name}"] = DiffCrossAttention1D(
                             dim=dim,
                             cond_dim=condition_channels,
                             num_heads=4,
@@ -350,18 +350,18 @@ class DhariwalUNet(modulus.Module):
 
             # decoder cross-attn
             for name, block in self.dec.items():
-                if isinstance(block, UNetBlock) and getattr(block, "attention", False):
+                if isinstance(block, DiffUNetBlock) and getattr(block, "attention", False):
                     res = int(name.split("x")[0])
                     if res in attn_resolutions:
                         dim = block.out_channels          # channels of x at this block
-                        self.cross_attn_dec[f"{name}"] = CrossAttention1D(
+                        self.cross_attn_dec[f"{name}"] = DiffCrossAttention1D(
                             dim=dim,
                             cond_dim=condition_channels,
                             num_heads=4,
                         )
 
         self.out_norm = get_group_norm(num_channels=cout)
-        self.out_conv = Conv1d(
+        self.out_conv = DiffConv1d(
             in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
         )
 

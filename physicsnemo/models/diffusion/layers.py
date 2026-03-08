@@ -105,7 +105,7 @@ def _validate_amp(amp_mode: bool) -> None:
         )
 
 
-class Linear(torch.nn.Module):
+class DiffLinear(torch.nn.Module):
     """
     A fully connected (dense) layer implementation. The layer's weights and biases can
     be initialized using custom initialization strategies like "kaiming_normal",
@@ -180,7 +180,7 @@ class Linear(torch.nn.Module):
         return x
     
 
-class Conv2d(torch.nn.Module):
+class DiffConv2d(torch.nn.Module):
     """
     A custom 2D convolutional layer implementation with support for up-sampling,
     down-sampling, and custom weight and bias initializations. The layer's weights
@@ -428,7 +428,7 @@ class Conv1d(torch.nn.Module):
         return x
 '''
 
-class CrossAttention1D(torch.nn.Module):
+class DiffCrossAttention1D(torch.nn.Module):
     def __init__(self, dim, cond_dim, num_heads=4):
         super().__init__()
         self.num_heads = num_heads
@@ -463,7 +463,7 @@ class CrossAttention1D(torch.nn.Module):
 
 
 #Conv2d edited to 1d based on unet modificaitons 
-class Conv1d(torch.nn.Module):
+class DiffConv1d(torch.nn.Module):
     """
     A custom 2D convolutional layer implementation with support for up-sampling,
     down-sampling, and custom weight and bias initializations. The layer's weights
@@ -766,7 +766,7 @@ def get_group_norm(
             act=act,
         )
     else:
-        return GroupNorm(
+        return DiffGroupNorm(
             num_channels=num_channels,
             num_groups=num_groups,
             min_channels_per_group=min_channels_per_group,
@@ -776,7 +776,7 @@ def get_group_norm(
         )
 
 
-class GroupNorm(torch.nn.Module):
+class DiffGroupNorm(torch.nn.Module):
     """
     A custom Group Normalization layer implementation.
 
@@ -955,7 +955,7 @@ class GroupNorm(torch.nn.Module):
         return act_fn'''
 
 
-class AttentionOp(torch.autograd.Function):
+class DiffAttentionOp(torch.autograd.Function):
     """
     Attention weight computation, i.e., softmax(Q^T * K).
     Performs all computation using FP32, but uses the original datatype for
@@ -995,7 +995,7 @@ class AttentionOp(torch.autograd.Function):
         return dq, dk
 
 
-class Attention(torch.nn.Module):
+class DiffAttention(torch.nn.Module):
     """
     Self-attention block used in U-Net-style architectures, such as DDPM++, NCSN++, and ADM.
     Applies GroupNorm followed by multi-head self-attention and a projection layer.
@@ -1067,7 +1067,7 @@ class Attention(torch.nn.Module):
             use_apex_gn=use_apex_gn,
             amp_mode=amp_mode,
         )
-        self.qkv = Conv1d(
+        self.qkv = DiffConv1d(
             in_channels=out_channels,
             out_channels=out_channels * 3,
             kernel=1,
@@ -1075,7 +1075,7 @@ class Attention(torch.nn.Module):
             amp_mode=amp_mode,
             **(init_attn if init_attn is not None else init),
         )
-        self.proj = Conv1d(
+        self.proj = DiffConv1d(
             in_channels=out_channels,
             out_channels=out_channels,
             kernel=1,
@@ -1135,7 +1135,7 @@ class Attention(torch.nn.Module):
         return x
 
 
-class UNetBlock(torch.nn.Module):
+class DiffUNetBlock(torch.nn.Module):
     """
     Unified U-Net block with optional up/downsampling and self-attention. Represents
     the union of all features employed by the DDPM++, NCSN++, and ADM architectures.
@@ -1267,7 +1267,7 @@ class UNetBlock(torch.nn.Module):
         self.up = up
         self.down=down
         #downs or upsamples
-        self.conv0 = Conv1d(
+        self.conv0 = DiffConv1d(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel=3,
@@ -1279,7 +1279,7 @@ class UNetBlock(torch.nn.Module):
             amp_mode=amp_mode,
             **init,
         )
-        self.affine = Linear(
+        self.affine = DiffLinear(
             in_features=emb_channels,
             out_features=out_channels * (2 if adaptive_scale else 1),
             amp_mode=amp_mode,
@@ -1300,7 +1300,7 @@ class UNetBlock(torch.nn.Module):
                 act=act,
                 amp_mode=amp_mode,
             )
-        self.conv1 = Conv1d(
+        self.conv1 = DiffConv1d(
             in_channels=out_channels,
             out_channels=out_channels,
             kernel=3,
@@ -1314,7 +1314,7 @@ class UNetBlock(torch.nn.Module):
             #kernel = 3 #try not setting kernel = 0 for skip layers
             kernel = 1 if resample_proj or out_channels != in_channels else 0
             fused_conv_bias = fused_conv_bias if kernel != 0 else False
-            self.skip = Conv1d(
+            self.skip = DiffConv1d(
                 in_channels=in_channels,
                 out_channels=out_channels,
                 kernel=kernel,
@@ -1327,7 +1327,7 @@ class UNetBlock(torch.nn.Module):
             )
 
         if self.attention:
-            self.attn = Attention(
+            self.attn = DiffAttention(
                 out_channels=out_channels,
                 num_heads=self.num_heads,
                 eps=eps,
@@ -1434,7 +1434,7 @@ class UNetBlock(torch.nn.Module):
                     )
 
 
-class PositionalEmbedding(torch.nn.Module):
+class DiffPositionalEmbedding(torch.nn.Module):
     """
     A module for generating positional embeddings based on timesteps.
     This embedding technique is employed in the DDPM++ and ADM architectures.
@@ -1532,7 +1532,7 @@ class PositionalEmbedding(torch.nn.Module):
         return x
 
 
-class FourierEmbedding(torch.nn.Module):
+class DiffFourierEmbedding(torch.nn.Module):
     """
     Generates Fourier embeddings for timesteps, primarily used in the NCSN++
     architecture.

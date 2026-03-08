@@ -18,7 +18,7 @@ from typing import Tuple, Union, Optional, Literal, Dict, Any, Callable, Type
 import torch
 import torch.nn as nn
 
-from physicsnemo.models.diffusion import PositionalEmbedding, Linear
+from physicsnemo.models.diffusion import DiffPositionalEmbedding, Linear
 from dataclasses import dataclass
 from physicsnemo.models.meta import ModelMetaData
 from physicsnemo.models.module import Module
@@ -211,7 +211,7 @@ class DiT(Module):
                 raise TypeError("tokenizer must be a string or a physicsnemo.models.Module instance subclassing physicsnemo.experimental.models.dit.layers.TokenizerModuleBase")
             self.tokenizer = tokenizer
 
-        self.t_embedder = PositionalEmbedding(hidden_size, amp_mode=self.meta.amp_gpu, learnable=True, **timestep_embed_kwargs)
+        self.t_embedder = DiffPositionalEmbedding(hidden_size, amp_mode=self.meta.amp_gpu, learnable=True, **timestep_embed_kwargs)
         self.cond_embedder = (
             Linear(
                 in_features=condition_dim,

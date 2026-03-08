@@ -259,7 +259,7 @@ class DhariwalUNet(modulus.Module):
         #self.enc = torch.nn.ModuleDict()
         self.enc_conv = torch.nn.ModuleDict()
         self.enc_block = torch.nn.ModuleDict()
-        self.enc_order = []
+        self.enc_order = torch.nn.ModuleDict()# stores type and name of each block in order
         skip_channels = []
 
         cout = self.in_channels
@@ -273,14 +273,14 @@ class DhariwalUNet(modulus.Module):
                 self.enc_conv[name] = DiffConv1d(
                     in_channels=cin, out_channels=cout, kernel=3, **init
                 )
-                self.enc_order.append(("conv", name))
+                self.enc_order[name] = "conv"
                 skip_channels.append(cout)
             else:
                 name = f"{res}x{res}_down"
                 self.enc_block[name] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, down=True, **block_kwargs
                 )
-                self.enc_order.append(("block", name))
+                self.enc_order[name] = "block"
                 skip_channels.append(cout)
             for idx in range(num_blocks):
                 cin = cout
@@ -292,7 +292,7 @@ class DhariwalUNet(modulus.Module):
                     attention=(res in attn_resolutions),
                     **block_kwargs,
                 )
-                self.enc_order.append(("block", name))
+                self.enc_order[name] = "block"
                 skip_channels.append(cout)
                 
         #skips = [block.out_channels for block in self.enc.values()]
@@ -314,7 +314,7 @@ class DhariwalUNet(modulus.Module):
         #self.dec = torch.nn.ModuleDict()
         self.dec_conv = torch.nn.ModuleDict()
         self.dec_block = torch.nn.ModuleDict()
-        self.dec_order = []
+        self.dec_order = torch.nn.ModuleDict()
         for level, mult in reversed(list(enumerate(channel_mult))):
             res = img_resolution >> level
             '''if level == len(channel_mult) - 1:
@@ -332,19 +332,19 @@ class DhariwalUNet(modulus.Module):
                     attention=True,
                     **block_kwargs
                 )
-                self.dec_order.append(("block", name))
+                self.dec_order[name] = "block"
                 
                 name = f"{res}x{res}_in1"
                 self.dec_block[name] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, **block_kwargs
                 )
-                self.dec_order.append(("block", name))
+                self.dec_order[name] = "block"
             else:
                 name = f"{res}x{res}_up"
                 self.dec_block[f"{res}x{res}_up"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, up=True, **block_kwargs
                 )
-                self.dec_order.append(("block", name))
+                self.dec_order[name] = "block"
             for idx in range(num_blocks + 1):
                 cin = cout + skip_channels.pop()
                 cout = model_channels * mult
@@ -355,7 +355,7 @@ class DhariwalUNet(modulus.Module):
                     attention=(res in attn_resolutions),
                     **block_kwargs,
                 )
-                self.dec_order.append(("block", name))
+                self.dec_order[name] = "block"
                 
         # Cross-attention modules at the same resolutions as self-attention
         # After building self.enc and self.dec
@@ -470,11 +470,9 @@ class DhariwalUNet(modulus.Module):
         #print(f'decoder blocks are (up,down): {[(s.up, s.down) for s in self.dec.values()]}')
         # Encoder
         skips = []
-        for kind, name in self.enc_order:
-
+        for name, kind in self.enc_order:
             if kind == "conv":
                 x = self.enc_conv[name](x)
-
             else:
                 x = self.enc_block[name](x, emb)
             
@@ -494,7 +492,7 @@ class DhariwalUNet(modulus.Module):
             skips.append(x)
 
         # Decoder
-        for kind, name in self.dec_order:
+        for name, kind in self.dec_order:
             if kind == "block":
                 block = self.dec_block[name]
 

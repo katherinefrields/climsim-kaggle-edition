@@ -159,7 +159,7 @@ class DhariwalUNet(modulus.Module):
         self.enc_is_block = []  # False = conv, True = UNet block
 
         cout = self.in_channels
-        skip_channels = []
+        self._skip_channels = []
 
         for level, mult in enumerate(channel_mult):
             res = img_resolution >> level
@@ -171,7 +171,7 @@ class DhariwalUNet(modulus.Module):
                     DiffConv1d(in_channels=cin, out_channels=cout, kernel=3, **init)
                 )
                 self.enc_is_block.append(False)
-                skip_channels.append(cout)
+                self._skip_channels.append(cout)
             else:
                 self.enc_layers.append(
                     DiffUNetBlock(
@@ -182,7 +182,7 @@ class DhariwalUNet(modulus.Module):
                     )
                 )
                 self.enc_is_block.append(True)
-                skip_channels.append(cout)
+                self._skip_channels.append(cout)
 
             for _ in range(num_blocks):
                 cin = cout
@@ -196,10 +196,11 @@ class DhariwalUNet(modulus.Module):
                     )
                 )
                 self.enc_is_block.append(True)
-                skip_channels.append(cout)
+                self._skip_channels.append(cout)
 
         # ---------------- Decoder (only blocks, JIT‑friendly) ----------------
         self.dec_layers = torch.nn.ModuleList()
+        skip_channels = list(self._skip_channels)
 
         for level, mult in reversed(list(enumerate(channel_mult))):
             res = img_resolution >> level
@@ -293,15 +294,12 @@ class DhariwalUNet(modulus.Module):
 
         # ------------- Decoder -------------
         for layer in self.dec_layers:
-            # if this block expects more channels than current x, concat a skip
             if x.shape[1] != layer.in_channels:
                 x = torch.cat([x, skips.pop()], dim=1)
             x = layer(x, emb)
 
         x = self.out_conv(silu(self.out_norm(x)))
         return x
-
-
 '''
 # NOTE: this module can actually be replicated as a special case of the
 # SongUnet class (with very minior extension of the SongUnet class). We should

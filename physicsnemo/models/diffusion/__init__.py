@@ -17,11 +17,13 @@
 from .utils import weight_init
 from .layers import (
     DiffAttentionOp,
+    DiffAttention,
     DiffConv2d,
     DiffConv1d,
     DiffFourierEmbedding,
     DiffGroupNorm,
     get_group_norm,
+    DiffCrossAttention1d,
     DiffLinear,
     DiffPositionalEmbedding,
     DiffUNetBlock,

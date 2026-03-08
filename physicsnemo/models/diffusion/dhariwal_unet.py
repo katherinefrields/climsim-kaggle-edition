@@ -470,11 +470,17 @@ class DhariwalUNet(modulus.Module):
         #print(f'decoder blocks are (up,down): {[(s.up, s.down) for s in self.dec.values()]}')
         # Encoder
         skips = []
+        enc_conv_i = 0
+        enc_block_i = 0
         for name, kind in self.enc_order.items():
             if kind == "conv":
-                x = self.enc_conv[name](x)
+                x = self.enc_conv[enc_conv_i](x)
+                enc_conv_i += 1
+                #x = self.enc_conv[name](x)
             else:
-                x = self.enc_block[name](x, emb)
+                #x = self.enc_block[name](x, emb)
+                x = self.enc_block[enc_block_i](x, emb)
+                enc_block_i += 1
             
             #x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
             if self.condition_location == 'cross':
@@ -490,18 +496,31 @@ class DhariwalUNet(modulus.Module):
                     #x = x + self.cross_attn_enc[name](x, cond_res) removed by Katherine Frields for JIT compatibility
 
             skips.append(x)
-
+        enc_conv_i = 0
+        enc_block_i = 0
+        for name, kind in self.enc_order.items():
+            if kind == "conv":
+                x = self.enc_conv[enc_conv_i](x)
+                enc_conv_i += 1
+                #x = self.enc_conv[name](x)
+            else:
+                #x = self.enc_block[name](x, emb)
+                x = self.enc_block[enc_block_i](x, emb)
+                enc_block_i += 1
+                
         # Decoder
+        dec_conv_i = 0
+        dec_block_i = 0
         for name, kind in self.dec_order.items():
             if kind == "block":
-                block = self.dec_block[name]
-
+                block = self.enc_block[dec_block_i]
                 if x.shape[1] != block.in_channels:
                     x = torch.cat([x, skips.pop()], dim=1)
-
+                dec_block_i += 1
                 x = block(x, emb)
             else:
-                x = self.dec_conv[name](x)
+                x = self.enc_conv[dec_conv_i](x)
+                dec_conv_i += 1
                 
             if self.condition_location == 'cross':
                 if cond is not None and name in self.cross_attn_dec:

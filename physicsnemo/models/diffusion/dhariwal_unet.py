@@ -259,7 +259,7 @@ class DhariwalUNet(modulus.Module):
         #self.enc = torch.nn.ModuleDict()
         self.enc_conv = torch.nn.ModuleDict()
         self.enc_block = torch.nn.ModuleDict()
-        self.enc_order = torch.nn.ModuleDict()# stores type and name of each block in order
+        self.enc_order = dict()
         skip_channels = []
 
         cout = self.in_channels
@@ -314,7 +314,7 @@ class DhariwalUNet(modulus.Module):
         #self.dec = torch.nn.ModuleDict()
         self.dec_conv = torch.nn.ModuleDict()
         self.dec_block = torch.nn.ModuleDict()
-        self.dec_order = torch.nn.ModuleDict()
+        self.dec_order = dict()
         for level, mult in reversed(list(enumerate(channel_mult))):
             res = img_resolution >> level
             '''if level == len(channel_mult) - 1:

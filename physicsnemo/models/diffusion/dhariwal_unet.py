@@ -266,5 +266,5 @@ class DhariwalUNet(modulus.Module):
                 x = torch.cat([x, skips.pop()], dim=1)
             x = layer(x, emb)
 
-        x = self.out_conv(silu(self.out_norm(x)))
+        x = self.out_conv(silu(self.out_norm(x)), emb)
         return x

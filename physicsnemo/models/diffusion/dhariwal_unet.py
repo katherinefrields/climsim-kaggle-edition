@@ -256,7 +256,12 @@ class DhariwalUNet(modulus.Module):
         #print(f'score unet in_channels is {in_channels}, out_channels is {out_channels}')
         
         # Encoder.
-        self.enc = torch.nn.ModuleDict()
+        #self.enc = torch.nn.ModuleDict()
+        self.enc_conv = torch.nn.ModuleDict()
+        self.enc_block = torch.nn.ModuleDict()
+        self.enc_order = []
+        skip_channels = []
+
         cout = self.in_channels
         for level, mult in enumerate(channel_mult):
             res = img_resolution >> level
@@ -264,28 +269,38 @@ class DhariwalUNet(modulus.Module):
                 cin = cout
                 cout = model_channels * mult
                 #each conv padding is the square root of the dimension
-                self.enc[f"{res}x{res}_conv"] = DiffConv1d(
+                name = f"{res}x{res}_conv"
+                self.enc_conv[name] = DiffConv1d(
                     in_channels=cin, out_channels=cout, kernel=3, **init
                 )
+                self.enc_order.append(("conv", name))
+                skip_channels.append(cout)
             else:
-                self.enc[f"{res}x{res}_down"] = DiffUNetBlock(
+                name = f"{res}x{res}_down"
+                self.enc_block[name] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, down=True, **block_kwargs
                 )
+                self.enc_order.append(("block", name))
+                skip_channels.append(cout)
             for idx in range(num_blocks):
                 cin = cout
                 cout = model_channels * mult
-                self.enc[f"{res}x{res}_block{idx}"] = DiffUNetBlock(
+                name = f"{res}x{res}_block{idx}"
+                self.enc_block[name] = DiffUNetBlock(
                     in_channels=cin,
                     out_channels=cout,
                     attention=(res in attn_resolutions),
                     **block_kwargs,
                 )
-        skips = [block.out_channels for block in self.enc.values()]
+                self.enc_order.append(("block", name))
+                skip_channels.append(cout)
+                
+        #skips = [block.out_channels for block in self.enc.values()]
 
         # I should be able to remove this and refactor later
         # Map resolution → channel count from encoder
         self.res_channels = {}
-
+    
         for name, block in self.enc.items():
             if isinstance(block, DiffUNetBlock):
                 res = int(name.split("x")[0])
@@ -297,7 +312,10 @@ class DhariwalUNet(modulus.Module):
 
 
         # Decoder.
-        self.dec = torch.nn.ModuleDict()
+        #self.dec = torch.nn.ModuleDict()
+        self.dec_conv = torch.nn.ModuleDict()
+        self.dec_block = torch.nn.ModuleDict()
+        self.dec_order = []
         for level, mult in reversed(list(enumerate(channel_mult))):
             res = img_resolution >> level
             '''if level == len(channel_mult) - 1:
@@ -308,38 +326,68 @@ class DhariwalUNet(modulus.Module):
                 bottleneck_channels = cout
                 if condition_location == 'middle':
                     bottleneck_channels += model_channels * channel_mult[-1]
-
-                self.dec[f"{res}x{res}_in0"] = DiffUNetBlock(
+                name = f"{res}x{res}_in0"
+                self.dec_block[name] = DiffUNetBlock(
                     in_channels=bottleneck_channels,
                     out_channels=cout,
                     attention=True,
                     **block_kwargs
                 )
-                self.dec[f"{res}x{res}_in1"] = DiffUNetBlock(
+                self.dec_order.append(("block", name))
+                
+                name = f"{res}x{res}_in1"
+                self.dec_block[name] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, **block_kwargs
                 )
+                self.dec_order.append(("block", name))
             else:
-                self.dec[f"{res}x{res}_up"] = DiffUNetBlock(
+                name = f"{res}x{res}_up"
+                self.dec_block[f"{res}x{res}_up"] = DiffUNetBlock(
                     in_channels=cout, out_channels=cout, up=True, **block_kwargs
                 )
+                self.dec_order.append(("block", name))
             for idx in range(num_blocks + 1):
-                cin = cout + skips.pop()
+                cin = cout + skip_channels.pop()
                 cout = model_channels * mult
-                self.dec[f"{res}x{res}_block{idx}"] = DiffUNetBlock(
+                name = f"{res}x{res}_block{idx}"
+                self.dec_block[name] = DiffUNetBlock(
                     in_channels=cin,
                     out_channels=cout,
                     attention=(res in attn_resolutions),
                     **block_kwargs,
                 )
+                self.dec_order.append(("block", name))
                 
         # Cross-attention modules at the same resolutions as self-attention
         # After building self.enc and self.dec
         self.cross_attn_enc = torch.nn.ModuleDict()
         self.cross_attn_dec = torch.nn.ModuleDict()
         if condition_location == 'cross':
-            
+             # encoder cross-attn
+            for name, block in self.enc_block.items():
+                if isinstance(block, DiffUNetBlock):
+                    res = int(name.split("x")[0])
+                    if isinstance(block, DiffUNetBlock) and getattr(block, "attention", False):
+                        dim = block.out_channels          # channels of x at this block
+                        self.cross_attn_enc[f"{name}"] = DiffCrossAttention1d(
+                            dim=dim,
+                            cond_dim=condition_channels,
+                            num_heads=4,
+                        )
 
-            # encoder cross-attn
+            # decoder cross-attn
+            for name, block in self.dec_block.items():
+                if isinstance(block, DiffUNetBlock) and getattr(block, "attention", False):
+                    res = int(name.split("x")[0])
+                    if res in attn_resolutions:
+                        dim = block.out_channels          # channels of x at this block
+                        self.cross_attn_dec[f"{name}"] = DiffCrossAttention1d(
+                            dim=dim,
+                            cond_dim=condition_channels,
+                            num_heads=4,
+                        )
+                        
+            ''' # encoder cross-attn
             for name, block in self.enc.items():
                 if isinstance(block, DiffUNetBlock):
                     res = int(name.split("x")[0])
@@ -361,7 +409,7 @@ class DhariwalUNet(modulus.Module):
                             dim=dim,
                             cond_dim=condition_channels,
                             num_heads=4,
-                        )
+                        )'''
 
         self.out_norm = get_group_norm(num_channels=cout)
         self.out_conv = DiffConv1d(
@@ -423,12 +471,13 @@ class DhariwalUNet(modulus.Module):
         #print(f'decoder blocks are (up,down): {[(s.up, s.down) for s in self.dec.values()]}')
         # Encoder
         skips = []
-        for name, block in self.enc.items():
+        for kind, name in self.enc_order:
 
-            if isinstance(block, DiffUNetBlock):
-                x = block(x, emb)
+            if kind == "conv":
+                x = self.enc_conv[name](x)
+
             else:
-                x = block(x)
+                x = self.enc_block[name](x, emb)
             
             #x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
             if self.condition_location == 'cross':
@@ -446,14 +495,17 @@ class DhariwalUNet(modulus.Module):
             skips.append(x)
 
         # Decoder
-        for name, block in self.dec.items():
-            if x.shape[1] != block.in_channels:
-                x = torch.cat([x, skips.pop()], dim=1)
-            if isinstance(block, DiffUNetBlock):
+        for kind, name in self.dec_order:
+            if kind == "block":
+                block = self.dec_block[name]
+
+                if x.shape[1] != block.in_channels:
+                    x = torch.cat([x, skips.pop()], dim=1)
+
                 x = block(x, emb)
             else:
-                x = block(x)
-
+                x = self.dec_conv[name](x)
+                
             if self.condition_location == 'cross':
                 if cond is not None and name in self.cross_attn_dec:
                     res = int(name.split("x")[0])

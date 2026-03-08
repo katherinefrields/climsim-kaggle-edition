@@ -4,7 +4,7 @@ import torch.optim as optim
 import torch.nn as nn
 from dataclasses import dataclass
 import modulus
-from layers import (
+from baseline_models.unet.training_default.layers import (
     Conv1d,
     GroupNorm,
     Linear,

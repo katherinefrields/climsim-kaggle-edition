@@ -881,8 +881,8 @@ def main(cfg: DictConfig) -> float:
                         break'''
                     
                # scripted_model_wrapped = torch.jit.trace(wrapped_model)
-                
-                example = torch.randn_like(torch.tensor(input_sub, dtype=torch.float32)).to(device)
+                example = torch.randn(1, 557).to(device)
+                #example = torch.randn_like(torch.tensor(input_sub, dtype=torch.float32)).to(device)
                 scripted_model_wrapped = torch.jit.trace(wrapped_model.eval(), example)
 
                 #torch.save(wrapped_model, save_path_wrapped)

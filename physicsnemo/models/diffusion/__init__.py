@@ -21,7 +21,7 @@ from .layers import (
     DiffFourierEmbedding,
     DiffGroupNorm,
     get_group_norm,
-    Linear,
+    DiffLinear,
     DiffPositionalEmbedding,
     DiffUNetBlock,
 )

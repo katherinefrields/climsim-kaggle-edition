@@ -23,7 +23,7 @@ from torch.nn.functional import silu
 
 from physicsnemo.models.diffusion import (
     DiffConv2d,
-    Linear,
+    DiffLinear,
     DiffPositionalEmbedding,
     DiffUNetBlock,
     get_group_norm,
@@ -198,7 +198,7 @@ class DhariwalUNet(modulus.Module):
         # Mapping.
         self.map_noise = DiffPositionalEmbedding(num_channels=model_channels)
         self.map_augment = (
-            Linear(
+            DiffLinear(
                 in_features=augment_dim,
                 out_features=model_channels,
                 bias=False,
@@ -207,14 +207,14 @@ class DhariwalUNet(modulus.Module):
             if augment_dim
             else None
         )
-        self.map_layer0 = Linear(
+        self.map_layer0 = DiffLinear(
             in_features=model_channels, out_features=emb_channels, **init
         )
-        self.map_layer1 = Linear(
+        self.map_layer1 = DiffLinear(
             in_features=emb_channels, out_features=emb_channels, **init
         )
         self.map_label = (
-            Linear(
+            DiffLinear(
                 in_features=label_dim,
                 out_features=emb_channels,
                 bias=False,
@@ -231,7 +231,7 @@ class DhariwalUNet(modulus.Module):
         
         self.in_channels = in_channels
         if self.condition_location == 'embedding':
-            self.map_cond = Linear(
+            self.map_cond = DiffLinear(
                 in_features=condition_channels,
                 out_features=emb_channels,
                 bias=False,

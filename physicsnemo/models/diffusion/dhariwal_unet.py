@@ -223,9 +223,11 @@ class DhariwalUNet(modulus.Module):
                 self.dec_layers.append(WrappedLayer(blk, is_block=True))
 
         self.out_norm = get_group_norm(num_channels=cout)
-        self.out_conv = DiffConv1d(
+        temp_out_conv = DiffConv1d(
             in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
         )
+        self.out_conv = WrappedLayer(temp_out_conv, is_block=False)
+        
 
     def forward(self, x, cond, noise_labels, class_labels, augment_labels=None):
         # ------------- conditioning -------------

@@ -18,6 +18,7 @@ from .utils import weight_init
 from .layers import (
     DiffAttentionOp,
     DiffConv2d,
+    DiffConv1d,
     DiffFourierEmbedding,
     DiffGroupNorm,
     get_group_norm,

@@ -880,7 +880,11 @@ def main(cfg: DictConfig) -> float:
                         print(e)
                         break'''
                     
-                scripted_model_wrapped = torch.jit.trace(wrapped_model)
+               # scripted_model_wrapped = torch.jit.trace(wrapped_model)
+                
+                example = torch.randn(1, 557).to(device)
+                scripted_model_wrapped = torch.jit.trace(wrapped_model.eval(), example)
+
                 #torch.save(wrapped_model, save_path_wrapped)
                 scripted_model_wrapped = scripted_model_wrapped.eval()
                 scripted_model_wrapped.save(save_path_wrapped)

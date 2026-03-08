@@ -162,7 +162,7 @@ class Conv1d(torch.nn.Module):
                 weight_init([out_channels, in_channels, kernel], **init_kwargs)
                 * init_weight
             )
-            if kernel
+            if kernel is not None
             else None
         )
         self.bias = (

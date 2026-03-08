@@ -439,11 +439,10 @@ class UNetBlock(torch.nn.Module):
         self.conv1 = Conv1d(
             in_channels=out_channels, out_channels=out_channels, kernel=3, **init_zero
         )
-        
+
         self.skip = None
         if out_channels != in_channels or up or down:
-            #kernel = 1 if resample_proj or out_channels != in_channels else 0
-            kernel = 1# changed by Katherine Frields 
+            kernel = 1 if resample_proj or out_channels != in_channels else 0
             self.skip = Conv1d(
                 in_channels=in_channels,
                 out_channels=out_channels,
@@ -608,8 +607,7 @@ class UNetBlock_noatten(torch.nn.Module):
 
         self.skip = None
         if out_channels != in_channels or up or down:
-            #kernel = 1 if resample_proj or out_channels != in_channels else 0
-            kernel = 1
+            kernel = 1 if resample_proj or out_channels != in_channels else 0
             self.skip = Conv1d(
                 in_channels=in_channels,
                 out_channels=out_channels,
@@ -748,8 +746,7 @@ class UNetBlock_atten(torch.nn.Module):
 
         self.skip = None
         if out_channels != in_channels or up or down:
-            #kernel = 1 if resample_proj or out_channels != in_channels else 0
-            kernel = 1
+            kernel = 1 if resample_proj or out_channels != in_channels else 0
             self.skip = Conv1d(
                 in_channels=in_channels,
                 out_channels=out_channels,

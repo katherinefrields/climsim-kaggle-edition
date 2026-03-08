@@ -290,6 +290,7 @@ class Unet(modulus.Module):
         # x_profile: (batch, input_profile_num, levels)
         # x_scalar: (batch, input_scalar_num)
         '''
+        print("Conv1d is from:", Conv1d.__module__)
 
         # if self.qinput_prune:
         #     x = x.clone()  # Clone the tensor to ensure you're not modifying the original tensor in-place

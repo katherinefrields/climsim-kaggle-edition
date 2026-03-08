@@ -498,7 +498,7 @@ class DhariwalUNet(modulus.Module):
         skips = []
         enc_conv_i = 0
         enc_block_i = 0
-        for name, kind in self.enc_order.items():
+        for name, kind in self.enc_order:
             if kind == "conv":
                 x = self.enc_conv[enc_conv_i](x)
                 enc_conv_i += 1

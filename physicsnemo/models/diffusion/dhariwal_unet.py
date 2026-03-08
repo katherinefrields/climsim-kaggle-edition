@@ -498,7 +498,7 @@ class DhariwalUNet(modulus.Module):
         skips = []
         enc_conv_i = 0
         enc_block_i = 0
-        for name, kind in self.enc_order:
+        for kind in self.enc_order:
             if kind == "conv":
                 x = self.enc_conv[enc_conv_i](x)
                 enc_conv_i += 1
@@ -537,7 +537,7 @@ class DhariwalUNet(modulus.Module):
         # Decoder
         dec_conv_i = 0
         dec_block_i = 0
-        for name, kind in self.dec_order:
+        for kind in self.dec_order:
             if kind == "block":
                 block = self.dec_block[dec_block_i]
                 if x.shape[1] != block.in_channels:

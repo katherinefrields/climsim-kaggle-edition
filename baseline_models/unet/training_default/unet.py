@@ -155,7 +155,7 @@ class Unet(modulus.Module):
                 )
 
                 #only current possible encoder type is standard
-                if encoder_type == "skip":
+                '''if encoder_type == "skip":
                     self.enc[f"{res}_aux_down"] = Conv1d(
                         in_channels=caux,
                         out_channels=caux,
@@ -165,7 +165,7 @@ class Unet(modulus.Module):
                     )
                     self.enc[f"{res}_aux_skip"] = Conv1d(
                         in_channels=caux, out_channels=cout, kernel=1, **init
-                    )
+                    )'''
                 if encoder_type == "residual":
                     self.enc[f"{res}_aux_residual"] = Conv1d(
                         in_channels=caux,

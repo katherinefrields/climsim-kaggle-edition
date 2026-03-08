@@ -882,7 +882,7 @@ def main(cfg: DictConfig) -> float:
                     
                # scripted_model_wrapped = torch.jit.trace(wrapped_model)
                 
-                example = torch.randn(1, 557).to(device)
+                example = torch.randn_like(input_sub).to(device)
                 scripted_model_wrapped = torch.jit.trace(wrapped_model.eval(), example)
 
                 #torch.save(wrapped_model, save_path_wrapped)

@@ -33,8 +33,9 @@ from physicsnemo.models.module import Module
 from torch.distributions.studentT import StudentT
 import modulus
 
-from dhariwal_unet import DhariwalUNet
-
+from physicsnemo.models.diffusion import (
+    dhariwal_unet
+)
 
 @dataclass
 class EDMPrecondMetaData(modulus.ModelMetaData):
@@ -168,7 +169,7 @@ class EDMPrecond(modulus.Module):
             model_kwargs.pop("model_kwargs")'''
 
 
-        self.model = DhariwalUNet(
+        self.model = dhariwal_unet.DhariwalUNet(
             img_resolution=img_resolution,
             in_channels=img_in_channels,
             out_channels=img_out_channels,

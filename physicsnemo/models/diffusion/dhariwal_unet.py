@@ -424,7 +424,10 @@ class DhariwalUNet(modulus.Module):
         skips = []
         for name, block in self.enc.items():
 
-            x = block(x,emb)
+            if name == 'DiffUnetBlock':
+                x = block(x, emb)
+            else:
+                x = block(x)
             
             #x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
             if self.condition_location == 'cross':
@@ -445,7 +448,10 @@ class DhariwalUNet(modulus.Module):
         for name, block in self.dec.items():
             if x.shape[1] != block.in_channels:
                 x = torch.cat([x, skips.pop()], dim=1)
-            x = block(x, emb)
+            if name == 'DiffUnetBlock':
+                x = block(x, emb)
+            else:
+                x = block(x)
 
             if self.condition_location == 'cross':
                 if cond is not None and name in self.cross_attn_dec:

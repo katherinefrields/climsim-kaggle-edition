@@ -33,7 +33,7 @@ from physicsnemo.models.module import Module
 from torch.distributions.studentT import StudentT
 import modulus
 
-network_module = importlib.import_module("physicsnemo.models.diffusion")
+from dhariwal_unet import DhariwalUNet
 
 
 @dataclass
@@ -161,7 +161,6 @@ class EDMPrecond(modulus.Module):
         
         self.input_padding = (img_resolution - vertical_level_num,0)
         
-        model_class = getattr(network_module, model_type)
         
         #remove model_kwargs wrapper on key words arguements, instead just passing in the key word arguements themselves
         '''if "model_kwargs" in model_kwargs:
@@ -169,7 +168,7 @@ class EDMPrecond(modulus.Module):
             model_kwargs.pop("model_kwargs")'''
 
 
-        self.model = model_class(
+        self.model = DhariwalUNet(
             img_resolution=img_resolution,
             in_channels=img_in_channels,
             out_channels=img_out_channels,

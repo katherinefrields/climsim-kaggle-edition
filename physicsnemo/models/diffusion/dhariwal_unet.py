@@ -337,7 +337,7 @@ class DhariwalUNet(modulus.Module):
                     **block_kwargs
                 )'''
                 
-                self.deck_block.append(DiffUNetBlock(
+                self.dec_block.append(DiffUNetBlock(
                     in_channels=bottleneck_channels,
                     out_channels=cout,
                     attention=True,
@@ -350,7 +350,7 @@ class DhariwalUNet(modulus.Module):
                     in_channels=cout, out_channels=cout, **block_kwargs
                 )'''
                 
-                self.deck_block.append(DiffUNetBlock(
+                self.dec_block.append(DiffUNetBlock(
                     in_channels=cout, out_channels=cout, **block_kwargs
                 ))
                 self.dec_order.append("block") 

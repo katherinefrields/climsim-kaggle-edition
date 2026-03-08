@@ -881,9 +881,21 @@ def main(cfg: DictConfig) -> float:
                         break'''
                     
                # scripted_model_wrapped = torch.jit.trace(wrapped_model)
-                example = torch.randn(10, 557).to(device)
+               # ---- Grab first 10 samples for tracing ----
+                val_iter = iter(val_loader)
+                val_input, val_target = next(val_iter)
+
+                # Move to device
+                val_input = val_input.to(device)
+                val_target = val_target.to(device)
+
+                # Slice first 10 samples
+                trace_input = val_input[:10]
+
+
+                #example = torch.randn(10, 557).to(device)
                 #example = torch.randn_like(torch.tensor(input_sub, dtype=torch.float32)).to(device)
-                scripted_model_wrapped = torch.jit.trace(wrapped_model.eval(), example)
+                scripted_model_wrapped = torch.jit.trace(wrapped_model.eval(), trace_input)
 
                 #torch.save(wrapped_model, save_path_wrapped)
                 scripted_model_wrapped = scripted_model_wrapped.eval()

@@ -167,7 +167,7 @@ class Conv1d(torch.nn.Module):
         )
         self.bias = (
             torch.nn.Parameter(weight_init([out_channels], **init_kwargs) * init_bias)
-            if kernel and bias
+            if kernel is not None and bias
             else None
         )
         # f = torch.as_tensor(resample_filter, dtype=torch.float32)

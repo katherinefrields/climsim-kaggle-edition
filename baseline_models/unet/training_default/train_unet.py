@@ -866,6 +866,7 @@ def main(cfg: DictConfig) -> float:
                 # wrap model
                 device = torch.device("cuda")
                 wrapped_model = WrappedModel(original_model = joint_inf,
+                                            input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
                                             input_div = torch.tensor(input_div, dtype=torch.float32).to(device),
                                             out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
                                             qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
@@ -881,7 +882,7 @@ def main(cfg: DictConfig) -> float:
                     
                # scripted_model_wrapped = torch.jit.trace(wrapped_model)
                 
-                example = torch.randn_like(torch.tensor(input_div, dtype=torch.float32)).to(device)
+                example = torch.randn_like(torch.tensor(input_sub, dtype=torch.float32)).to(device)
                 scripted_model_wrapped = torch.jit.trace(wrapped_model.eval(), example)
 
                 #torch.save(wrapped_model, save_path_wrapped)

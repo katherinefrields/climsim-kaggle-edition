@@ -257,9 +257,9 @@ class DhariwalUNet(modulus.Module):
         
         # Encoder.
         #self.enc = torch.nn.ModuleDict()
-        self.dec_conv = torch.nn.ModuleList()
-        self.dec_block = torch.nn.ModuleList()
-        self.dec_order = []
+        self.enc_conv = torch.nn.ModuleList()
+        self.enc_block = torch.nn.ModuleList()
+        self.enc_order = []
         skip_channels = []
 
         cout = self.in_channels

@@ -63,6 +63,100 @@ class MetaData(modulus.ModelMetaData):
 # SongUnet class (with very minior extension of the SongUnet class). We should
 # consider inheriting the more general SongUnet class here.
 class DhariwalUNet(modulus.Module):
+    r"""
+    This architecture is a diffusion backbone for 2D image generation. It
+    reimplements the `ADM architecture <https://arxiv.org/abs/2105.05233>`_, a U-Net variant, with optional
+    self-attention.
+
+    It is highly similar to the U-Net backbone defined in
+    :class:`~physicsnemo.models.diffusion.song_unet.SongUNet`, and only differs
+    in a few aspects:
+
+    • The embedding conditioning mechanism relies on adaptive scaling of the
+      group normalization layers within the U-Net blocks.
+
+    • The parameters initialization follows Kaiming uniform initialization.
+
+    Parameters
+    -----------
+    img_resolution :int
+        The resolution :math:`H = W` of the input/output image. Assumes square images.
+
+        *Note:* This parameter is only used as a convenience to build the
+        network. In practice, the model can still be used with images of
+        different resolutions.
+    in_channels : int
+        Number of channels :math:`C_{in}` in the input image. May include channels from both the
+        latent state :math:`\mathbf{x}` and additional channels when conditioning on images. For an
+        unconditional model, this should be equal to ``out_channels``.
+    out_channels : int
+        Number of channels :math:`C_{out}` in the output image. Should be equal to the number
+        of channels :math:`C_{\mathbf{x}}` in the latent state.
+    label_dim : int, optional, default=0
+        Dimension of the vector-valued ``class_labels`` conditioning; 0
+        indicates no conditioning on class labels.
+    augment_dim : int, optional, default=0
+        Dimension of the vector-valued ``augment_labels`` conditioning; 0 means
+        no conditioning on augmentation labels.
+    model_channels : int, optional, default=128
+        Base multiplier for the number of channels accross the entire network.
+    channel_mult : List[int], optional, default=[1,2,2,2]
+        Multipliers for the number of channels at every level in
+        the encoder and decoder. The length of ``channel_mult`` determines the
+        number of levels in the U-Net. At level ``i``, the number of channel in
+        the feature map is ``channel_mult[i] * model_channels``.
+    channel_mult_emb : int, optional, default=4
+        Multiplier for the number of channels in the embedding vector. The
+        embedding vector has ``model_channels * channel_mult_emb`` channels.
+    num_blocks : int, optional, default=3
+        Number of U-Net blocks at each level.
+    attn_resolutions : List[int], optional, default=[16]
+        Resolutions of the levels at which self-attention layers are applied.
+        Note that the feature map resolution must match exactly the value
+        provided in ``attn_resolutions`` for the self-attention layers to be
+        applied.
+    dropout : float, optional, default=0.10
+        Dropout probability applied to intermediate activations within the
+        U-Net blocks.
+    label_dropout : float, optional, default=0.0
+        Dropout probability applied to the ``class_labels``. Typically used for
+        classifier-free guidance.
+
+
+    Forward
+    -------
+    x : torch.Tensor
+        The input tensor of shape :math:`(B, C_{in}, H_{in}, W_{in})`. In general ``x``
+        is the channel-wise concatenation of the latent state :math:`\mathbf{x}`
+        and additional images used for conditioning. For an unconditional
+        model, ``x`` is simply the latent state :math:`\mathbf{x}`.
+    noise_labels : torch.Tensor
+        The noise labels of shape :math:`(B,)`. Used for conditioning on
+        the noise level.
+    class_labels : torch.Tensor
+        The class labels of shape :math:`(B, \text{label_dim})`. Used for
+        conditioning on any vector-valued quantity. Can pass ``None`` when
+        ``label_dim`` is 0.
+    augment_labels : torch.Tensor, optional, default=None
+        The augmentation labels of shape :math:`(B, \text{augment_dim})`. Used
+        for conditioning on any additional vector-valued quantity. Can pass
+        ``None`` when ``augment_dim`` is 0.
+
+    Outputs
+    -------
+    torch.Tensor:
+        The denoised latent state of shape :math:`(B, C_{out}, H_{in}, W_{in})`.
+
+
+    Examples
+    --------
+    >>> model = DhariwalUNet(img_resolution=16, in_channels=2, out_channels=2)
+    >>> noise_labels = torch.randn([1])
+    >>> class_labels = torch.randint(0, 1, (1, 1))  # noqa: N806
+    >>> input_image = torch.ones([1, 2, 16, 16])  # noqa: N806
+    >>> output_image = model(input_image, noise_labels, class_labels)  # noqa: N806
+    """
+
     def __init__(
         self,
         *,
@@ -79,7 +173,7 @@ class DhariwalUNet(modulus.Module):
         attn_resolutions: List[int] = [32, 16, 8],
         dropout: float = 0.10,
         label_dropout: float = 0.0,
-        condition_location: str = "cross",
+        condition_location = 'cross'
     ):
         super().__init__(meta=MetaData())
         self.label_dropout = label_dropout
@@ -87,7 +181,6 @@ class DhariwalUNet(modulus.Module):
         self.channel_mult = channel_mult
         self.model_channels = model_channels
         emb_channels = model_channels * channel_mult_emb
-
         init = dict(
             init_mode="kaiming_uniform",
             init_weight=np.sqrt(1 / 3),
@@ -100,10 +193,11 @@ class DhariwalUNet(modulus.Module):
             dropout=dropout,
             init=init,
             init_zero=init_zero,
-            resample_proj=True,
+            #fused_resample = True,
+            resample_proj=True, ##LOOK INTO WHAT THIS MEANS, I CHANGED IT SO THAT THE SKIP LAYER KERNEL != 0
         )
 
-        # ---------------- Mapping ----------------
+        # Mapping.
         self.map_noise = DiffPositionalEmbedding(num_channels=model_channels)
         self.map_augment = (
             DiffLinear(
@@ -132,172 +226,331 @@ class DhariwalUNet(modulus.Module):
             if label_dim
             else None
         )
-
         self.condition_location = condition_location
+        
         self.map_cond = torch.nn.Identity()
         self.cond_proj = torch.nn.Identity()
-
+        
         self.in_channels = in_channels
-        if self.condition_location == "embedding":
+        if self.condition_location == 'embedding':
             self.map_cond = DiffLinear(
                 in_features=condition_channels,
                 out_features=emb_channels,
                 bias=False,
-                init_mode="kaiming_normal",
-            )
-        elif condition_location == "middle":
+                init_mode="kaiming_normal"
+                )
+        elif condition_location == 'middle':
+            # cond: (B, C_cond, 64)
             self.cond_proj = DiffConv1d(
-                in_channels=condition_channels,
-                out_channels=model_channels * channel_mult[-1],
-                kernel=1,
+                in_channels=condition_channels,   # e.g. 128
+                out_channels=model_channels * channel_mult[-1],  # bottleneck channels
+                kernel=1
             )
-        elif condition_location == "front":
+        elif condition_location == 'front':
             self.in_channels = in_channels + condition_channels
+        
+            
 
-        # ---------------- Encoder (flattened, JIT‑friendly) ----------------
-        self.enc_layers = torch.nn.ModuleList()
-        self.enc_is_block = []  # False = conv, True = UNet block
 
-        cout = self.in_channels
+
+        #print(f'score unet in_channels is {in_channels}, out_channels is {out_channels}')
+        
+        # Encoder.
+        #self.enc = torch.nn.ModuleDict()
+        self.enc_conv = torch.nn.ModuleList()
+        self.enc_block = torch.nn.ModuleList()
+        self.enc_order = []
         skip_channels = []
 
+        cout = self.in_channels
         for level, mult in enumerate(channel_mult):
             res = img_resolution >> level
-
             if level == 0:
                 cin = cout
                 cout = model_channels * mult
-                self.enc_layers.append(
-                    DiffConv1d(in_channels=cin, out_channels=cout, kernel=3, **init)
-                )
-                self.enc_is_block.append(False)
+                #each conv padding is the square root of the dimension
+                '''name = f"{res}x{res}_conv"
+                self.enc_conv[name] = DiffConv1d(
+                    in_channels=cin, out_channels=cout, kernel=3, **init
+                )'''
+                self.enc_conv.append(DiffConv1d(
+                    in_channels=cin, out_channels=cout, kernel=3, **init
+                ))
+                self.enc_order.append("conv") 
                 skip_channels.append(cout)
             else:
-                self.enc_layers.append(
-                    DiffUNetBlock(
-                        in_channels=cout,
-                        out_channels=cout,
-                        down=True,
-                        **block_kwargs,
-                    )
-                )
-                self.enc_is_block.append(True)
+                #ame = f"{res}x{res}_down"
+                '''self.enc_block[name] = DiffUNetBlock(
+                    in_channels=cout, out_channels=cout, down=True, **block_kwargs
+                )'''
+                self.enc_block.append(DiffUNetBlock(
+                    in_channels=cout, out_channels=cout, down=True, **block_kwargs
+                ))
+                self.enc_order.append("block")
+                #self.enc_order[name] = "block"
                 skip_channels.append(cout)
-
-            for _ in range(num_blocks):
+            for idx in range(num_blocks):
                 cin = cout
                 cout = model_channels * mult
-                self.enc_layers.append(
-                    DiffUNetBlock(
-                        in_channels=cin,
-                        out_channels=cout,
-                        attention=(res in attn_resolutions),
-                        **block_kwargs,
-                    )
+                '''name = f"{res}x{res}_block{idx}"
+                self.enc_block[name] = DiffUNetBlock(
+                    in_channels=cin,
+                    out_channels=cout,
+                    attention=(res in attn_resolutions),
+                    **block_kwargs,
                 )
-                self.enc_is_block.append(True)
+                self.enc_order[name] = "block"'''
+                
+                self.enc_block.append(DiffUNetBlock(
+                    in_channels=cin,
+                    out_channels=cout,
+                    attention=(res in attn_resolutions),
+                    **block_kwargs,
+                ))
+                self.enc_order.append("block")
+                
                 skip_channels.append(cout)
+                
+        #skips = [block.out_channels for block in self.enc.values()
+            
 
-        # ---------------- Decoder (only blocks, JIT‑friendly) ----------------
-        self.dec_layers = torch.nn.ModuleList()
-
+        # Decoder.
+        #self.dec = torch.nn.ModuleDict()
+        self.dec_conv = torch.nn.ModuleList()
+        self.dec_block = torch.nn.ModuleList()
+        self.dec_order = []
         for level, mult in reversed(list(enumerate(channel_mult))):
             res = img_resolution >> level
-
+            '''if level == len(channel_mult) - 1:
+                self.dec[f"{res}x{res}_in0"] = UNetBlock(
+                    in_channels=cout, out_channels=cout, attention=True, **block_kwargs
+                )'''
             if level == len(channel_mult) - 1:
                 bottleneck_channels = cout
-                if condition_location == "middle":
+                if condition_location == 'middle':
                     bottleneck_channels += model_channels * channel_mult[-1]
-
-                self.dec_layers.append(
-                    DiffUNetBlock(
-                        in_channels=bottleneck_channels,
-                        out_channels=cout,
-                        attention=True,
-                        **block_kwargs,
-                    )
-                )
-                self.dec_layers.append(
-                    DiffUNetBlock(
-                        in_channels=cout,
-                        out_channels=cout,
-                        **block_kwargs,
-                    )
-                )
+                #name = f"{res}x{res}_in0"
+                '''self.dec_block[name] = DiffUNetBlock(
+                    in_channels=bottleneck_channels,
+                    out_channels=cout,
+                    attention=True,
+                    **block_kwargs
+                )'''
+                
+                self.dec_block.append(DiffUNetBlock(
+                    in_channels=bottleneck_channels,
+                    out_channels=cout,
+                    attention=True,
+                    **block_kwargs
+                ))
+                self.dec_order.append("block") 
+                
+                '''name = f"{res}x{res}_in1"
+                self.dec_block[name] = DiffUNetBlock(
+                    in_channels=cout, out_channels=cout, **block_kwargs
+                )'''
+                
+                self.dec_block.append(DiffUNetBlock(
+                    in_channels=cout, out_channels=cout, **block_kwargs
+                ))
+                self.dec_order.append("block") 
+                
             else:
-                self.dec_layers.append(
-                    DiffUNetBlock(
-                        in_channels=cout,
-                        out_channels=cout,
-                        up=True,
-                        **block_kwargs,
-                    )
-                )
-
-            for _ in range(num_blocks + 1):
+                '''name = f"{res}x{res}_up"
+                self.dec_block[f"{res}x{res}_up"] = DiffUNetBlock(
+                    in_channels=cout, out_channels=cout, up=True, **block_kwargs
+                )'''
+                self.dec_block.append(DiffUNetBlock(
+                    in_channels=cout, out_channels=cout, up=True, **block_kwargs
+                ))
+                self.dec_order.append("block") 
+            for idx in range(num_blocks + 1):
                 cin = cout + skip_channels.pop()
                 cout = model_channels * mult
-                self.dec_layers.append(
-                    DiffUNetBlock(
-                        in_channels=cin,
-                        out_channels=cout,
-                        attention=(res in attn_resolutions),
-                        **block_kwargs,
+                '''name = f"{res}x{res}_block{idx}"
+                self.dec_block[name] = DiffUNetBlock(
+                    in_channels=cin,
+                    out_channels=cout,
+                    attention=(res in attn_resolutions),
+                    **block_kwargs,
+                )'''
+                self.dec_block.append( DiffUNetBlock(
+                    in_channels=cin,
+                    out_channels=cout,
+                    attention=(res in attn_resolutions),
+                    **block_kwargs,
+                ))
+                self.dec_order.append("block") 
+                
+        # Cross-attention modules at the same resolutions as self-attention
+        # After building self.enc and self.dec
+        #temporariliy disable this when testing jit
+        '''self.cross_attn_enc = torch.nn.ModuleDict()
+        self.cross_attn_dec = torch.nn.ModuleDict()
+        if condition_location == 'cross':
+             # encoder cross-attn
+            for name, block in self.enc_block.items():
+                if isinstance(block, DiffUNetBlock):
+                    res = int(name.split("x")[0])
+                    if isinstance(block, DiffUNetBlock) and getattr(block, "attention", False):
+                        dim = block.out_channels          # channels of x at this block
+                        self.cross_attn_enc[f"{name}"] = DiffCrossAttention1d(
+                            dim=dim,
+                            cond_dim=condition_channels,
+                            num_heads=4,
+                        )
+
+            # decoder cross-attn
+            for name, block in self.dec_block.items():
+                if isinstance(block, DiffUNetBlock) and getattr(block, "attention", False):
+                    res = int(name.split("x")[0])
+                    if res in attn_resolutions:
+                        dim = block.out_channels          # channels of x at this block
+                        self.cross_attn_dec[f"{name}"] = DiffCrossAttention1d(
+                            dim=dim,
+                            cond_dim=condition_channels,
+                            num_heads=4,
+                        )'''
+                    
+        ''' # encoder cross-attn
+        for name, block in self.enc.items():
+            if isinstance(block, DiffUNetBlock):
+                res = int(name.split("x")[0])
+                if isinstance(block, DiffUNetBlock) and getattr(block, "attention", False):
+                    dim = block.out_channels          # channels of x at this block
+                    self.cross_attn_enc[f"{name}"] = DiffCrossAttention1d(
+                        dim=dim,
+                        cond_dim=condition_channels,
+                        num_heads=4,
                     )
-                )
+
+        # decoder cross-attn
+        for name, block in self.dec.items():
+            if isinstance(block, DiffUNetBlock) and getattr(block, "attention", False):
+                res = int(name.split("x")[0])
+                if res in attn_resolutions:
+                    dim = block.out_channels          # channels of x at this block
+                    self.cross_attn_dec[f"{name}"] = DiffCrossAttention1d(
+                        dim=dim,
+                        cond_dim=condition_channels,
+                        num_heads=4,
+                    )'''
 
         self.out_norm = get_group_norm(num_channels=cout)
         self.out_conv = DiffConv1d(
             in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
         )
 
-    def forward(self, x, cond, noise_labels, class_labels, augment_labels=None):
-        # ------------- conditioning -------------
-        if self.condition_location == "front":
-            x = torch.cat([x, cond], dim=1)
+    '''# Properties that are recursively set on submodules
+    profile_mode = _recursive_property(
+        "profile_mode", bool, "Should be set to ``True`` to enable profiling."
+    )
+    amp_mode = _recursive_property(
+        "amp_mode",
+        bool,
+        "Should be set to ``True`` to enable automatic mixed precision.",
+    )'''
 
+    def forward(self, x, cond, noise_labels, class_labels, augment_labels=None):
+        # Mapping.
+        # Build conditioning pyramid
+        
+        
+        if self.condition_location == 'front':
+            x = torch.cat([x, cond], dim=1)
+            
         cond_pyr = {}
-        if cond is not None and self.condition_location == "cross":
-            for res in self.attn_resolutions:
+        if cond is not None and self.condition_location == 'cross':
+
+            for res in self.attn_resolutions:   # 32, 16, 8
                 cond_res = torch.nn.functional.interpolate(
                     cond, size=res, mode="nearest"
                 )
                 cond_pyr[f"{res}"] = cond_res
+
 
         emb = self.map_noise(noise_labels)
         if self.map_augment is not None and augment_labels is not None:
             emb = emb + self.map_augment(augment_labels)
         emb = silu(self.map_layer0(emb))
         emb = self.map_layer1(emb)
-
-        if cond is not None and self.condition_location == "embedding":
+        # Inject conditioning here
+        if cond is not None and self.condition_location == 'embedding':
             emb = emb + self.map_cond(cond)
-
         if self.map_label is not None:
             tmp = class_labels
             if self.training and self.label_dropout:
                 tmp = tmp * (
-                    torch.rand([x.shape[0], 1], device=x.device)
-                    >= self.label_dropout
+                    torch.rand([x.shape[0], 1], device=x.device) >= self.label_dropout
                 ).to(tmp.dtype)
             emb = emb + self.map_label(tmp)
+            
+        #emb = silu(emb) remove silu so that you can have negative tendencies for conditioning
 
-        # ------------- Encoder -------------
+        #print(f'shape of x to DhariwalUNet: {x.shape}')
+        #print(f'encoder blocks are (up,down): {[(s.up, s.down) for s in self.enc.values()]}')
+        # Encoder.
+ 
+            #print(f'{x.shape} after encoder block {block}')
+
+        #print(f'decoder blocks are (up,down): {[(s.up, s.down) for s in self.dec.values()]}')
+        # Encoder
         skips = []
-        for i, layer in enumerate(self.enc_layers):
-            if self.enc_is_block[i]:
-                x = layer(x, emb)
+        enc_conv_i = 0
+        enc_block_i = 0
+        for kind in self.enc_order:
+            if kind == "conv":
+                x = self.enc_conv[enc_conv_i](x)
+                enc_conv_i += 1
+                #x = self.enc_conv[name](x)
             else:
-                x = layer(x)
+                #x = self.enc_block[name](x, emb)
+                x = self.enc_block[enc_block_i](x, emb)
+                enc_block_i += 1
+            
+            #x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
+            '''if self.condition_location == 'cross':
+                if cond is not None and name in self.cross_attn_enc:
+                    res = int(name.split("x")[0])
+                    cond_res = cond_pyr[f"{res}"] # already interpolated to res
+                    
+                    # JIT-friendly: enumerate ModuleDict and call the matching module 
+                    for k, attn in self.cross_attn_enc.items():
+                        if k == name:
+                            x = x + attn(x, cond_res)'''
+                        
+                    #x = x + self.cross_attn_enc[name](x, cond_res) removed by Katherine Frields for JIT compatibility
+
             skips.append(x)
+                
+        # Decoder
+        dec_conv_i = 0
+        dec_block_i = 0
+        for kind in self.dec_order:
+            if kind == "block":
+                block = self.dec_block[dec_block_i]
+                if x.shape[1] != block.in_channels:
+                    x = torch.cat([x, skips.pop()], dim=1)
+                dec_block_i += 1
+                x = block(x, emb)
+            else:
+                x = self.dec_conv[dec_conv_i](x)
+                dec_conv_i += 1
+                
+            if self.condition_location == 'cross':
+               ''' if cond is not None and name in self.cross_attn_dec:
+                    res = int(name.split("x")[0])
+                    cond_res = cond_pyr[f"{res}"]
+                    # JIT-friendly: enumerate ModuleDict and call the matching module 
+                    for k, attn in self.cross_attn_dec.items():
+                        if k == name:
+                            x = x + attn(x, cond_res)'''
+                            
+                    #x = x + self.cross_attn_dec[name](x, cond_res)
 
-        # ------------- Decoder -------------
-        for layer in self.dec_layers:
-            # if this block expects more channels than current x, concat a skip
-            if x.shape[1] != layer.in_channels:
-                x = torch.cat([x, skips.pop()], dim=1)
-            x = layer(x, emb)
 
+                        
+            #print(f'{x.shape} after decoder block {block}')
         x = self.out_conv(silu(self.out_norm(x)))
         return x
 

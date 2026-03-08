@@ -229,14 +229,14 @@ class Conv1d(torch.nn.Module):
                         padding=f_pad,
                     )
                 if w is not None:
-                    if w_pad == []:
+                    if self.weight is None:
                         x = torch.nn.functional.conv1d(x, w)
                     else:
                         x = torch.nn.functional.conv1d(x, w, padding=w_pad)
 
         else:            
             if w is not None:
-                if w_pad == []:
+                if self.weight is None:
                     x = torch.nn.functional.conv1d(x, w)
                 else:
                     x = torch.nn.functional.conv1d(x, w, padding=w_pad)

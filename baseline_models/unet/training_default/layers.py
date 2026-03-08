@@ -162,12 +162,12 @@ class Conv1d(torch.nn.Module):
                 weight_init([out_channels, in_channels, kernel], **init_kwargs)
                 * init_weight
             )
-            if kernel is not None
+            if kernel
             else None
         )
         self.bias = (
             torch.nn.Parameter(weight_init([out_channels], **init_kwargs) * init_bias)
-            if kernel is not None and bias
+            if kernel and bias
             else None
         )
         # f = torch.as_tensor(resample_filter, dtype=torch.float32)
@@ -439,10 +439,11 @@ class UNetBlock(torch.nn.Module):
         self.conv1 = Conv1d(
             in_channels=out_channels, out_channels=out_channels, kernel=3, **init_zero
         )
-
+        
         self.skip = None
         if out_channels != in_channels or up or down:
-            kernel = 1 if resample_proj or out_channels != in_channels else 0
+            #kernel = 1 if resample_proj or out_channels != in_channels else 0
+            kernel = 1# changed by Katherine Frields 
             self.skip = Conv1d(
                 in_channels=in_channels,
                 out_channels=out_channels,
@@ -607,7 +608,8 @@ class UNetBlock_noatten(torch.nn.Module):
 
         self.skip = None
         if out_channels != in_channels or up or down:
-            kernel = 1 if resample_proj or out_channels != in_channels else 0
+            #kernel = 1 if resample_proj or out_channels != in_channels else 0
+            kernel = 1
             self.skip = Conv1d(
                 in_channels=in_channels,
                 out_channels=out_channels,
@@ -746,7 +748,8 @@ class UNetBlock_atten(torch.nn.Module):
 
         self.skip = None
         if out_channels != in_channels or up or down:
-            kernel = 1 if resample_proj or out_channels != in_channels else 0
+            #kernel = 1 if resample_proj or out_channels != in_channels else 0
+            kernel = 1
             self.skip = Conv1d(
                 in_channels=in_channels,
                 out_channels=out_channels,

@@ -522,17 +522,6 @@ class DhariwalUNet(modulus.Module):
                     #x = x + self.cross_attn_enc[name](x, cond_res) removed by Katherine Frields for JIT compatibility
 
             skips.append(x)
-        enc_conv_i = 0
-        enc_block_i = 0
-        for kind in self.enc_order:
-            if kind == "conv":
-                x = self.enc_conv[enc_conv_i](x)
-                enc_conv_i += 1
-                #x = self.enc_conv[name](x)
-            else:
-                #x = self.enc_block[name](x, emb)
-                x = self.enc_block[enc_block_i](x, emb)
-                enc_block_i += 1
                 
         # Decoder
         dec_conv_i = 0

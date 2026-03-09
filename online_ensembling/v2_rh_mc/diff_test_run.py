@@ -10,7 +10,7 @@ import os, datetime, subprocess as sp, numpy as np
 import shutil, glob
 
 # Enable Python proxy for MMF NN emulator
-os.environ["MMF_USE_PYTORCH_FORTRAN_PROXY"] = "1"
+#os.environ["MMF_USE_PYTORCH_FORTRAN_PROXY"] = "1"
 #newcase,config,build,clean,submit,continue_run = False,False,False,False,False,False
 
 #acct = 'm4334'
@@ -223,7 +223,7 @@ if submit :
    continue_flag = 'TRUE' if continue_run else 'False'
    run_cmd(f'./xmlchange --file env_run.xml CONTINUE_RUN={continue_flag} ')   
    #-------------------------------------------------------
-   shutil.copy("pytorch_fortran_path/pytorch_proxy.py", f"{case_run_dir}/pytorch_proxy.py")
+   #shutil.copy(f"{pytorch_fortran_path}/pytorch_proxy.py", f"{case_run_dir}/pytorch_proxy.py")
    run_cmd('./case.submit')
 #---------------------------------------------------------------------------------------------------
 # Print the case name again

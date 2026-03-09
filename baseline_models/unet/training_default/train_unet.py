@@ -871,6 +871,8 @@ def main(cfg: DictConfig) -> float:
                                             out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
                                             qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
                 save_path_wrapped = os.path.join(wrapped_directory, filename.replace('.mdlus', '_wrapped.pt'))
+                scripted_wrapped_model = torch.jit.script(wrapped_model)
+                scripted_wrapped_model.save(save_path_wrapped)
                 
                 '''for name, module in joint_inf.named_modules():
                     try:
@@ -882,7 +884,7 @@ def main(cfg: DictConfig) -> float:
                     
                # scripted_model_wrapped = torch.jit.trace(wrapped_model)
                # ---- Grab first 10 samples for tracing ----
-                val_iter = iter(val_loader)
+                '''val_iter = iter(val_loader)
                 val_input, val_target = next(val_iter)
 
                 # Move to device
@@ -899,7 +901,7 @@ def main(cfg: DictConfig) -> float:
 
                 #torch.save(wrapped_model, save_path_wrapped)
                 scripted_model_wrapped = scripted_model_wrapped.eval()
-                scripted_model_wrapped.save(save_path_wrapped)
+                scripted_model_wrapped.save(save_path_wrapped)'''
                 
         logger.info("Training complete!")
 

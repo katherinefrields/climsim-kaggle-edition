@@ -825,7 +825,7 @@ def main(cfg: DictConfig) -> float:
     
         
         # wrap model
-        
+        joint_inf = joint_inf.to(device)  # ensure joint_inf is on CPU before scripting
         wrapped_model = WrappedModel(original_model = joint_inf,
                                      input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
                                      input_div = torch.tensor(input_div, dtype=torch.float32).to(device),

@@ -18,7 +18,7 @@
 Preconditioning schemes used in the paper"Elucidating the Design Space of
 Diffusion-Based Generative Models".
 """
-
+import math
 import importlib
 import warnings
 from dataclasses import dataclass
@@ -286,7 +286,7 @@ class EDMPrecond(modulus.Module):
                     num_steps: int = 18, sigma_min: float = 0.002, sigma_max: float = 80,
                     rho: float = 7, S_churn: float = 0, S_min: float = 0,
                     S_max: float = float('inf'), S_noise: float = 1) -> torch.Tensor:
-        import math
+        
         # Time step discretization.
         step_indices = torch.arange(num_steps, dtype=torch.float64, device=latents.device)
         t_steps = (sigma_max ** (1 / rho) + step_indices / (num_steps - 1) * (sigma_min ** (1 / rho) - sigma_max ** (1 / rho))) ** rho

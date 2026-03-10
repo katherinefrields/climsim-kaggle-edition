@@ -33,7 +33,7 @@ class WrappedModel(nn.Module):
         self.qn_lbd = self.qn_lbd.to(device)
         return super().to(device)'''
     
-    def apply_temperature_rules(self, T):
+    '''    def apply_temperature_rules(self, T):
         # Create an output tensor, initialized to zero
         output = torch.zeros_like(T)
 
@@ -45,9 +45,18 @@ class WrappedModel(nn.Module):
         output[T > 273.16] = 1
 
         # Values where T < 253.16 are already set to 0 by the initialization
+    '''
+    def apply_temperature_rules(self, T: torch.Tensor) -> torch.Tensor:
+        transition = (T - 253.16) / 20.0
+        output = torch.where(
+            T > 273.16,
+            torch.ones_like(T),
+            torch.where((T >= 253.16) & (T <= 273.16), transition, torch.zeros_like(T))
+        )
+        return output
 
 
-    def preprocessing(self, x):
+    def preprocessing(self, x: torch.Tensor) -> torch.Tensor:
         # convert v2 input array to v2_rh_mc input array:
         xout = x
         xout_new = torch.zeros((xout.shape[0], 557), dtype=xout.dtype, device = x.device)
@@ -56,13 +65,13 @@ class WrappedModel(nn.Module):
         xout_new[:,180:240] = self.apply_temperature_rules(xout[:,0:60]) # liq_partition
         xout_new[:,240:557] = xout[:,240:557] # state_u, state_v
         x = xout_new
-        
+
         #do input normalization
         x[:,120:180] = 1 - torch.exp(-x[:,120:180] * self.qn_lbd.to(x.device))
         x = (x - self.input_sub.to(x.device)) / self.input_div.to(x.device)
         x = torch.where(torch.isnan(x), torch.tensor(0.0, device=x.device), x)
         x = torch.where(torch.isinf(x), torch.tensor(0.0, device=x.device), x)
-        
+
         #prune top 15 levels in qn input
         x[:,120:120+15] = 0
         #clip rh input
@@ -70,7 +79,7 @@ class WrappedModel(nn.Module):
 
         return x
 
-    def postprocessing(self, x):
+    def postprocessing(self, x: torch.Tensor) -> torch.Tensor:
         x[:,60:75] = 0
         x[:,120:135] = 0
         x[:,180:195] = 0
@@ -78,11 +87,7 @@ class WrappedModel(nn.Module):
         x = x/self.out_scale
         return x
 
-    def forward(self, x):
-        print(f"Model forward pass running on device: {x.device}")
-        # Print the number of available CUDA devices
-        num_gpus = torch.cuda.device_count()
-        print(f"Number of available CUDA devices: {num_gpus}")
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         t_before = x[:,0:60].clone()
         qc_before = x[:,120:180].clone()
         qi_before = x[:,180:240].clone()

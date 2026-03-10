@@ -825,7 +825,7 @@ def main(cfg: DictConfig) -> float:
     
         
         # wrap model
-        device = torch.device("cuda")
+        
         wrapped_model = WrappedModel(original_model = joint_inf,
                                      input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
                                      input_div = torch.tensor(input_div, dtype=torch.float32).to(device),
@@ -867,7 +867,7 @@ def main(cfg: DictConfig) -> float:
                 print('save path for ckpt torchscript:', save_path_torch)
                 
                 # wrap model
-                device = torch.device("cuda")
+                
                 wrapped_model = WrappedModel(original_model = joint_inf,
                                             input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
                                             input_div = torch.tensor(input_div, dtype=torch.float32).to(device),

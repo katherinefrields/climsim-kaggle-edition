@@ -577,8 +577,8 @@ def main(cfg: DictConfig) -> float:
                     joint_model.module.backward(res_loss, joint_optimizer)    
                 joint_optimizer.step()
                 
-                with torch.no_grad():
-                    det_param = next(joint_model.module.deterministic_model.parameters())
+                #with torch.no_grad():
+                #    det_param = next(joint_model.module.deterministic_model.parameters())
                     #print(current_step, det_param.norm().item())
 
                 
@@ -766,10 +766,6 @@ def main(cfg: DictConfig) -> float:
         
         #from physicsnemo.models.module import Module
         res_model = modulus.Module.from_checkpoint(top_res_checkpoints[0][1])
-        
-        print("Saved __args__:", getattr(res_model, "__args__", None))
-        print("Saved meta:", getattr(res_model, "meta", None))
-        
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
         res_model.save(save_file_res)
         
@@ -783,6 +779,8 @@ def main(cfg: DictConfig) -> float:
         scripted_model.save(save_file_torch)
         
         save_file_torch_res = os.path.join(save_path, 'diff_model.pt')
+        scripted_res_model = torch.jit.script(res_model)
+        scripted_res_model = scripted_res_model.eval()
         torch.save(res_model, save_file_torch_res)
         
         joint_inf = JointModel(model_inf, #load in best deterministic model
@@ -834,9 +832,14 @@ def main(cfg: DictConfig) -> float:
                                      out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
                                      qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
         save_file_wrapped = os.path.join(save_path, 'wrapped_unet_model.pt')
-        save_file_mdlus = os.path.join(save_path, 'wrapped_unet_model.mdlus')
+        scripted_wrapped_model = torch.jit.script(wrapped_model)
+        scripted_wrapped_model = scripted_wrapped_model.eval()
+        scripted_wrapped_model.save(save_file_wrapped)
+        
+        
+        #save_file_mdlus = os.path.join(save_path, 'wrapped_unet_model.mdlus')
         #wrapped_model.save(save_file_mdlus)# saves joint model mdlus
-        torch.save(wrapped_model, save_file_wrapped)# saves joint model torchscript
+        #torch.save(wrapped_model, save_file_wrapped)# saves joint model torchscript
         
         #got rid of scripting
         #scripted_model_wrapped = torch.jit.script(wrapped_model)

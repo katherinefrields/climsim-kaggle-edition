@@ -160,7 +160,7 @@ class DiffLinear(torch.nn.Module):
             else None
         )
 
-    def forward(self, x: torch.Tensor, emb: torch.Tensor = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, emb: Optional[torch.Tensor] = None) -> torch.Tensor:
         weight = self.weight
         bias = self.bias
         _validate_amp(self.amp_mode)
@@ -1087,7 +1087,7 @@ class DiffAttention(torch.nn.Module):
             **init_zero,
         )
 
-    def forward(self, x: torch.Tensor, emb = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, emb: Optional[torch.Tensor] = None) -> torch.Tensor:
         '''x1: torch.Tensor = self.qkv(self.norm(x))
 
         # # NOTE: V1.0.1 implementation
@@ -1346,7 +1346,7 @@ class DiffUNetBlock(torch.nn.Module):
         # A hook to migrate legacy attention module
         self._register_load_state_dict_pre_hook(self._migrate_attention_module)
 
-    def forward(self, x, emb):
+    def forward(self, x: torch.Tensor, emb: torch.Tensor) -> torch.Tensor:
         #removed by Katherine Frields for git compatability
         '''with (
             nvtx.annotate(message="UNetBlock", color="purple")

@@ -16,7 +16,7 @@ import shutil, glob
 #acct = 'm4334'
 acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4334")
 
-case_prefix = 'test_case_20'
+case_prefix = 'test_case_21'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -89,7 +89,7 @@ outputlength = 368
 cb_nn_var_combo = 'v2'
 input_rh = '.true.'
 cb_spinup_step = 5
-cb_strato_water_constraint = '.false.' # set .true. to use stratospheric water constraint to remove all stratospheric clouds and set dqv/dt in strato to 0
+cb_strato_water_constraint = '.true.' # set .true. to use stratospheric water constraint to remove all stratospheric clouds and set dqv/dt in strato to 0
 cb_partial_coupling = '.false.'
 cb_do_ramp = '.false.'
 cb_ramp_option = 'step'
@@ -105,7 +105,7 @@ if 'MMF_ML_TRAINING' in user_cpp:
 #---------------------------------------------------------------------------------------------------
 print('\n  case : '+case+'\n')
 
-if 'CPU' in arch : max_mpi_per_node,atm_nthrds  =  8,1 ; max_task_per_node = 8
+if 'CPU' in arch : max_mpi_per_node,atm_nthrds  =  64,1 ; max_task_per_node = 64
 if 'GPU' in arch : max_mpi_per_node,atm_nthrds  =  2,8 ; max_task_per_node = 16
 atm_ntasks = max_mpi_per_node*num_nodes
 #---------------------------------------------------------------------------------------------------
@@ -181,13 +181,16 @@ cb_strato_water_constraint = {cb_strato_water_constraint}
 &cam_history_nl
 fincl1 = 'CLDICE', 'CLDLIQ', 'DTPHYS', 'DQ1PHYS', 'DQ2PHYS', 'DQ3PHYS', 'DUPHYS'
 fincl2 = 'PRECT', 'PRECC', 'FLUT', 'CLOUD', 'CLDTOT', 'CLDLOW', 'CLDMED', 'CLDHGH', 'LWCF', 'SWCF', 'LHFLX', 'SHFLX', 'TMQ', 'U850', 'T850', 'Z850', 'U500', 'T500', 'Z500', 'T', 'Q', 'U', 'V', 'CLDICE', 'CLDLIQ', 'DTPHYS', 'DQ1PHYS', 'DQ2PHYS', 'DQ3PHYS', 'DUPHYS'
-avgflag_pertape = 'A','A'
-nhtfrq = 0,-24
-mfilt  = 0,1
+avgflag_pertape = 'A','A','I'
+nhtfrq = 0, 0, 0
+mfilt  = 0,1,1
 /
 
                      ''')
 #---------------------------------------------------------------------------------------------------
+#avgflag_pertape = 'A','A'
+#nhtfrq = 0,-24
+#mfilt  = 0,1
 # Copy source code modification
 if src_mod_atm :
    print('Source code mods')

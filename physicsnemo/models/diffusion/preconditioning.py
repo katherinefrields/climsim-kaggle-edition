@@ -231,7 +231,7 @@ class EDMPrecond(modulus.Module):
 
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
-        if condition != None:
+        if condition is not None:
             #input = torch.cat([arg, condition], dim=1)
             #print(f'conditioning applied in EDMPrecond Forward. Shape: {input.shape}')
             F_x = self.model(
@@ -281,50 +281,33 @@ class EDMPrecond(modulus.Module):
         """
         return torch.as_tensor(sigma)
     
-    def edm_sampler(self, latents, condition_input = None, device = None, randn_like=torch.randn_like,
-                    num_steps=18, sigma_min=0.002, sigma_max=80, rho=7,
-                    S_churn=0, S_min=0, S_max=float('inf'), S_noise=1):
-        # Adjust noise levels based on what's supported by the network.
-        #sigma_min = max(sigma_min, net.sigma_min)
-        #sigma_max = min(sigma_max, net.sigma_max)
-        #fig, ax = plt.subplots(18,1)
+    @torch.jit.export
+    def edm_sampler(self, latents: torch.Tensor, condition_input: torch.Tensor,
+                    num_steps: int = 18, sigma_min: float = 0.002, sigma_max: float = 80,
+                    rho: float = 7, S_churn: float = 0, S_min: float = 0,
+                    S_max: float = float('inf'), S_noise: float = 1) -> torch.Tensor:
+        import math
         # Time step discretization.
-        condition_input=condition_input.to(device)
-        latents=latents.to(device)
         step_indices = torch.arange(num_steps, dtype=torch.float64, device=latents.device)
         t_steps = (sigma_max ** (1 / rho) + step_indices / (num_steps - 1) * (sigma_min ** (1 / rho) - sigma_max ** (1 / rho))) ** rho
         t_steps = torch.cat([self.round_sigma(t_steps), torch.zeros_like(t_steps[:1])]) # t_N = 0
 
         # Main sampling loop.
         x_next = latents.to(torch.float64) * t_steps[0]
-        #x_next = latents.to(torch.float64)
         for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])): # 0, ..., N-1
-            # --- QQ Plot ---
-            #ax[i] = sm.qqplot(x_next[0].flatten().cpu(), line='s') # 's' for standardized line
-            #ax[i].set_title(f"QQ for {i} Step")
-            
-            
             x_cur = x_next
-            
+
             # Increase noise temporarily.
-            gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
+            gamma = min(S_churn / num_steps, math.sqrt(2) - 1) if (S_min <= t_cur) and (t_cur <= S_max) else 0.0
             t_hat = self.round_sigma(t_cur + gamma * t_cur)
-            x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
+            x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * torch.randn_like(x_cur)
 
-            x_hat = x_hat.to(device)
-            t_hat = t_hat.to(device)
             # Euler step.
-
-            #print(f'condition_input shape is {condition_input.shape}')
-            #uses reshaped x_hat
             denoised = self.forward(x_hat, t_hat, condition_input)
-            #print(f'xhat shape is {x_hat.shape}')
-            #print(f'denoised shape is {denoised.shape}')
             denoised.to(torch.float64)
 
-            #This will cause a shaping problem since x_hat_reshaped is in (B C L) and 
             d_cur = (x_hat - denoised) / t_hat
-            x_next = x_hat + (t_next - t_hat) * d_cur # X_hat is in (B C*L)
+            x_next = x_hat + (t_next - t_hat) * d_cur
 
             # Apply 2nd order correction.
             if i < num_steps - 1:
@@ -332,12 +315,7 @@ class EDMPrecond(modulus.Module):
                 denoised.to(torch.float64)
                 d_prime = (x_next - denoised) / t_next
                 x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
-        #plt.show()
-        
-        '''x_next[:, 1, 0:12] = x_next[:, 1,0:12].clone().zero_()
-        x_next[:, 2,0:12] = x_next[:, 2,0:12].clone().zero_()
-        x_next[:, 3,0:12] = x_next[:, 3,0:12].clone().zero_()
-        x_next[:, 4,0:12] = x_next[:, 4,0:12].clone().zero_()'''
+
         return x_next
 
 

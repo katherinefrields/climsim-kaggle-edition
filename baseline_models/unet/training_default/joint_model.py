@@ -142,11 +142,12 @@ class JointModel(modulus.Module):
 
 
         
+        latent_condition = torch.cat((input, condition_output), dim=1)
+        condition_data = latent_condition  # default; overwritten below as needed
         if self.condition_location == 'front':
             if self.condition_type == 'input_output':
-                latent_condition = torch.cat((input, condition_output), dim=1)
                 condition_data = latent_condition
-        if self.condition_location == 'embedding':
+        elif self.condition_location == 'embedding':
             if self.condition_type == 'input_output':
                 latent_condition = torch.cat((input, condition_output), dim=1)
             else:
@@ -158,8 +159,8 @@ class JointModel(modulus.Module):
             condition_data = latent_condition
             #print(latent_condition.shape)
 
-        
-        
+
+
         #condition_data = torch.cat((latent_condition, input), dim=1)
         #normalized_residual = self.reverse_reshape_target(normalized_residual)
         #normalized_residual = self.reshape_target(normalized_residual)
@@ -230,8 +231,13 @@ class JointModel(modulus.Module):
             # Gaussian base noise
             z = torch.randn((B, C, L), device=residual.device)
             nu = torch.tensor([self.nu]).to(residual.device)
-            # One kappa per sample
-            kappa = torch.distributions.Chi2(df=nu).sample((B,)).to(residual.device)
+            # One kappa per sample — Chi2(df=nu) = sum of nu squared standard normals
+            
+            #old, removed by Claude
+            #kappa = torch.distributions.Chi2(df=nu).sample((B,)).to(residual.device)
+
+            nu_int = int(self.nu)
+            kappa = (torch.randn(B, nu_int, device=residual.device) ** 2).sum(dim=1)
             kappa = (kappa / nu).view(B, 1, 1)
 
             # Student‑t noise
@@ -284,24 +290,26 @@ class JointModel(modulus.Module):
         return output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight
 
 
-    def inference(self, input):
+    @torch.jit.export
+    def inference(self, input: torch.Tensor) -> torch.Tensor:
         #output is shape (B, C*L)
         # (B, C*L) --> (B, C, L)
         input = self.reshape_input(input)
-        
+
         #=====Calculate Residual=====
         #output shape is (B, C, L), scalar values are all expanded mean value across levels
         output, latent_output = self.deterministic_model(input)
-        
+
         #======Normalize input and condition data======
         safe_std = torch.clamp(self.res_std, min=1e-2)
         condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
 
+        latent_condition = torch.cat((input, condition_output), dim=1)
+        condition_data = latent_condition  # default; overwritten below as needed
         if self.condition_location == 'front':
             if self.condition_type == 'input_output':
-                latent_condition = torch.cat((input, condition_output), dim=1)
                 condition_data = latent_condition
-        if self.condition_location == 'embedding':
+        elif self.condition_location == 'embedding':
             if self.condition_type == 'input_output':
                 latent_condition = torch.cat((input, condition_output), dim=1)
             else:

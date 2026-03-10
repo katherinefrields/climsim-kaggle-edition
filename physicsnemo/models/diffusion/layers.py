@@ -160,20 +160,23 @@ class DiffLinear(torch.nn.Module):
             else None
         )
 
-    def forward(self, x, emb = None):
-        weight, bias = self.weight, self.bias
+    def forward(self, x: torch.Tensor, emb: torch.Tensor = None) -> torch.Tensor:
+        weight = self.weight
+        bias = self.bias
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
-            if self.weight is not None and self.weight.dtype != x.dtype:
-                weight = self.weight.to(dtype = x.dtype)
-            if self.bias is not None and self.bias.dtype != x.dtype:
-                bias = self.bias.to(dtype =x.dtype)
-                
+            if self.weight is not None:
+                if self.weight.dtype != x.dtype:
+                    weight = self.weight.to(dtype=x.dtype)
+            if self.bias is not None:
+                if self.bias.dtype != x.dtype:
+                    bias = self.bias.to(dtype=x.dtype)
+
         if weight is not None:
             weight = weight.to(device=x.device)
         if bias is not None:
             bias = bias.to(device=x.device)
-        
+
         x = x @ weight.t()
         if self.bias is not None:
             x = x.add_(bias)
@@ -281,19 +284,19 @@ class DiffConv2d(torch.nn.Module):
         f = f.ger(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
         self.register_buffer("resample_filter", f if up or down else None)
 
-    def forward(self, x, emb = None):
+    def forward(self, x: torch.Tensor, emb: Optional[torch.Tensor] = None) -> torch.Tensor:
         weight, bias, resample_filter = self.weight, self.bias, self.resample_filter
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
-            if self.weight is not None and self.weight.dtype != x.dtype:
-                weight = self.weight.to(x.dtype)
-            if self.bias is not None and self.bias.dtype != x.dtype:
-                bias = self.bias.to(x.dtype)
-            if (
-                self.resample_filter is not None
-                and self.resample_filter.dtype != x.dtype
-            ):
-                resample_filter = self.resample_filter.to(x.dtype)
+            if self.weight is not None:
+                if self.weight.dtype != x.dtype:
+                    weight = self.weight.to(x.dtype)
+            if self.bias is not None:
+                if self.bias.dtype != x.dtype:
+                    bias = self.bias.to(x.dtype)
+            if self.resample_filter is not None:
+                if self.resample_filter.dtype != x.dtype:
+                    resample_filter = self.resample_filter.to(x.dtype)
 
         w = weight if weight is not None else None
         b = bias if bias is not None else None
@@ -567,7 +570,7 @@ class DiffConv1d(torch.nn.Module):
         self.register_buffer("resample_filter", f if up or down else None)
         #self.register_buffer("resample_filter", f if up or down else torch.empty(0))# changed by Katherine Frields to enable jit, was None before set alternative resampel to 0 instead of None for the pursposes of jit
 
-    def forward(self, x, emb = None):
+    def forward(self, x: torch.Tensor, emb: Optional[torch.Tensor] = None) -> torch.Tensor:
         weight, bias, resample_filter = self.weight, self.bias, self.resample_filter
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
@@ -869,7 +872,7 @@ class DiffGroupNorm(torch.nn.Module):
         #    self.act_fn = self.get_activation_function()
         self.amp_mode = amp_mode
 
-    def forward(self, x, emb = None):
+    def forward(self, x: torch.Tensor, emb: Optional[torch.Tensor] = None) -> torch.Tensor:
         weight, bias = self.weight, self.bias
         
          # ADDED CODE
@@ -1521,7 +1524,7 @@ class DiffPositionalEmbedding(torch.nn.Module):
         x = torch.cat([x.sin(), x.cos()], dim=1)
         return x
 
-    def forward(self, x, emb = None):
+    def forward(self, x: torch.Tensor, emb: Optional[torch.Tensor] = None) -> torch.Tensor:
         if self.embed_fn == "cos_sin":
             x = self._cos_sin_embedding(x)
         elif self.embed_fn == "np_sin_cos":
@@ -1558,13 +1561,13 @@ class DiffFourierEmbedding(torch.nn.Module):
         self.register_buffer("freqs", torch.randn(num_channels // 2) * scale)
         self.amp_mode = amp_mode
 
-    def forward(self, x, emb= None):
+    def forward(self, x: torch.Tensor, emb: Optional[torch.Tensor] = None) -> torch.Tensor:
         freqs = self.freqs
         _validate_amp(self.amp_mode)
         if not self.amp_mode:
             if x.dtype != self.freqs.dtype:
                 freqs = self.freqs.to(x.dtype)
 
-        x = x.ger((2 * np.pi * freqs))
+        x = x.ger((2 * math.pi * freqs))
         x = torch.cat([x.cos(), x.sin()], dim=1)
         return x

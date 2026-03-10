@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import torch
@@ -374,7 +374,7 @@ class DhariwalUNet(modulus.Module):
         "Should be set to ``True`` to enable automatic mixed precision.",
     )'''
 
-    def forward(self, x, cond, noise_labels, class_labels, augment_labels=None):
+    def forward(self, x: torch.Tensor, cond: torch.Tensor, noise_labels: torch.Tensor, class_labels: Optional[torch.Tensor] = None, augment_labels: Optional[torch.Tensor] = None) -> torch.Tensor:
         # Mapping.
         # Build conditioning pyramid
         
@@ -688,7 +688,7 @@ class DhariwalUNet(Module):
         "Should be set to ``True`` to enable automatic mixed precision.",
     )
 
-    def forward(self, x, noise_labels, class_labels, augment_labels=None):
+    def forward(self, x: torch.Tensor, noise_labels: torch.Tensor, class_labels: Optional[torch.Tensor] = None, augment_labels: Optional[torch.Tensor] = None) -> torch.Tensor:
         # Mapping.
         emb = self.map_noise(noise_labels)
         if self.map_augment is not None and augment_labels is not None:

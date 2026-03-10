@@ -16,7 +16,7 @@ import shutil, glob
 #acct = 'm4334'
 acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4334")
 
-case_prefix = 'test_case_21'
+case_prefix = 'test_case_22'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -55,8 +55,8 @@ debug_mode = False
 
 dtime = 1200 # set to 0 to use a default value 
 
-#stop_opt,stop_n,resub,walltime = 'nmonths',1, 1, '00:30:00'
-stop_opt,stop_n,resub,walltime = 'nmonths',13, 0,'00:10:00'
+stop_opt,stop_n,resub,walltime = 'nmonths',1, 1, '01:00:00'
+#stop_opt,stop_n,resub,walltime = 'nmonths',13, 0,'00:10:00'
 #stop_opt,stop_n,resub,walltime = 'ndays',10, 0,'00:30:00'
 
 ne,npg=4,2;  num_nodes=1  ; grid=f'ne{ne}pg{npg}_ne{ne}pg{npg}'
@@ -181,16 +181,15 @@ cb_strato_water_constraint = {cb_strato_water_constraint}
 &cam_history_nl
 fincl1 = 'CLDICE', 'CLDLIQ', 'DTPHYS', 'DQ1PHYS', 'DQ2PHYS', 'DQ3PHYS', 'DUPHYS'
 fincl2 = 'PRECT', 'PRECC', 'FLUT', 'CLOUD', 'CLDTOT', 'CLDLOW', 'CLDMED', 'CLDHGH', 'LWCF', 'SWCF', 'LHFLX', 'SHFLX', 'TMQ', 'U850', 'T850', 'Z850', 'U500', 'T500', 'Z500', 'T', 'Q', 'U', 'V', 'CLDICE', 'CLDLIQ', 'DTPHYS', 'DQ1PHYS', 'DQ2PHYS', 'DQ3PHYS', 'DUPHYS'
-avgflag_pertape = 'A','A','I'
-nhtfrq = 0, 0, 0
-mfilt  = 0,1,1
+avgflag_pertape = 'A','A'
+nhtfrq = 0,-24
+mfilt  = 0,1
 /
 
                      ''')
+       
+#e3sm.log.260310-061909
 #---------------------------------------------------------------------------------------------------
-#avgflag_pertape = 'A','A'
-#nhtfrq = 0,-24
-#mfilt  = 0,1
 # Copy source code modification
 if src_mod_atm :
    print('Source code mods')

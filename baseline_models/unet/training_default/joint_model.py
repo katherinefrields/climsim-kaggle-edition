@@ -322,7 +322,7 @@ class JointModel(modulus.Module):
             #print(latent_condition.shape)
 
         latents = torch.randn_like(output)
-        res = self.res_model.edm_sampler(latents, condition_input = condition_data, sigma_min=0.1, sigma_max=45, rho = 7, num_steps = 18) #maybe have to remove the last 4 meaningless levels??
+        res = self.res_model.edm_sampler(latents, condition_input = condition_data, sigma_min=0.1, sigma_max=45.0, rho = 7.0, num_steps = 18) #maybe have to remove the last 4 meaningless levels??
             
         denormalized_predicted_residual = (res/.5)*((safe_std+ 1e-8))
         #(B,C,L) --> (B, C*L)

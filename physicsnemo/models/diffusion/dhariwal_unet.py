@@ -332,10 +332,9 @@ class DhariwalUNet(modulus.Module):
                 
         # Cross-attention modules at the same resolutions as self-attention
         # After building self.enc and self.dec
+        self.cross_attn_enc = torch.nn.ModuleDict()
+        self.cross_attn_dec = torch.nn.ModuleDict()
         if condition_location == 'cross':
-            self.cross_attn_enc = torch.nn.ModuleDict()
-            self.cross_attn_dec = torch.nn.ModuleDict()
-
             # encoder cross-attn
             for name, block in self.enc.items():
                 if isinstance(block, DiffUNetBlock):

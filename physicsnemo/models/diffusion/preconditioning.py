@@ -238,12 +238,14 @@ class EDMPrecond(modulus.Module):
             condition,
             c_noise.flatten(),
             class_labels=label,
+            augment_labels = None
             )
         else:
             F_x = self.model(
             arg.to(dtype),
             c_noise.flatten(),
             class_labels=label,
+            augment_labels = None
             )
             
         #=====Predict Noise=====

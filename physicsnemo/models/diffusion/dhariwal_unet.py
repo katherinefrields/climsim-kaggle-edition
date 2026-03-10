@@ -374,7 +374,7 @@ class DhariwalUNet(modulus.Module):
         "Should be set to ``True`` to enable automatic mixed precision.",
     )'''
 
-    def forward(self, x: torch.Tensor, cond: torch.Tensor, noise_labels: torch.Tensor, class_labels: Optional[torch.Tensor] = None, augment_labels: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor,  noise_labels: torch.Tensor, cond: Optional[torch.Tensor], class_labels: Optional[torch.Tensor] = None, augment_labels: Optional[torch.Tensor] = None) -> torch.Tensor:
         # Mapping.
         # Build conditioning pyramid
         

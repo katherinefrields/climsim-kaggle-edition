@@ -22,7 +22,7 @@ import math
 import importlib
 import warnings
 from dataclasses import dataclass
-from typing import Any, List, Literal, Tuple, Union
+from typing import Any, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -183,29 +183,28 @@ class EDMPrecond(modulus.Module):
 
     def forward(
         self,
-        x_n,
-        sigma,
-        condition,
-        class_labels=None,
-        force_fp32=False
-    ):
+        x_n: torch.Tensor,
+        sigma: torch.Tensor,
+        condition: Optional[torch.Tensor] = None,
+        class_labels: Optional[torch.Tensor] = None,
+        force_fp32: bool = False,
+    ) -> torch.Tensor:
         #=====Cast to floats=====
         x_n = x_n.to(torch.float32)
-        
+
         #print(f'noise residual shape: { x.shape}, residual shape: {x.shape}')
         #=====Reshape Input=====
         #levels are without padding
         #currently x(batch, target_profile_num*levels+target_scalar_num)
-        
-            
+
+
         #=====Class Conditioning=====
-        class_labels = (
-            None
-            if self.label_dim == 0
-            else torch.zeros([1, self.label_dim], device=x_n.device)
-            if class_labels is None
-            else class_labels.to(torch.float32).reshape(-1, self.label_dim)
-        )
+        label: Optional[torch.Tensor] = None
+        if self.label_dim != 0:
+            if class_labels is None:
+                label = torch.zeros([1, self.label_dim], device=x_n.device)
+            else:
+                label = class_labels.to(torch.float32).reshape(-1, self.label_dim)
         
         #=====Float use=====
         dtype = (
@@ -238,13 +237,13 @@ class EDMPrecond(modulus.Module):
             arg.to(dtype),
             condition,
             c_noise.flatten(),
-            class_labels=class_labels,
+            class_labels=label,
             )
         else:
             F_x = self.model(
             arg.to(dtype),
             c_noise.flatten(),
-            class_labels=class_labels,
+            class_labels=label,
             )
             
         #=====Predict Noise=====

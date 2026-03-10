@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 import torch
@@ -380,17 +380,17 @@ class DhariwalUNet(modulus.Module):
         
         
         if self.condition_location == 'front':
-            x = torch.cat([x, cond], dim=1)
-            
-        cond_pyr = {}
-        if cond is not None and self.condition_location == 'cross':
+            if cond is not None:
+                x = torch.cat([x, cond], dim=1)
 
-            for res in self.attn_resolutions:   # 32, 16, 8
-                cond_res = torch.nn.functional.interpolate(
-                    cond, size=res, mode="nearest"
-                )
-                cond_pyr[f"{res}"] = cond_res
-
+        cond_pyr: Dict[str, torch.Tensor] = {}
+        if self.condition_location == 'cross':
+            if cond is not None:
+                for res in self.attn_resolutions:   # 32, 16, 8
+                    cond_res = torch.nn.functional.interpolate(
+                        cond, size=res, mode="nearest"
+                    )
+                    cond_pyr[f"{res}"] = cond_res
 
         emb = self.map_noise(noise_labels)
         if self.map_augment is not None and augment_labels is not None:
@@ -398,15 +398,17 @@ class DhariwalUNet(modulus.Module):
         emb = silu(self.map_layer0(emb))
         emb = self.map_layer1(emb)
         # Inject conditioning here
-        if cond is not None and self.condition_location == 'embedding':
-            emb = emb + self.map_cond(cond)
+        if self.condition_location == 'embedding':
+            if cond is not None:
+                emb = emb + self.map_cond(cond)
         if self.map_label is not None:
-            tmp = class_labels
-            if self.training and self.label_dropout:
-                tmp = tmp * (
-                    torch.rand([x.shape[0], 1], device=x.device) >= self.label_dropout
-                ).to(tmp.dtype)
-            emb = emb + self.map_label(tmp)
+            if class_labels is not None:
+                tmp = class_labels
+                if self.training and self.label_dropout:
+                    tmp = tmp * (
+                        torch.rand([x.shape[0], 1], device=x.device) >= self.label_dropout
+                    ).to(tmp.dtype)
+                emb = emb + self.map_label(tmp)
             
         #emb = silu(emb) remove silu so that you can have negative tendencies for conditioning
 

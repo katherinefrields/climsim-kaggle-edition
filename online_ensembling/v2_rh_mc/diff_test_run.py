@@ -16,7 +16,7 @@ import shutil, glob
 #acct = 'm4334'
 acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4334")
 
-case_prefix = '5_hour_online_test'
+case_prefix = '5_hour_online_test_2'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -105,7 +105,7 @@ if 'MMF_ML_TRAINING' in user_cpp:
 #---------------------------------------------------------------------------------------------------
 print('\n  case : '+case+'\n')
 
-if 'CPU' in arch : max_mpi_per_node,atm_nthrds  =  64,1 ; max_task_per_node = 64
+if 'CPU' in arch : max_mpi_per_node,atm_nthrds  =  2,4 ; max_task_per_node = 8
 if 'GPU' in arch : max_mpi_per_node,atm_nthrds  =  2,8 ; max_task_per_node = 16
 atm_ntasks = max_mpi_per_node*num_nodes
 #---------------------------------------------------------------------------------------------------

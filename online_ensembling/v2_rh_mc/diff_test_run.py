@@ -16,7 +16,7 @@ import shutil, glob
 #acct = 'm4334'
 acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4334")
 
-case_prefix = '5_hour_test'
+case_prefix = '5_hour_online_test'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -55,7 +55,7 @@ debug_mode = False
 
 dtime = 1200 # set to 0 to use a default value 
 
-stop_opt,stop_n,resub,walltime = 'nmonths',1, 1, '01:00:00'
+stop_opt,stop_n,resub,walltime = 'nmonths',3, 0, '05:00:00'
 #stop_opt,stop_n,resub,walltime = 'nmonths',13, 0,'00:10:00'
 #stop_opt,stop_n,resub,walltime = 'ndays',10, 0,'00:30:00'
 

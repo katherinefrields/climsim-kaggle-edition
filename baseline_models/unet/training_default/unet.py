@@ -445,7 +445,7 @@ class Unet(modulus.Module):
         return y, condition_output
     
     
-    @torch.jit.export                 
+    @torch.jit.export
     def inference(self, x):
         '''
         x: (batch, input_profile_num*levels+input_scalar_num)
@@ -463,6 +463,20 @@ class Unet(modulus.Module):
         #     x = x.clone()
         #     x[:,-8:-3] = x[:,-8:-3].clone().zero_()
 
+        # split x into x_profile and x_scalar
+        x_profile = x[:,:self.input_profile_num*self.vertical_level_num]
+        x_scalar = x[:,self.input_profile_num*self.vertical_level_num:]
+
+        # reshape x_profile to (batch, input_profile_num, levels)
+        x_profile = x_profile.reshape(-1, self.input_profile_num, self.vertical_level_num)
+        # broadcast x_scalar to (batch, input_scalar_num, levels)
+        x_scalar = x_scalar.unsqueeze(2).expand(-1, -1, self.vertical_level_num)
+
+        # concatenate to (batch, in_channels, levels)
+        x = torch.cat((x_profile, x_scalar), dim=1)
+
+        # pad to seq_resolution
+        x = torch.nn.functional.pad(x, self.input_padding, "constant", 0.0)
 
         # Encoder.
         skips = []
@@ -544,66 +558,32 @@ class Unet(modulus.Module):
         # here x should be (batch, output_channels, seq_resolution)
         # remember that self.input_padding = (seq_resolution-self.vertical_level_num,0)
         x = aux
-        # print('7:', x.shape)
-        #extracts the transformed x_profile and x_scalar from x
-        '''if self.input_padding[1]==0:
+
+        # extract profiles and scalars (removing padding)
+        if self.input_padding[1]==0:
             y_profile = x[:,:self.target_profile_num,self.input_padding[0]:]
             y_scalar = x[:,self.target_profile_num:,self.input_padding[0]:]
         else:
             y_profile = x[:,:self.target_profile_num,self.input_padding[0]:-self.input_padding[1]]
-            y_scalar = x[:,self.target_profile_num:,self.input_padding[0]:-self.input_padding[1]]'''
+            y_scalar = x[:,self.target_profile_num:,self.input_padding[0]:-self.input_padding[1]]
 
-        if self.input_padding[1]==0:
-            #y_profile = x[:,:self.target_profile_num,self.input_padding[0]:]
-            #calculate the mean excluding the padding
-            y_scalar = torch.nn.functional.relu(x[:,self.target_profile_num:,self.input_padding[0]:])
-            y_scalar = y_scalar.mean(dim=2).unsqueeze(2)
-            
-            #expand back to (B, C, L)
-            y_scalar = y_scalar.expand(-1, -1, self.vertical_level_num)
-            
-            #add the padding back to the beginning levels
-            y_scalar = torch.nn.functional.pad(y_scalar, self.input_padding, "constant", 0.0)
-            
-            x[:,self.target_profile_num:,:] = y_scalar
-        else: # might not work????
-            #y_profile = x[:,:self.target_profile_num,self.input_padding[0]:-self.input_padding[1]]
-            y_scalar = torch.nn.functional.relu(x[:,self.target_profile_num:,self.input_padding[0]:-self.input_padding[1]])
-            y_scalar = y_scalar.mean(dim=2).unsqueeze(2)
-            y_scalar = y_scalar.repeat(-1, -1, self.vertical_level_num)
-            
-            y_scalar = torch.nn.functional.pad(y_scalar, self.input_padding, "constant", 0.0)
-            
-            x[:,self.target_profile_num:,:] = y_scalar
-            
-            
-        #take relu on y_scalar
-        #y_scalar = torch.nn.functional.relu(y_scalar)
-        #reshape y_profile to (batch, target_profile_num*levels)
-        #y_profile = y_profile.reshape(-1, self.target_profile_num*self.vertical_level_num)
+        # relu on scalars, flatten profiles, average scalars
+        y_scalar = torch.nn.functional.relu(y_scalar)
+        y_scalar = y_scalar.mean(dim=2)
+        y_profile = y_profile.reshape(-1, self.target_profile_num*self.vertical_level_num)
+       
 
-        #average y_scalar for the lev dimension to (batch, target_scalar_num)
-        #take the average scalar over the levels
-        #y_scalar = y_scalar.mean(dim=2)
-        # print('7.5:', y_profile.shape, y_scalar.shape)
+        # concatenate to flat (batch, target_profile_num*levels + target_scalar_num)
+        y = torch.cat((y_profile, y_scalar), dim=1)
 
-        #concatenate y_profile and y_scalar to (batch, target_profile_num*levels+target_scalar_num)
-        #y = torch.cat((y_profile, y_scalar), dim=1)
-
-        #prunes the stratosphere values
+        # prune stratosphere values
         if self.output_prune:
-            y = x.clone()
-            y[:, 1, :self.strato_lev_out] = y[:, 1, :self.strato_lev_out].clone().zero_()
-            y[:, 2, :self.strato_lev_out] = y[:, 2, :self.strato_lev_out].clone().zero_()
-            y[:, 3, :self.strato_lev_out] = y[:, 3, :self.strato_lev_out].clone().zero_()
-            y[:, 4, :self.strato_lev_out] = y[:, 4, :self.strato_lev_out].clone().zero_()
-            
-        else:
-            y = x.clone()
-            #y[:, 60:60+self.strato_lev_out] = y[:, 60:60+self.strato_lev_out].clone().zero_()
-            #y[:, 120:120+self.strato_lev_out] = y[:, 120:120+self.strato_lev_out].clone().zero_()
-            #y[:, 180:180+self.strato_lev_out] = y[:, 180:180+self.strato_lev_out].clone().zero_()
-            #y[:, 240:240+self.strato_lev_out] = y[:, 240:240+self.strato_lev_out].clone().zero_()
+            y = y.clone()
+            y[:, 60:60+self.strato_lev_out] = y[:, 60:60+self.strato_lev_out].clone().zero_()
+            y[:, 120:120+self.strato_lev_out] = y[:, 120:120+self.strato_lev_out].clone().zero_()
+            y[:, 180:180+self.strato_lev_out] = y[:, 180:180+self.strato_lev_out].clone().zero_()
+            y[:, 240:240+self.strato_lev_out] = y[:, 240:240+self.strato_lev_out].clone().zero_()
+
         return y
     
     

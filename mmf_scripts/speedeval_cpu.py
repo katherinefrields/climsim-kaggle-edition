@@ -143,23 +143,6 @@ state_debug_checks = .true.
 do_aerosol_rad = .false.
 /
 
-&mmf_nn_emulator_nl
-inputlength     = 557
-outputlength    = 368
-cb_nn_var_combo = 'v2'
-input_rh        = .true.
-cb_torch_model  = '{f_torch_model}'
-cb_spinup_step = {cb_spinup_step}
-cb_partial_coupling = .false.
-cb_partial_coupling_vars = 'ptend_t', 'ptend_q0001','ptend_q0002','ptend_q0003', 'ptend_u', 'ptend_v', 'cam_out_PRECC', 'cam_out_PRECSC', 'cam_out_NETSW', 'cam_out_FLWDS', 'cam_out_SOLS', 'cam_out_SOLL', 'cam_out_SOLSD', 'cam_out_SOLLD' 
-cb_do_ramp = {f_cb_do_ramp}
-cb_ramp_option = '{f_cb_ramp_option}'
-cb_ramp_factor = {cb_ramp_factor}
-cb_ramp_step_0steps = {cb_ramp_step_0steps}
-cb_ramp_step_1steps = {cb_ramp_step_1steps}
-cb_strato_water_constraint = {f_cb_strato_water_constraint}
-/
-
 &cam_history_nl
 fincl1 = 'CLDICE', 'CLDLIQ'
 fincl2 = 'PRECT', 'PRECC', 'FLUT', 'CLOUD', 'CLDTOT', 'CLDLOW', 'CLDMED', 'CLDHGH', 'LWCF', 'SWCF', 'LHFLX', 'SHFLX', 'TMQ', 'U850', 'T850', 'Z850', 'U500', 'T500', 'Z500', 'T', 'Q', 'U', 'V', 'PS', 'CLDICE', 'CLDLIQ'
@@ -182,8 +165,8 @@ if src_mod_atm :
 if config :
    cpp_defs = ''
    cpp_defs += ' '+user_cpp+' '
-   if cpp_defs != '':
-      run_cmd(f'./xmlchange --append --id CAM_CONFIG_OPTS --val \" -cppdefs \' {cpp_defs} \'  \"')
+   
+   run_cmd(f'./xmlchange --append --id CAM_CONFIG_OPTS --val \" -cppdefs \' {cpp_defs} \'  \"')
    # for ClimSim's modified namelist_definition.xml
    if src_mod_atm :
       run_cmd(f'./xmlchange --append --id CAM_CONFIG_OPTS --val \" -usr_src {dir_src_mod} \"')

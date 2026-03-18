@@ -445,6 +445,166 @@ class Unet(modulus.Module):
         return y, condition_output
     
     
+    @torch.jit.export                 
+    def inference(self, x):
+        '''
+        x: (batch, input_profile_num*levels+input_scalar_num)
+        # x_profile: (batch, input_profile_num, levels)
+        # x_scalar: (batch, input_scalar_num)
+        '''
+
+        # if self.qinput_prune:
+        #     x = x.clone()  # Clone the tensor to ensure you're not modifying the original tensor in-place
+        #     x[:, 60:60+self.strato_lev] = x[:, 60:60+self.strato_lev].clone().zero_()  # Set stratosphere q1 to 0
+        #     x[:, 120:120+self.strato_lev] = x[:, 120:120+self.strato_lev].clone().zero_()  # Set stratosphere q2 to 0
+        #     x[:, 180:180+self.strato_lev] = x[:, 180:180+self.strato_lev].clone().zero_()  # Set stratosphere q3 to 0
+
+        # if not self.prev_2d:
+        #     x = x.clone()
+        #     x[:,-8:-3] = x[:,-8:-3].clone().zero_()
+
+
+        # Encoder.
+        skips = []
+        aux = x
+        #loops through all the values in the encoder dictionary
+        for name, block in self.enc.items():
+            #runs the data through the proper block
+            # since we are using a standard encoder, there are no aux blocks in the encoder
+            if "aux_down" in name:
+                aux = block(aux)
+            elif "aux_skip" in name:
+                #replaces the last skip block
+                x = skips[-1] = x + block(aux)
+            elif "aux_residual" in name:
+                #replaces the last skip block and updates the current block
+                x = skips[-1] = aux = (x + block(aux)) / 2**0.5
+            else:
+                # x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
+                x = block(x)
+                skips.append(x)
+            if torch.isnan(x).any():
+                print(f"NaN detected after layer {name} in encoder")
+
+        new_skips = []
+        #for x_tmp, conv_tmp in zip(skips, self.skip_conv_layer):
+        #     x_tmp = conv_tmp(x_tmp)
+        #     new_skips.append(x_tmp)
+
+        #enumerates through the skip layers
+        #self.skip_conv_layer is a list of our skip layers
+        for idx, conv_tmp in enumerate(self.skip_conv_layer):
+            #runs the data at the corresponding x layer through our skip layer
+            x_tmp = conv_tmp(skips[idx])
+            new_skips.append(x_tmp)
+
+        #Decoder
+
+        aux = None
+        tmp = None
+
+        #loops through all the decoder layers
+        for name, block in self.dec.items():
+            # print(name)
+            # if "aux" not in name:
+            #if this is true, then its because its a skip layer and we need to concatenate the skip layer with the current x layer
+            if x.shape[1] != block.in_channels:
+                # skip_ind = len(skips) - 1
+                # skip_conv = self.skip_conv_layer[skip_ind]
+                x = torch.cat([x, new_skips.pop()], dim=1)
+            # x = block(x, emb)
+
+            #we run our data through our block
+            x = block(x)
+            # else:
+            #     # if "aux_up" in name:
+            #     #     aux = block(aux)
+            #     if "aux_conv" in name:
+            #         tmp = block(silu(tmp))
+            #         aux = tmp if aux is None else tmp + aux
+            #     elif "aux_norm" in name:
+            #         tmp = block(x)
+            if torch.isnan(x).any():
+                print(f"NaN detected after layer {name} in decoder")
+
+        #runs our data through the normalization and convolutional layers at the very end
+        for name, block in self.dec_aux_norm.items():
+            tmp = block(x)
+            condition_output = tmp.detach().clone()
+            if torch.isnan(tmp).any():
+                print(f"NaN detected after layer {name} in dec_aux_norm")
+
+        #since we are running a standard decoder, there are no aux blocks so aux is None
+        for name, block in self.dec_aux_conv.items():
+            tmp = block(silu(tmp))
+            aux = tmp if aux is None else tmp + aux
+            if torch.isnan(aux).any():
+                print(f"NaN detected after layer {name} in dec_aux_conv")
+
+        # here x should be (batch, output_channels, seq_resolution)
+        # remember that self.input_padding = (seq_resolution-self.vertical_level_num,0)
+        x = aux
+        # print('7:', x.shape)
+        #extracts the transformed x_profile and x_scalar from x
+        '''if self.input_padding[1]==0:
+            y_profile = x[:,:self.target_profile_num,self.input_padding[0]:]
+            y_scalar = x[:,self.target_profile_num:,self.input_padding[0]:]
+        else:
+            y_profile = x[:,:self.target_profile_num,self.input_padding[0]:-self.input_padding[1]]
+            y_scalar = x[:,self.target_profile_num:,self.input_padding[0]:-self.input_padding[1]]'''
+
+        if self.input_padding[1]==0:
+            #y_profile = x[:,:self.target_profile_num,self.input_padding[0]:]
+            #calculate the mean excluding the padding
+            y_scalar = torch.nn.functional.relu(x[:,self.target_profile_num:,self.input_padding[0]:])
+            y_scalar = y_scalar.mean(dim=2).unsqueeze(2)
+            
+            #expand back to (B, C, L)
+            y_scalar = y_scalar.expand(-1, -1, self.vertical_level_num)
+            
+            #add the padding back to the beginning levels
+            y_scalar = torch.nn.functional.pad(y_scalar, self.input_padding, "constant", 0.0)
+            
+            x[:,self.target_profile_num:,:] = y_scalar
+        else: # might not work????
+            #y_profile = x[:,:self.target_profile_num,self.input_padding[0]:-self.input_padding[1]]
+            y_scalar = torch.nn.functional.relu(x[:,self.target_profile_num:,self.input_padding[0]:-self.input_padding[1]])
+            y_scalar = y_scalar.mean(dim=2).unsqueeze(2)
+            y_scalar = y_scalar.repeat(-1, -1, self.vertical_level_num)
+            
+            y_scalar = torch.nn.functional.pad(y_scalar, self.input_padding, "constant", 0.0)
+            
+            x[:,self.target_profile_num:,:] = y_scalar
+            
+            
+        #take relu on y_scalar
+        #y_scalar = torch.nn.functional.relu(y_scalar)
+        #reshape y_profile to (batch, target_profile_num*levels)
+        #y_profile = y_profile.reshape(-1, self.target_profile_num*self.vertical_level_num)
+
+        #average y_scalar for the lev dimension to (batch, target_scalar_num)
+        #take the average scalar over the levels
+        #y_scalar = y_scalar.mean(dim=2)
+        # print('7.5:', y_profile.shape, y_scalar.shape)
+
+        #concatenate y_profile and y_scalar to (batch, target_profile_num*levels+target_scalar_num)
+        #y = torch.cat((y_profile, y_scalar), dim=1)
+
+        #prunes the stratosphere values
+        if self.output_prune:
+            y = x.clone()
+            y[:, 1, :self.strato_lev_out] = y[:, 1, :self.strato_lev_out].clone().zero_()
+            y[:, 2, :self.strato_lev_out] = y[:, 2, :self.strato_lev_out].clone().zero_()
+            y[:, 3, :self.strato_lev_out] = y[:, 3, :self.strato_lev_out].clone().zero_()
+            y[:, 4, :self.strato_lev_out] = y[:, 4, :self.strato_lev_out].clone().zero_()
+            
+        else:
+            y = x.clone()
+            #y[:, 60:60+self.strato_lev_out] = y[:, 60:60+self.strato_lev_out].clone().zero_()
+            #y[:, 120:120+self.strato_lev_out] = y[:, 120:120+self.strato_lev_out].clone().zero_()
+            #y[:, 180:180+self.strato_lev_out] = y[:, 180:180+self.strato_lev_out].clone().zero_()
+            #y[:, 240:240+self.strato_lev_out] = y[:, 240:240+self.strato_lev_out].clone().zero_()
+        return y, condition_output
     
     
     

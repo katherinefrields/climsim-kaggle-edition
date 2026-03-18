@@ -824,17 +824,29 @@ def main(cfg: DictConfig) -> float:
         
     
         
-        # wrap model
-        joint_inf = joint_inf.to(device)  # ensure joint_inf is on CPU before scripting
-        wrapped_model = WrappedModel(original_model = joint_inf,
+        # wrap unet-only model
+        model_inf = model_inf.to(device)
+        wrapped_unet = WrappedModel(original_model = model_inf,
+                                    input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
+                                    input_div = torch.tensor(input_div, dtype=torch.float32).to(device),
+                                    out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
+                                    qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
+        save_file_wrapped_unet = os.path.join(save_path, 'wrapped_unet_model.pt')
+        scripted_wrapped_unet = torch.jit.script(wrapped_unet)
+        scripted_wrapped_unet = scripted_wrapped_unet.eval()
+        scripted_wrapped_unet.save(save_file_wrapped_unet)
+
+        # wrap joint model (unet + diffusion)
+        joint_inf = joint_inf.to(device)
+        wrapped_joint = WrappedModel(original_model = joint_inf,
                                      input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
                                      input_div = torch.tensor(input_div, dtype=torch.float32).to(device),
                                      out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
                                      qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
-        save_file_wrapped = os.path.join(save_path, 'wrapped_unet_model.pt')
-        scripted_wrapped_model = torch.jit.script(wrapped_model)
-        scripted_wrapped_model = scripted_wrapped_model.eval()
-        scripted_wrapped_model.save(save_file_wrapped)
+        save_file_wrapped_joint = os.path.join(save_path, 'wrapped_joint_model.pt')
+        scripted_wrapped_joint = torch.jit.script(wrapped_joint)
+        scripted_wrapped_joint = scripted_wrapped_joint.eval()
+        scripted_wrapped_joint.save(save_file_wrapped_joint)
         
         
         #save_file_mdlus = os.path.join(save_path, 'wrapped_unet_model.mdlus')
@@ -866,16 +878,25 @@ def main(cfg: DictConfig) -> float:
                 scripted_model.save(save_path_torch)
                 print('save path for ckpt torchscript:', save_path_torch)
                 
-                # wrap model
-                
-                wrapped_model = WrappedModel(original_model = joint_inf,
-                                            input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
-                                            input_div = torch.tensor(input_div, dtype=torch.float32).to(device),
-                                            out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
-                                            qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
-                save_path_wrapped = os.path.join(wrapped_directory, filename.replace('.mdlus', '_wrapped.pt'))
-                scripted_wrapped_model = torch.jit.script(wrapped_model)
-                scripted_wrapped_model.save(save_path_wrapped)
+                # wrap unet-only checkpoint
+                wrapped_unet_ckpt = WrappedModel(original_model = model_inf,
+                                                 input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
+                                                 input_div = torch.tensor(input_div, dtype=torch.float32).to(device),
+                                                 out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
+                                                 qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
+                save_path_wrapped_unet = os.path.join(wrapped_directory, filename.replace('.mdlus', '_unet_wrapped.pt'))
+                scripted_wrapped_unet_ckpt = torch.jit.script(wrapped_unet_ckpt)
+                scripted_wrapped_unet_ckpt.save(save_path_wrapped_unet)
+
+                # wrap joint checkpoint
+                wrapped_joint_ckpt = WrappedModel(original_model = joint_inf,
+                                                  input_sub = torch.tensor(input_sub, dtype=torch.float32).to(device),
+                                                  input_div = torch.tensor(input_div, dtype=torch.float32).to(device),
+                                                  out_scale = torch.tensor(out_scale, dtype=torch.float32).to(device),
+                                                  qn_lbd = torch.tensor(qn_lbd, dtype=torch.float32).to(device)).to(device)
+                save_path_wrapped_joint = os.path.join(wrapped_directory, filename.replace('.mdlus', '_joint_wrapped.pt'))
+                scripted_wrapped_joint_ckpt = torch.jit.script(wrapped_joint_ckpt)
+                scripted_wrapped_joint_ckpt.save(save_path_wrapped_joint)
                 
                 '''for name, module in joint_inf.named_modules():
                     try:

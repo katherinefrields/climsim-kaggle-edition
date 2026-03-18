@@ -81,7 +81,7 @@ if debug_mode: case_list.append('debug')
 case='.'.join(case_list)
 #---------------------------------------f------------------------------------------------------------
 # MMF_NN_EMULATOR
-torch_model = '/storage/shared_e3sm/saved_models/wrapper/wrapped_unet_model.pt'
+torch_model = ''
 
 #torch_model = '/scratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/wrap_testing/wrapped_unet_model.pt'
 #torch_model = '/storage/hugging/E3SM-MMF_saved_models/diffusion_models/wrap_testing/wrapped_unet_model.pt'

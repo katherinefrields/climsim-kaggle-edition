@@ -16,7 +16,7 @@ import shutil, glob
 #acct = 'm4334'
 acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4334")
 
-case_prefix = 'new_mmf_test_run_4'
+case_prefix = 'new_mmf_no_stratosphere'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -55,9 +55,9 @@ debug_mode = False
 
 dtime = 1200 # set to 0 to use a default value 
 
-stop_opt,stop_n,resub,walltime = 'nmonths',3, 0, '05:00:00'
+#stop_opt,stop_n,resub,walltime = 'nmonths',3, 0, '05:00:00'
 #stop_opt,stop_n,resub,walltime = 'nmonths',13, 0,'00:10:00'
-#stop_opt,stop_n,resub,walltime = 'ndays',10, 0,'00:30:00'
+stop_opt,stop_n,resub,walltime = 'ndays',3, 0,'00:30:00'
 
 ne,npg=4,2;  num_nodes=1  ; grid=f'ne{ne}pg{npg}_ne{ne}pg{npg}'
 # ne,npg=30,2; num_nodes=32 ; grid=f'ne{ne}pg{npg}_ne{ne}pg{npg}'
@@ -89,7 +89,7 @@ outputlength = 368
 cb_nn_var_combo = 'v2'
 input_rh = '.true.'
 cb_spinup_step = 5
-cb_strato_water_constraint = '.false.' # set .true. to use stratospheric water constraint to remove all stratospheric clouds and set dqv/dt in strato to 0
+cb_strato_water_constraint = '.true.' # set .true. to use stratospheric water constraint to remove all stratospheric clouds and set dqv/dt in strato to 0
 cb_partial_coupling = '.false.'
 cb_do_ramp = '.false.'
 cb_ramp_option = 'step'

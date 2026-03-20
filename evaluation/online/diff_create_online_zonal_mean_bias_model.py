@@ -51,6 +51,9 @@ data_v2_rh_mc.set_to_v2_rh_mc_vars()
 
 actual_input_v2_rh_mc = np.load('/pscratch/sd/j/jerrylin/hugging/E3SM-MMF_ne4/preprocessing/v2_rh_mc/scoring_set/scoring_input.npy')
 actual_target_v2_rh_mc = np.load('/pscratch/sd/j/jerrylin/hugging/E3SM-MMF_ne4/preprocessing/v2_rh_mc/scoring_set/scoring_target.npy')
+ncol = grid_area.shape[0]
+actual_input_v2_rh_mc = actual_input_v2_rh_mc.reshape(-1, ncol, actual_input_v2_rh_mc.shape[-1])
+actual_target_v2_rh_mc = actual_target_v2_rh_mc.reshape(-1, ncol, actual_target_v2_rh_mc.shape[-1])
 
 
 actual_target = np.load('/pscratch/sd/j/jerrylin/hugging/E3SM-MMF_ne4/preprocessing/v2_rh_mc/scoring_set/scoring_target.npy')

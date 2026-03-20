@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 import xarray as xr
 import numpy as np
-import pandas as pd
-from sklearn.metrics import r2_score
+#import pandas as pd
+#from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-from matplotlib.cm import ScalarMappable
-from matplotlib import gridspec
-import os, gc, sys, glob, string, argparse
+#import matplotlib.ticker as ticker
+#from matplotlib.cm import ScalarMappable
+#from matplotlib import gridspec
+import os,  glob, string #argparse, gc, sys
 from tqdm import tqdm
-import time
-import itertools
-import sys
-import pickle
-import cartopy
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
+#import time
+#import itertools
+#import sys
+#import pickle
+#import cartopy
+#import cartopy.crs as ccrs
+#import cartopy.feature as cfeature
 from climsim_utils.data_utils import *
 
 grid_path = '/global/cfs/cdirs/m4334/jerry/climsim3_dev/grid_info/ClimSim_low-res_grid-info.nc'
@@ -359,7 +359,7 @@ def plot_single_run_zonal_mean(run_dir, var, run_name=None, ref_ds=None, show=Tr
 
     fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)
     im = plot_data.plot(ax=ax, add_colorbar=False, cmap=cmap, vmin=vmin, vmax=vmax)
-    fig.colorbar(im, ax=ax, label='{} ({})'.format(settings['var_title'], settings['unit']))
+    fig.colorbar(im, ax=ax, label=f"{settings['var_title']} ({settings['unit']})")
     ax.invert_yaxis()
     ax.set_xlabel('Latitude')
     ax.set_ylabel('Hybrid pressure (hPa)')
@@ -373,13 +373,13 @@ def plot_single_run_zonal_mean(run_dir, var, run_name=None, ref_ds=None, show=Tr
         ax.plot(lat_bin_mids, idx_tropopause_zm, 'k--', label='Tropopause')
         ax.legend(fontsize=8)
 
-    plt.suptitle('{}\n{} {}'.format(run_name, settings['var_title'], title_suffix), fontsize=12)
+    plt.suptitle(f"{run_name}\n{settings['var_title']} {title_suffix}", fontsize=12)
 
     if save_path:
         os.makedirs(save_path, exist_ok=True)
-        fname = 'zonal_mean_{}_{}.png'.format(var, run_name)
+        fname = f'zonal_mean_{var}_{run_name}.png'
         plt.savefig(os.path.join(save_path, fname), dpi=150, bbox_inches='tight')
-        print('Saved: {}'.format(fname))
+        print(f'Saved: {fname}')
     if show:
         plt.show()
     else:

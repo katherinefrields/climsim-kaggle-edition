@@ -13,6 +13,8 @@
 #SBATCH --output=out_%j.out
 #SBATCH --error=eo_%j.err
 
+module load conda
+conda activate myenv
 
 
 python diff_create_online_zonal_mean_bias_model.py

@@ -219,7 +219,7 @@ def read_new_mmf_h1_data(run_dir, num_days=None):
     """
     h1_files = sorted(glob.glob(os.path.join(run_dir, '*.eam.h1.*.nc')))
     if len(h1_files) == 0:
-        print(f'No h1 files found in {run_dir}')
+        print('No h1 files found in {}'.format(run_dir))
         return None
     if num_days is not None:
         h1_files = h1_files[:num_days]
@@ -233,7 +233,7 @@ def read_nn_online_data(model_name):
     run_dir = online_paths[model_name]
     h1_files = sorted(glob.glob(os.path.join(run_dir, '*.eam.h1.*.nc')))
     if len(h1_files) == 0:
-        print(f'No h1 files found for {model_name} at {run_dir}')
+        print('No h1 files found for {} at {}'.format(model_name, run_dir))
         return None
     ds_nn = xr.open_mfdataset(h1_files)
     ds_nn['DQnPHYS'] = ds_nn['DQ2PHYS'] + ds_nn['DQ3PHYS']
@@ -271,21 +271,21 @@ def get_pressure_area_weights(ds, surface_type = None):
 
 def plot_online_zonal_mean_bias_model_comparison(var, ds_mmf, ds_nn, num_days, show=True, save_path=None):
     fig, axs = plt.subplots(1, 2, figsize=(8.5, 4), constrained_layout=True)
-    labels = [f"({letter})" for letter in string.ascii_lowercase[:2]]
+    labels = ['({})'.format(letter) for letter in string.ascii_lowercase[:2]]
     latitude_ticks = [-60, -30, 0, 30, 60]
     latitude_labels = ['60S', '30S', '0', '30N', '60N']
 
     zonal_mean_bias = {model: online_var_settings[var]['scaling'] * (online_area_time_mean_3d(ds_nn[model], var) - online_area_time_mean_3d(ds_mmf, var)) for model in model_names}
 
     joint_bias = zonal_mean_bias['joint'].plot(ax=axs[0], add_colorbar=False, cmap='RdBu_r', vmin=online_var_settings[var]['vmin'], vmax=online_var_settings[var]['vmax'])
-    axs[0].set_title(f"{labels[0]} {model_names['joint']}")
+    axs[0].set_title('{} {}'.format(labels[0], model_names['joint']))
     axs[0].invert_yaxis()
     axs[0].set_xlabel('Latitude')
     axs[0].set_ylabel("Hybrid pressure (hPa)")
     fig.colorbar(joint_bias, ax=axs[0])
 
     unet_bias = zonal_mean_bias['unet'].plot(ax=axs[1], add_colorbar=False, cmap='RdBu_r', vmin=online_var_settings[var]['vmin'], vmax=online_var_settings[var]['vmax'])
-    axs[1].set_title(f"{labels[1]} {model_names['unet']}")
+    axs[1].set_title('{} {}'.format(labels[1], model_names['unet']))
     axs[1].invert_yaxis()
     axs[1].set_xlabel('Latitude')
     axs[1].set_ylabel('')
@@ -299,11 +299,11 @@ def plot_online_zonal_mean_bias_model_comparison(var, ds_mmf, ds_nn, num_days, s
         ax.set_xticks(latitude_ticks)
         ax.set_xticklabels(latitude_labels)
 
-    plt.suptitle(f"{num_days}-day {online_var_settings[var]['var_title']} ({online_var_settings[var]['unit']}) zonal mean bias (Joint & U-Net vs MMF)", fontsize=14)
+    plt.suptitle('{}-day {} ({}) zonal mean bias (Joint & U-Net vs MMF)'.format(num_days, online_var_settings[var]['var_title'], online_var_settings[var]['unit']), fontsize=14)
 
     if save_path:
         os.makedirs(save_path, exist_ok=True)
-        plt.savefig(os.path.join(save_path, f'online_{num_days}_day_zonal_mean_{var}_bias_model_comparison.png'), dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(save_path, 'online_{}_day_zonal_mean_{}_bias_model_comparison.png'.format(num_days, var)), dpi=300, bbox_inches='tight')
     if show:
         plt.show()
     else:
@@ -335,7 +335,7 @@ def plot_single_run_zonal_mean(run_dir, var, run_name=None, ref_ds=None, show=Tr
 
     h1_files = sorted(glob.glob(os.path.join(run_dir, '*.eam.h1.*.nc')))
     if len(h1_files) == 0:
-        print(f'No h1 files found in {run_dir}')
+        print('No h1 files found in {}'.format(run_dir))
         return
     ds_run = xr.open_mfdataset(h1_files)
     ds_run['DQnPHYS'] = ds_run['DQ2PHYS'] + ds_run['DQ3PHYS']
@@ -350,16 +350,16 @@ def plot_single_run_zonal_mean(run_dir, var, run_name=None, ref_ds=None, show=Tr
         plot_data = settings['scaling'] * (run_mean - ref_mean)
         cmap = 'RdBu_r'
         vmin, vmax = settings['vmin'], settings['vmax']
-        title_suffix = f'Bias vs. Reference ({n_days}-day mean)'
+        title_suffix = 'Bias vs. Reference ({}-day mean)'.format(n_days)
     else:
         plot_data = settings['scaling'] * h1_zonal_time_mean(ds_run, var)
         cmap = 'viridis'
         vmin, vmax = None, None
-        title_suffix = f'Zonal Mean ({n_days}-day mean)'
+        title_suffix = 'Zonal Mean ({}-day mean)'.format(n_days)
 
     fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)
     im = plot_data.plot(ax=ax, add_colorbar=False, cmap=cmap, vmin=vmin, vmax=vmax)
-    fig.colorbar(im, ax=ax, label=f"{settings['var_title']} ({settings['unit']})")
+    fig.colorbar(im, ax=ax, label='{} ({})'.format(settings['var_title'], settings['unit']))
     ax.invert_yaxis()
     ax.set_xlabel('Latitude')
     ax.set_ylabel('Hybrid pressure (hPa)')
@@ -373,13 +373,13 @@ def plot_single_run_zonal_mean(run_dir, var, run_name=None, ref_ds=None, show=Tr
         ax.plot(lat_bin_mids, idx_tropopause_zm, 'k--', label='Tropopause')
         ax.legend(fontsize=8)
 
-    plt.suptitle(f"{run_name}\n{settings['var_title']} {title_suffix}", fontsize=12)
+    plt.suptitle('{}\n{} {}'.format(run_name, settings['var_title'], title_suffix), fontsize=12)
 
     if save_path:
         os.makedirs(save_path, exist_ok=True)
-        fname = f'zonal_mean_{var}_{run_name}.png'
+        fname = 'zonal_mean_{}_{}.png'.format(var, run_name)
         plt.savefig(os.path.join(save_path, fname), dpi=150, bbox_inches='tight')
-        print(f'Saved: {fname}')
+        print('Saved: {}'.format(fname))
     if show:
         plt.show()
     else:

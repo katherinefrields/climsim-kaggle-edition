@@ -324,11 +324,8 @@ def h1_zonal_time_mean(ds_run, var):
                         dims=['hybrid pressure (hPa)', 'latitude'],
                         coords={'hybrid pressure (hPa)': level, 'latitude': lat_bin_mids})
 
-def compute_r2_zonal(ds_run, ds_ref, var):
-    """Compute R² at each (lat_bin, lev) grid point across time.
-
-    R² is computed on the area-weighted zonal-mean time series at each
-    (lat_bin, lev) point: R² = 1 - SS_res / SS_tot.
+def compute_rmse_zonal(ds_run, ds_ref, var, scaling=1.0):
+    """Compute RMSE per column then take the area-weighted zonal average.
 
     Returns an xr.DataArray with dims ('hybrid pressure (hPa)', 'latitude').
     """
@@ -337,30 +334,18 @@ def compute_r2_zonal(ds_run, ds_ref, var):
     y_pred = np.transpose(ds_run[var].values[1:n_time + 1], (0, 2, 1))  # (time, ncol, lev)
     y_true = np.transpose(ds_ref[var].values[1:n_time + 1], (0, 2, 1))  # (time, ncol, lev)
 
-    
-    
+    rmse = scaling * np.sqrt(np.mean((y_true - y_pred) ** 2, axis=0))  # (ncol, lev)
 
-    #pred_zm = data_v2_rh_mc.zonal_bin_weight_3d(y_pred)  # (time, n_lat_bins, lev)
-    #true_zm = data_v2_rh_mc.zonal_bin_weight_3d(y_true)
+    # area-weighted zonal average of per-column RMSE -> (n_lat_bins, lev)
+    rmse_zm = data_v2_rh_mc.zonal_bin_weight_3d(rmse[np.newaxis])[0]
 
-    #ss_res = np.sum((true_zm - pred_zm) ** 2, axis=0)
-    #ss_tot = np.sum((true_zm - true_zm.mean(axis=0, keepdims=True)) ** 2, axis=0)
-
-    ss_res = np.sum((y_true - y_pred) ** 2, axis=0)
-    ss_tot = np.sum((y_true - y_true.mean(axis=0, keepdims=True)) ** 2, axis=0)
-    
-    r2 = 1.0 - ss_res / (ss_tot + 1e-30)  # (ncol, lev)
-
-    # area-weighted zonal average of per-column R² values -> (n_lat_bins, lev)
-    r2_zm = data_v2_rh_mc.zonal_bin_weight_3d(r2[np.newaxis])[0]
-
-    return xr.DataArray(r2_zm.T,
+    return xr.DataArray(rmse_zm.T,
                         dims=['hybrid pressure (hPa)', 'latitude'],
                         coords={'hybrid pressure (hPa)': level, 'latitude': lat_bin_mids})
 
 
 def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, save_path=None):
-    """Plot R² (joint vs unet vs MMF reference) as a grid: one row per variable, two columns.
+    """Plot RMSE (unet vs MMF) and (joint-unet)/unet prediction ratio as a grid: one row per variable, two columns.
 
     Args:
         ds_mmf:        Reference MMF xarray Dataset.
@@ -386,19 +371,19 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
     for row_idx, var in enumerate(vars_to_plot):
         settings = online_var_settings[var]
 
-        r2_unet = compute_r2_zonal(ds_nn['unet'], ds_mmf, var)
+        rmse_unet = compute_rmse_zonal(ds_nn['unet'], ds_mmf, var, scaling=settings['scaling'])
 
         # zonal time-mean of the actual predictions for each model
         zm_joint = online_area_time_mean_3d(ds_nn['joint'], var)
         zm_unet  = online_area_time_mean_3d(ds_nn['unet'],  var)
         pred_ratio = (zm_joint.values - zm_unet.values) / (zm_unet.values + 1e-30)
-        pred_ratio_da = xr.DataArray(pred_ratio, dims=r2_unet.dims, coords=r2_unet.coords)
+        pred_ratio_da = xr.DataArray(pred_ratio, dims=rmse_unet.dims, coords=rmse_unet.coords)
 
-        # --- left: deterministic (unet) R² ---
+        # --- left: deterministic (unet) RMSE ---
         ax0 = axs[row_idx, 0]
-        im0 = r2_unet.plot(ax=ax0, add_colorbar=False, cmap='RdYlGn', vmin=0, vmax=1)
-        fig.colorbar(im0, ax=ax0, label='R²')
-        ax0.set_title('{} {} R² — {}'.format(panel_labels[row_idx * 2], model_names['unet'], settings['var_title']))
+        im0 = rmse_unet.plot(ax=ax0, add_colorbar=False, cmap='viridis')
+        fig.colorbar(im0, ax=ax0, label='RMSE ({})'.format(settings['unit']))
+        ax0.set_title('{} {} RMSE — {}'.format(panel_labels[row_idx * 2], model_names['unet'], settings['var_title']))
         ax0.invert_yaxis()
         ax0.set_xlabel('Latitude')
         ax0.set_ylabel('Hybrid pressure (hPa)')
@@ -421,7 +406,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
                 ax.plot(lat_bin_mids, idx_tropopause_zm, 'k--', label='Tropopause')
                 ax.legend(fontsize=8)
 
-    plt.suptitle('{}-day: Deterministic U-Net R² | (Joint - U-Net) / U-Net prediction ratio'.format(num_days), fontsize=14)
+    plt.suptitle('{}-day: Deterministic U-Net RMSE | (Joint - U-Net) / U-Net prediction ratio'.format(num_days), fontsize=14)
 
     if save_path:
         os.makedirs(save_path, exist_ok=True)

@@ -399,8 +399,9 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
 
         # --- right: |joint predictions| / |unet predictions| ---
         ax1 = axs[row_idx, 1]
-        vmin1 = np.nanpercentile(pred_ratio_da.values, 5)
-        vmax1 = np.nanpercentile(pred_ratio_da.values, 95)
+        troposphere_vals = pred_ratio_da.values[12:, :]  # exclude stratosphere (levels 0-11)
+        vmin1 = np.nanpercentile(troposphere_vals, 5)
+        vmax1 = np.nanpercentile(troposphere_vals, 95)
         im1 = pred_ratio_da.plot(ax=ax1, add_colorbar=False, cmap='RdBu', vmin=vmin1, vmax=vmax1)
         fig.colorbar(im1, ax=ax1, label='(Joint - U-Net) / U-Net')
         ax1.set_title('{} (Joint - U-Net) / U-Net — {}'.format(panel_labels[row_idx * 2 + 1], settings['var_title']))

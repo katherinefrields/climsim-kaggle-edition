@@ -8,69 +8,56 @@ def run_cmd(cmd): print('\n'+clr.GREEN+cmd+clr.END) ; os.system(cmd); return
 #---------------------------------------------------------------------------------------------------
 import os, datetime, subprocess as sp, numpy as np
 import shutil, glob
+newcase,config,build,clean,submit,continue_run = False,False,False,False,False,False
 
-# Enable Python proxy for MMF NN emulator
-#os.environ["MMF_USE_PYTORCH_FORTRAN_PROXY"] = "1"
-#newcase,config,build,clean,submit,continue_run = False,False,False,False,False,False
+acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4331")
 
-#acct = 'm4334'
-acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4334")
-
-case_prefix = 'new_mmf_test_run_2'
-# exe_refcase = 'ftorch_test'
-# Added extra physics_state and cam_out variables.
+case_prefix = 'example_job_submit_mmf'
+# exe_refcase = ''
 
 top_dir  = "/climsim"
-scratch_dir = '/scratch'
-#top_dir  = os.getenv('HOME')
-#scratch_dir = os.getenv('SCRATCH')
-case_dir = f'{scratch_dir}/'
-src_dir  = top_dir+'/E3SM/' # branch => whannah/mmf/ml-training
-#src_dir  = ''+'/nvidia_codes/E3SM_nvlab/' # branch => whannah/mmf/ml-training
-#src_dir = '/E3SM'
-
-#user_cpp = '-DMMF_ML_TRAINING' # for saving ML variables
-# user_cpp = '-DMMF_NN_EMULATOR -DMMF_NN_EMULATOR_DIAG_PARTIAL -DMMF_NN_EMULATORDEBUG -DTORCH_MMF_NN_EMULATOR_TEST' # NN hybrid test
-user_cpp = '' # NN hybrid test
-# # src_mod_atm_dir = '/global/homes/s/sungduk/repositories/ClimSim-E3SM-Hybrid/'
-# # old ftorch path below. For some reason, the install folder is located in FTorch not src.
-# ftorch_path = '/global/cfs/cdirs/m4334/shared/FTorch/src/install'
+case_dir = '/scratch/'
+src_dir  = top_dir+'/E3SM/' 
+# user_cpp = '-DMMF_ML_TRAINING' # for saving ML variables
+# user_cpp = '-DMMF_NN_EMULATOR' # NN hybrid test
+user_cpp = '' # do MMF
 
 pytorch_fortran_path = '/opt/pytorch-fortran'
 os.environ["pytorch_proxy_ROOT"] = pytorch_fortran_path
 os.environ["pytorch_fort_proxy_ROOT"] = pytorch_fortran_path
+
 # RESTART
 runtype = 'startup' # startup, hybrid,  branch
 refdate = '0002-12-30' # only works for branch (and hybrid?)
 reftod = '00000' # or 21600, 43200, 64800
-clean        = False
+# clean        = True
 newcase      = True
 config       = True
 build        = True
 submit       = True
-continue_run = False #what does this do? - Katherine Frields
-src_mod_atm  = False 
+#continue_run = True
+src_mod_atm  = False
 
 debug_mode = False
 
 dtime = 1200 # set to 0 to use a default value 
 
-stop_opt,stop_n,resub,walltime = 'nmonths',3, 0, '05:00:00'
-#stop_opt,stop_n,resub,walltime = 'nmonths',13, 0,'00:10:00'
-#stop_opt,stop_n,resub,walltime = 'ndays',10, 0,'00:30:00'
+#stop_opt,stop_n,resub,walltime = 'nmonths',1, 1, '00:30:00'
+stop_opt,stop_n,resub,walltime = 'nmonths',3, 0,'24:00:00'
+#stop_opt,stop_n,resub,walltime = 'ndays',2, 0,'00:30:00'
 
 ne,npg=4,2;  num_nodes=1  ; grid=f'ne{ne}pg{npg}_ne{ne}pg{npg}'
 # ne,npg=30,2; num_nodes=32 ; grid=f'ne{ne}pg{npg}_ne{ne}pg{npg}'
 # ne,npg=30,2; num_nodes=32 ; grid=f'ne{ne}pg{npg}_oECv3' # bi-grid for AMIP or coupled
 
-#compset,arch   = 'F2010-MMF1','GNUGPU'
-# compset,arch   = 'FAQP-MMF1','GNUGPU'
 compset,arch   = 'F2010-MMF1','GNUCPU'
+# compset,arch   = 'F2010-MMF1','GNUGPU'
+# compset,arch   = 'FAQP-MMF1','GNUGPU'
 # compset,arch   = 'F2010-MMF1','CORI';
-# (MMF1: Note that MMF_VT is tunred off for MMF_NN_EMULATOR in $E3SMROOT/components/eam/cime_config/config_component.xml)  
+# (MMF1: Note that MMF_VT is tunred off for CLIMSIM in $E3SMROOT/components/eam/cime_config/config_component.xml)  
 
-# queue = 'regular'
 queue = 'regular'
+#queue = 'debug'
 
 # case_list = [case_prefix,arch,compset,grid]
 case_list = [case_prefix, ]
@@ -78,18 +65,15 @@ case_list = [case_prefix, ]
 if debug_mode: case_list.append('debug')
 
 case='.'.join(case_list)
-#---------------------------------------f------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
 # MMF_NN_EMULATOR
-torch_model = ''
-#torch_model = '/scratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/wrap_testing/wrapped_unet_model.pt'
-#torch_model = '/storage/hugging/E3SM-MMF_saved_models/diffusion_models/wrap_testing/wrapped_unet_model.pt'
-#/storage/shared_e3sm/saved_models/wrapper
+torch_model = '/storage/shared_e3sm/saved_models/wrapper/v2_mlp_wrapper.pt'
 inputlength = 557
 outputlength = 368
 cb_nn_var_combo = 'v2'
 input_rh = '.true.'
 cb_spinup_step = 5
-cb_strato_water_constraint = '.true.' # set .true. to use stratospheric water constraint to remove all stratospheric clouds and set dqv/dt in strato to 0
+cb_strato_water_constraint = '.false.' # set .true. to use stratospheric water constraint to remove all stratospheric clouds and set dqv/dt in strato to 0
 cb_partial_coupling = '.false.'
 cb_do_ramp = '.false.'
 cb_ramp_option = 'step'
@@ -105,16 +89,16 @@ if 'MMF_ML_TRAINING' in user_cpp:
 #---------------------------------------------------------------------------------------------------
 print('\n  case : '+case+'\n')
 
-if 'CPU' in arch : max_mpi_per_node,atm_nthrds  =  8,1 ; max_task_per_node = 8
+if 'CPU' in arch : max_mpi_per_node,atm_nthrds  = 64,1 ; max_task_per_node = 64
 if 'GPU' in arch : max_mpi_per_node,atm_nthrds  =  2,8 ; max_task_per_node = 16
 atm_ntasks = max_mpi_per_node*num_nodes
 #---------------------------------------------------------------------------------------------------
+case_scripts_dir=f'{case_dir}/{case}' 
 if newcase :
    # case_scripts_dir=f'{case_dir}/{case}/case_scripts' 
    case_scripts_dir=f'{case_dir}/{case}' 
    if os.path.isdir(f'{case_dir}/{case}'): exit('\n'+clr.RED+f'This case already exists: \n{case_dir}/{case}'+clr.END+'\n')
    cmd = f'{src_dir}/cime/scripts/create_newcase -case {case} --script-root {case_scripts_dir} -compset {compset} -res {grid}  '
-   # changed from docker-climsim to pm-cpu
    if arch=='GNUCPU' : cmd += f' -mach docker-climsim -compiler gnu    -pecount {atm_ntasks}x{atm_nthrds} '
    if arch=='GNUGPU' : cmd += f' -mach docker-climsim -compiler gnugpu -pecount {atm_ntasks}x{atm_nthrds} '
    run_cmd(cmd)
@@ -187,8 +171,6 @@ mfilt  = 0,1
 /
 
                      ''')
-       
-#e3sm.log.260310-061909
 #---------------------------------------------------------------------------------------------------
 # Copy source code modification
 if src_mod_atm :
@@ -225,7 +207,6 @@ if submit :
    continue_flag = 'TRUE' if continue_run else 'False'
    run_cmd(f'./xmlchange --file env_run.xml CONTINUE_RUN={continue_flag} ')   
    #-------------------------------------------------------
-   #shutil.copy(f"{pytorch_fortran_path}/pytorch_proxy.py", f"{case_run_dir}/pytorch_proxy.py")
    run_cmd('./case.submit')
 #---------------------------------------------------------------------------------------------------
 # Print the case name again
@@ -233,4 +214,3 @@ print(f'\n  case : {case}\n')
 #---------------------------------------------------------------------------------------------------
 #run_cmd(f'cp -v {__file__} {case_scripts_dir}/launch_script.py')
 #---------------------------------------------------------------------------------------------------
-

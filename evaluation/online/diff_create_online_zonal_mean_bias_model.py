@@ -382,7 +382,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         # zonal time-mean of the actual predictions for each model
         zm_joint = online_area_time_mean_3d(ds_nn['joint'], var)
         zm_unet  = online_area_time_mean_3d(ds_nn['unet'],  var)
-        pred_ratio = np.abs(zm_joint.values) / (np.abs(zm_unet.values) + 1e-30)
+        pred_ratio = (zm_joint.values - zm_unet.values) / (zm_unet.values + 1e-30)
         pred_ratio_da = xr.DataArray(pred_ratio, dims=r2_unet.dims, coords=r2_unet.coords)
 
         # --- left: deterministic (unet) R² ---
@@ -399,8 +399,8 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         # --- right: |joint predictions| / |unet predictions| ---
         ax1 = axs[row_idx, 1]
         im1 = pred_ratio_da.plot(ax=ax1, add_colorbar=False, cmap='RdBu', vmin=0, vmax=2)
-        fig.colorbar(im1, ax=ax1, label='|Joint| / |U-Net|')
-        ax1.set_title('{} |Joint| / |U-Net| — {}'.format(panel_labels[row_idx * 2 + 1], settings['var_title']))
+        fig.colorbar(im1, ax=ax1, label='(Joint - U-Net) / U-Net')
+        ax1.set_title('{} (Joint - U-Net) / U-Net — {}'.format(panel_labels[row_idx * 2 + 1], settings['var_title']))
         ax1.invert_yaxis()
         ax1.set_xlabel('Latitude')
         ax1.set_ylabel('')
@@ -412,7 +412,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
                 ax.plot(lat_bin_mids, idx_tropopause_zm, 'k--', label='Tropopause')
                 ax.legend(fontsize=8)
 
-    plt.suptitle('{}-day: Deterministic U-Net R² | |Joint| / |U-Net| prediction ratio'.format(num_days), fontsize=14)
+    plt.suptitle('{}-day: Deterministic U-Net R² | (Joint - U-Net) / U-Net prediction ratio'.format(num_days), fontsize=14)
 
     if save_path:
         os.makedirs(save_path, exist_ok=True)

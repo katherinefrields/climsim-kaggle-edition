@@ -399,7 +399,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
 
         # --- right: |joint predictions| / |unet predictions| ---
         ax1 = axs[row_idx, 1]
-        im1 = pred_ratio_da.plot(ax=ax1, add_colorbar=False, cmap='RdBu', vmin=0, vmax=2)
+        im1 = pred_ratio_da.plot(ax=ax1, add_colorbar=False, cmap='RdBu')
         fig.colorbar(im1, ax=ax1, label='(Joint - U-Net) / U-Net')
         ax1.set_title('{} (Joint - U-Net) / U-Net — {}'.format(panel_labels[row_idx * 2 + 1], settings['var_title']))
         ax1.invert_yaxis()

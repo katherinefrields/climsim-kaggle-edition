@@ -16,7 +16,7 @@ import shutil, glob
 #acct = 'm4334'
 acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4334")
 
-case_prefix = 'new_mmf_test_run'
+case_prefix = '3_day_mmf_test'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -31,7 +31,8 @@ src_dir  = top_dir+'/E3SM/' # branch => whannah/mmf/ml-training
 
 #user_cpp = '-DMMF_ML_TRAINING' # for saving ML variables
 # user_cpp = '-DMMF_NN_EMULATOR -DMMF_NN_EMULATOR_DIAG_PARTIAL -DMMF_NN_EMULATORDEBUG -DTORCH_MMF_NN_EMULATOR_TEST' # NN hybrid test
-user_cpp = '' # NN hybrid test
+#user_cpp = '-DMMF_NN_EMULATOR' # NN hybrid test
+user_cpp = ''
 # # src_mod_atm_dir = '/global/homes/s/sungduk/repositories/ClimSim-E3SM-Hybrid/'
 # # old ftorch path below. For some reason, the install folder is located in FTorch not src.
 # ftorch_path = '/global/cfs/cdirs/m4334/shared/FTorch/src/install'
@@ -55,9 +56,9 @@ debug_mode = False
 
 dtime = 1200 # set to 0 to use a default value 
 
-stop_opt,stop_n,resub,walltime = 'nmonths',3, 0, '05:00:00'
+#stop_opt,stop_n,resub,walltime = 'nmonths',3, 0, '05:00:00'
 #stop_opt,stop_n,resub,walltime = 'nmonths',13, 0,'00:10:00'
-#stop_opt,stop_n,resub,walltime = 'ndays',10, 0,'00:30:00'
+stop_opt,stop_n,resub,walltime = 'ndays',3, 0,'00:30:00'
 
 ne,npg=4,2;  num_nodes=1  ; grid=f'ne{ne}pg{npg}_ne{ne}pg{npg}'
 # ne,npg=30,2; num_nodes=32 ; grid=f'ne{ne}pg{npg}_ne{ne}pg{npg}'
@@ -81,16 +82,17 @@ case='.'.join(case_list)
 #---------------------------------------f------------------------------------------------------------
 # MMF_NN_EMULATOR
 torch_model = ''
+
 #torch_model = '/scratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/wrap_testing/wrapped_unet_model.pt'
 #torch_model = '/storage/hugging/E3SM-MMF_saved_models/diffusion_models/wrap_testing/wrapped_unet_model.pt'
 #/storage/shared_e3sm/saved_models/wrapper
-inputlength = 557
-outputlength = 368
-cb_nn_var_combo = 'v2'
-input_rh = '.true.'
+#inputlength = 557
+#outputlength = 368
+#cb_nn_var_combo = 'v2'
+#input_rh = '.true.'
 cb_spinup_step = 5
 cb_strato_water_constraint = '.true.' # set .true. to use stratospheric water constraint to remove all stratospheric clouds and set dqv/dt in strato to 0
-cb_partial_coupling = '.false.'
+#cb_partial_coupling = '.false.'
 cb_do_ramp = '.false.'
 cb_ramp_option = 'step'
 cb_ramp_factor = 1.0
@@ -161,22 +163,6 @@ state_debug_checks = .true.
 do_aerosol_rad = .false.
 /
 
-&mmf_nn_emulator_nl
-inputlength     = {inputlength}
-outputlength    = {outputlength}
-cb_nn_var_combo = '{cb_nn_var_combo}'
-input_rh        = {input_rh}
-cb_torch_model  = '{torch_model}'
-cb_spinup_step = {cb_spinup_step}
-cb_partial_coupling = {cb_partial_coupling}
-cb_partial_coupling_vars = 'ptend_t', 'ptend_q0001','ptend_q0002','ptend_q0003', 'ptend_u', 'ptend_v', 'cam_out_PRECC', 'cam_out_PRECSC', 'cam_out_NETSW', 'cam_out_FLWDS', 'cam_out_SOLS', 'cam_out_SOLL', 'cam_out_SOLSD', 'cam_out_SOLLD' 
-cb_do_ramp = {cb_do_ramp}
-cb_ramp_option = '{cb_ramp_option}'
-cb_ramp_factor = {cb_ramp_factor}
-cb_ramp_step_0steps = {cb_ramp_step_0steps}
-cb_ramp_step_1steps = {cb_ramp_step_1steps}
-cb_strato_water_constraint = {cb_strato_water_constraint}
-/
 
 &cam_history_nl
 fincl1 = 'CLDICE', 'CLDLIQ', 'DTPHYS', 'DQ1PHYS', 'DQ2PHYS', 'DQ3PHYS', 'DUPHYS'
@@ -201,8 +187,8 @@ if src_mod_atm :
 if config :
    cpp_defs = ''
    cpp_defs += ' '+user_cpp+' '
-   if cpp_defs != '':
-      run_cmd(f'./xmlchange --append --id CAM_CONFIG_OPTS --val \" -cppdefs \' {cpp_defs} \'  \"')
+   
+   run_cmd(f'./xmlchange --append --id CAM_CONFIG_OPTS --val \" -cppdefs \' {cpp_defs} \'  \"')
    if src_mod_atm :
       run_cmd(f'./xmlchange --append --id CAM_CONFIG_OPTS --val \" -usr_src {dir_src_mod} \"')
    run_cmd('./xmlchange PIO_NETCDF_FORMAT=\"64bit_data\" ')

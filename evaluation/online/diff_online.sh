@@ -7,7 +7,6 @@
 #SBATCH --cpus-per-task 32
 #SBATCH --gpus-per-node 1
 #SBATCH -n 1
-#SBATCH --image=nvcr.io/nvidia/modulus/modulus:24.01
 #SBATCH --mail-user=frieldskatherine@uci.edu
 #SBATCH --mail-type=ALL
 #SBATCH --output=out_%j.out

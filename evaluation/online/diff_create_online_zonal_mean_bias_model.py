@@ -176,8 +176,8 @@ def difference(ds1, ds2, var):
     arr2 = ds2[var].values[1:,:,:]
     arr1_reshaped = np.transpose(arr1, (0,2,1))
     arr2_reshaped = np.transpose(arr2, (0,2,1))
-    diff_arr = arr1_reshaped - arr2_reshaped
-    ratio_arr = diff_arr / (arr2_reshaped + 1e-30)
+    diff_arr = np.abs(arr1_reshaped - arr2_reshaped)
+    ratio_arr = diff_arr / (np.abs(arr2_reshaped) + 1e-30)
     arr_zonal_time_mean = xr.DataArray(ratio_arr.T, dims = ['hybrid pressure (hPa)', 'latitude'], coords = {'hybrid pressure (hPa)':level, 'latitude': lat_bin_mids})
     
     #arr_zonal_mean = data_v2_rh_mc.zonal_bin_weight_3d(arr_reshaped)

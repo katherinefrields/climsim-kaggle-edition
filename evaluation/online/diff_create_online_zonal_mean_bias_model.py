@@ -175,7 +175,7 @@ def online_area_time_mean_3d(ds, var):
 def difference(ds1, ds2, var):
     arr1 = np.transpose(ds1[var].values[1:,:,:], (0,2,1))  # (time, ncol, lev)
     arr2 = np.transpose(ds2[var].values[1:,:,:], (0,2,1))
-    ratio_arr = np.abs(arr1 - arr2) / (np.abs(arr2) + 1e-30)             # (time, ncol, lev)
+    ratio_arr = np.abs(arr1 - arr2)# / (np.abs(arr2) + 1e-30)             # (time, ncol, lev)
     ratio_zm = data_v2_rh_mc.zonal_bin_weight_3d(ratio_arr).mean(axis=0)  # (n_lat_bins, lev)
     return xr.DataArray(ratio_zm.T, dims=['hybrid pressure (hPa)', 'latitude'],
                         coords={'hybrid pressure (hPa)': level, 'latitude': lat_bin_mids})

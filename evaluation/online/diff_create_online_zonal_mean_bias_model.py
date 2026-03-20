@@ -171,6 +171,17 @@ def online_area_time_mean_3d(ds, var):
     arr_zonal_time_mean = xr.DataArray(arr_zonal_time_mean.T, dims = ['hybrid pressure (hPa)', 'latitude'], coords = {'hybrid pressure (hPa)':level, 'latitude': lat_bin_mids})
     return arr_zonal_time_mean
 
+def difference(ds1, ds2, var):
+    arr1 = ds1[var].values[1:,:,:]
+    arr2 = ds2[var].values[1:,:,:]
+    arr1_reshaped = np.transpose(arr1, (0,2,1))
+    arr2_reshaped = np.transpose(arr2, (0,2,1))
+    diff_arr = arr1_reshaped - arr2_reshaped
+    #arr_zonal_mean = data_v2_rh_mc.zonal_bin_weight_3d(arr_reshaped)
+    #arr_zonal_time_mean = arr_zonal_mean.mean(axis = 0)
+    #arr_zonal_time_mean = xr.DataArray(arr_zonal_time_mean.T, dims = ['hybrid pressure (hPa)', 'latitude'], coords = {'hybrid pressure (hPa)':level, 'latitude': lat_bin_mids})
+    return diff_arr
+
 def area_mean(ds, var):
     arr = ds[var].values
     arr_reshaped = np.transpose(arr, (0,2,1))
@@ -376,7 +387,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         # zonal time-mean of the actual predictions for each model
         zm_joint = online_area_time_mean_3d(ds_nn['joint'], var)
         zm_unet  = online_area_time_mean_3d(ds_nn['unet'],  var)
-        zm_res = online_area_time_mean_3d(ds_nn['joint'] - ds_nn['unet'],  var)
+        zm_res = difference(ds_nn['joint'], ds_nn['unet'],  var)
         pred_ratio = (zm_res) / (zm_unet.values + 1e-30)
         pred_ratio_da = xr.DataArray(pred_ratio, dims=rmse_unet.dims, coords=rmse_unet.coords)
 

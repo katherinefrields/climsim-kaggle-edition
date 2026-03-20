@@ -376,7 +376,8 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         # zonal time-mean of the actual predictions for each model
         zm_joint = online_area_time_mean_3d(ds_nn['joint'], var)
         zm_unet  = online_area_time_mean_3d(ds_nn['unet'],  var)
-        pred_ratio = (zm_joint.values - zm_unet.values) / (zm_unet.values + 1e-30)
+        zm_res = online_area_time_mean_3d(ds_nn['joint'] - ds_nn['unet'],  var)
+        pred_ratio = (zm_res) / (zm_unet.values + 1e-30)
         pred_ratio_da = xr.DataArray(pred_ratio, dims=rmse_unet.dims, coords=rmse_unet.coords)
 
         # --- left: deterministic (unet) RMSE ---

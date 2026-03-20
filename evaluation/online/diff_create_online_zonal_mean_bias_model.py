@@ -337,12 +337,18 @@ def compute_r2_zonal(ds_run, ds_ref, var):
     y_pred = np.transpose(ds_run[var].values[1:n_time + 1], (0, 2, 1))  # (time, ncol, lev)
     y_true = np.transpose(ds_ref[var].values[1:n_time + 1], (0, 2, 1))  # (time, ncol, lev)
 
-    pred_zm = data_v2_rh_mc.zonal_bin_weight_3d(y_pred)  # (time, n_lat_bins, lev)
-    true_zm = data_v2_rh_mc.zonal_bin_weight_3d(y_true)
+    
+    
 
-    ss_res = np.sum((true_zm - pred_zm) ** 2, axis=0)
-    ss_tot = np.sum((true_zm - true_zm.mean(axis=0, keepdims=True)) ** 2, axis=0)
+    #pred_zm = data_v2_rh_mc.zonal_bin_weight_3d(y_pred)  # (time, n_lat_bins, lev)
+    #true_zm = data_v2_rh_mc.zonal_bin_weight_3d(y_true)
 
+    #ss_res = np.sum((true_zm - pred_zm) ** 2, axis=0)
+    #ss_tot = np.sum((true_zm - true_zm.mean(axis=0, keepdims=True)) ** 2, axis=0)
+
+    ss_res = np.sum((y_true - y_pred) ** 2, axis=0)
+    ss_tot = np.sum((y_true - y_true.mean(axis=0, keepdims=True)) ** 2, axis=0)
+    
     r2 = 1.0 - ss_res / (ss_tot + 1e-30)
 
     return xr.DataArray(r2.T,

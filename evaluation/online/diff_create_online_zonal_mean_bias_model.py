@@ -242,7 +242,8 @@ def read_nn_online_data(model_name):
     ds_nn = xr.open_mfdataset(h1_files, chunks=None)
     ds_nn['DQnPHYS'] = ds_nn['DQ2PHYS'] + ds_nn['DQ3PHYS']
     ds_nn['TOTCLD']  = ds_nn['CLDICE']  + ds_nn['CLDLIQ']
-    ds_nn['PRECT']   = ds_nn['PRECC']   + ds_nn['PRECL']
+    if 'PRECT' not in ds_nn:
+        ds_nn['PRECT'] = ds_nn['PRECC'] + ds_nn['PRECL']
     return ds_nn
 
 def get_pressure_area_weights(ds, surface_type = None):

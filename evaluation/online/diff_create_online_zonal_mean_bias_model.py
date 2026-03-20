@@ -226,10 +226,11 @@ def read_new_mmf_h1_data(run_dir, num_days=None):
         return None
     if num_days is not None:
         h1_files = h1_files[:num_days]
-    ds = xr.open_mfdataset(h1_files)
+    ds = xr.open_mfdataset(h1_files, chunks=None)
     ds['DQnPHYS'] = ds['DQ2PHYS'] + ds['DQ3PHYS']
     ds['TOTCLD']  = ds['CLDLIQ']  + ds['CLDICE']
-    ds['PRECT']   = ds['PRECC']   + ds['PRECL']
+    if 'PRECT' not in ds:
+        ds['PRECT'] = ds['PRECC'] + ds['PRECL']
     return ds
 
 def read_nn_online_data(model_name):
@@ -238,7 +239,7 @@ def read_nn_online_data(model_name):
     if len(h1_files) == 0:
         print('No h1 files found for {} at {}'.format(model_name, run_dir))
         return None
-    ds_nn = xr.open_mfdataset(h1_files)
+    ds_nn = xr.open_mfdataset(h1_files, chunks=None)
     ds_nn['DQnPHYS'] = ds_nn['DQ2PHYS'] + ds_nn['DQ3PHYS']
     ds_nn['TOTCLD']  = ds_nn['CLDICE']  + ds_nn['CLDLIQ']
     ds_nn['PRECT']   = ds_nn['PRECC']   + ds_nn['PRECL']

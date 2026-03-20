@@ -349,9 +349,12 @@ def compute_r2_zonal(ds_run, ds_ref, var):
     ss_res = np.sum((y_true - y_pred) ** 2, axis=0)
     ss_tot = np.sum((y_true - y_true.mean(axis=0, keepdims=True)) ** 2, axis=0)
     
-    r2 = 1.0 - ss_res / (ss_tot + 1e-30)
+    r2 = 1.0 - ss_res / (ss_tot + 1e-30)  # (ncol, lev)
 
-    return xr.DataArray(r2.T,
+    # area-weighted zonal average of per-column R² values -> (n_lat_bins, lev)
+    r2_zm = data_v2_rh_mc.zonal_bin_weight_3d(r2[np.newaxis])[0]
+
+    return xr.DataArray(r2_zm.T,
                         dims=['hybrid pressure (hPa)', 'latitude'],
                         coords={'hybrid pressure (hPa)': level, 'latitude': lat_bin_mids})
 

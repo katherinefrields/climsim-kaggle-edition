@@ -55,7 +55,6 @@ ncol = grid_area.shape[0]
 actual_input_v2_rh_mc = actual_input_v2_rh_mc.reshape(-1, ncol, actual_input_v2_rh_mc.shape[-1])
 actual_target_v2_rh_mc = actual_target_v2_rh_mc.reshape(-1, ncol, actual_target_v2_rh_mc.shape[-1])
 
-
 actual_target = np.load('/pscratch/sd/j/jerrylin/hugging/E3SM-MMF_ne4/preprocessing/v2_rh_mc/scoring_set/scoring_target.npy')
 del actual_target_v2_rh_mc
 
@@ -213,6 +212,7 @@ def read_mmf_online_data(num_years):
     ds_mmf_2['PRECT'] = ds_mmf_2['PRECC'] + ds_mmf_2['PRECL']
     return ds_mmf_1#, ds_mmf_2
 '''
+
 def read_new_mmf_h1_data(run_dir, num_days=None):
     """Load daily h1 output from a new MMF test run (e.g. new_mmf_test_run_4).
 
@@ -324,6 +324,107 @@ def h1_zonal_time_mean(ds_run, var):
                         dims=['hybrid pressure (hPa)', 'latitude'],
                         coords={'hybrid pressure (hPa)': level, 'latitude': lat_bin_mids})
 
+def compute_r2_zonal(ds_run, ds_ref, var):
+    """Compute R² at each (lat_bin, lev) grid point across time.
+
+    R² is computed on the area-weighted zonal-mean time series at each
+    (lat_bin, lev) point: R² = 1 - SS_res / SS_tot.
+
+    Returns an xr.DataArray with dims ('hybrid pressure (hPa)', 'latitude').
+    """
+    n_time = min(ds_run[var].shape[0], ds_ref[var].shape[0]) - 1
+
+    y_pred = np.transpose(ds_run[var].values[1:n_time + 1], (0, 2, 1))  # (time, ncol, lev)
+    y_true = np.transpose(ds_ref[var].values[1:n_time + 1], (0, 2, 1))  # (time, ncol, lev)
+
+    pred_zm = data_v2_rh_mc.zonal_bin_weight_3d(y_pred)  # (time, n_lat_bins, lev)
+    true_zm = data_v2_rh_mc.zonal_bin_weight_3d(y_true)
+
+    ss_res = np.sum((true_zm - pred_zm) ** 2, axis=0)
+    ss_tot = np.sum((true_zm - true_zm.mean(axis=0, keepdims=True)) ** 2, axis=0)
+
+    r2 = 1.0 - ss_res / (ss_tot + 1e-30)
+
+    return xr.DataArray(r2.T,
+                        dims=['hybrid pressure (hPa)', 'latitude'],
+                        coords={'hybrid pressure (hPa)': level, 'latitude': lat_bin_mids})
+
+
+def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, save_path=None):
+    """Plot R² (joint vs unet vs MMF reference) as a grid: one row per variable, two columns.
+
+    Args:
+        ds_mmf:        Reference MMF xarray Dataset.
+        ds_nn:         Dict mapping model key -> xarray Dataset.
+        num_days:      Number of days used (for title/filename).
+        vars_to_plot:  List of variable names to include (defaults to all in online_var_settings).
+        show:          Display the figure interactively.
+        save_path:     Directory to save the figure (skipped if None).
+    """
+    if vars_to_plot is None:
+        vars_to_plot = list(online_var_settings.keys())
+
+    n_vars = len(vars_to_plot)
+    latitude_ticks  = [-60, -30, 0, 30, 60]
+    latitude_labels = ['60S', '30S', '0', '30N', '60N']
+
+    fig, axs = plt.subplots(n_vars, 2, figsize=(11, 4 * n_vars), constrained_layout=True)
+    if n_vars == 1:
+        axs = axs[np.newaxis, :]
+
+    panel_labels = ['({})'.format(letter) for letter in string.ascii_lowercase[:2 * n_vars]]
+
+    for row_idx, var in enumerate(vars_to_plot):
+        settings = online_var_settings[var]
+
+        r2_unet = compute_r2_zonal(ds_nn['unet'], ds_mmf, var)
+
+        # zonal time-mean of the actual predictions for each model
+        zm_joint = online_area_time_mean_3d(ds_nn['joint'], var)
+        zm_unet  = online_area_time_mean_3d(ds_nn['unet'],  var)
+        pred_ratio = np.abs(zm_joint.values) / (np.abs(zm_unet.values) + 1e-30)
+        pred_ratio_da = xr.DataArray(pred_ratio, dims=r2_unet.dims, coords=r2_unet.coords)
+
+        # --- left: deterministic (unet) R² ---
+        ax0 = axs[row_idx, 0]
+        im0 = r2_unet.plot(ax=ax0, add_colorbar=False, cmap='RdYlGn', vmin=0, vmax=1)
+        fig.colorbar(im0, ax=ax0, label='R²')
+        ax0.set_title('{} {} R² — {}'.format(panel_labels[row_idx * 2], model_names['unet'], settings['var_title']))
+        ax0.invert_yaxis()
+        ax0.set_xlabel('Latitude')
+        ax0.set_ylabel('Hybrid pressure (hPa)')
+        ax0.set_xticks(latitude_ticks)
+        ax0.set_xticklabels(latitude_labels)
+
+        # --- right: |joint predictions| / |unet predictions| ---
+        ax1 = axs[row_idx, 1]
+        im1 = pred_ratio_da.plot(ax=ax1, add_colorbar=False, cmap='RdBu', vmin=0, vmax=2)
+        fig.colorbar(im1, ax=ax1, label='|Joint| / |U-Net|')
+        ax1.set_title('{} |Joint| / |U-Net| — {}'.format(panel_labels[row_idx * 2 + 1], settings['var_title']))
+        ax1.invert_yaxis()
+        ax1.set_xlabel('Latitude')
+        ax1.set_ylabel('')
+        ax1.set_xticks(latitude_ticks)
+        ax1.set_xticklabels(latitude_labels)
+
+        for ax in [ax0, ax1]:
+            if var == 'CLDICE':
+                ax.plot(lat_bin_mids, idx_tropopause_zm, 'k--', label='Tropopause')
+                ax.legend(fontsize=8)
+
+    plt.suptitle('{}-day: Deterministic U-Net R² | |Joint| / |U-Net| prediction ratio'.format(num_days), fontsize=14)
+
+    if save_path:
+        os.makedirs(save_path, exist_ok=True)
+        fname = 'online_{}_day_r2_comparison.png'.format(num_days)
+        plt.savefig(os.path.join(save_path, fname), dpi=300, bbox_inches='tight')
+        print('Saved: {}'.format(fname))
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
 def plot_single_run_zonal_mean(run_dir, var, run_name=None, ref_ds=None, show=True, save_path=None):
     """Plot zonal mean (or bias vs reference) for a single run from h1 daily output.
 
@@ -411,3 +512,11 @@ if ds_mmf is not None and ds_nn['joint'] is not None and ds_nn['unet'] is not No
             show=False,
             save_path=os.path.join(climsim3_figures_save_path_online, 'bias_model_comparison')
         )
+
+    plot_r2_comparison(
+        ds_mmf=ds_mmf,
+        ds_nn=ds_nn,
+        num_days=num_days,
+        show=False,
+        save_path=os.path.join(climsim3_figures_save_path_online, 'r2_comparison')
+    )

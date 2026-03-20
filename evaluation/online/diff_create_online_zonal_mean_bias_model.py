@@ -403,11 +403,11 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         
         troposphere_vals = pred_ratio_da.values[:, 12:]  # exclude stratosphere (levels 0-11)
         vmin1 = max(np.nanpercentile(troposphere_vals, 5), 1e-6)  # LogNorm requires vmin > 0
-        vmax1 = np.nanpercentile(troposphere_vals, 80)
+        vmax1 = np.nanpercentile(troposphere_vals, 70)
         im1 = pred_ratio_da.plot(ax=ax1, add_colorbar=False, cmap='YlOrRd',
                                  norm=LogNorm(vmin=vmin1, vmax=vmax1))
-        fig.colorbar(im1, ax=ax1, label='(Joint - U-Net) / U-Net')
-        ax1.set_title('{} (Joint - U-Net) / U-Net — {}'.format(panel_labels[row_idx * 2 + 1], settings['var_title']))
+        fig.colorbar(im1, ax=ax1, label='|Predicted Residual|')
+        ax1.set_title('{} |Predicted Residual| — {}'.format(panel_labels[row_idx * 2 + 1], settings['var_title']))
         ax1.invert_yaxis()
         ax1.set_xlabel('Latitude')
         ax1.set_ylabel('')
@@ -419,7 +419,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
                 ax.plot(lat_bin_mids, idx_tropopause_zm, 'k--', label='Tropopause')
                 ax.legend(fontsize=8)
 
-    plt.suptitle('{}-day: Deterministic U-Net RMSE | (Joint - U-Net) / U-Net prediction ratio'.format(num_days), fontsize=14)
+    plt.suptitle('{}-day: Deterministic U-Net RMSE | |Predicted Residual|'.format(num_days), fontsize=14)
 
     if save_path:
         os.makedirs(save_path, exist_ok=True)
@@ -499,8 +499,8 @@ def plot_single_run_zonal_mean(run_dir, var, run_name=None, ref_ds=None, show=Tr
         plt.close()
 
 
-# --- Model vs MMF bias comparison ---
-mmf_run_dir = '/pscratch/sd/k/kfrields/climsim-online-data/scratch/new_mmf_test_run_4/run'
+# --- Model vs MMF bias comparison ---#new_mmf_test_run_4
+mmf_run_dir = '/pscratch/sd/k/kfrields/climsim-online-data/scratch/new_mmf_no_stratosphere/run'
 num_days = 3
 
 ds_mmf = read_new_mmf_h1_data(mmf_run_dir, num_days)

@@ -402,8 +402,8 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         ax1 = axs[row_idx, 1]
         
         troposphere_vals = pred_ratio_da.values[:, 12:]  # exclude stratosphere (levels 0-11)
-        vmin1 = max(np.nanpercentile(troposphere_vals, 20), 1e-9)  # LogNorm requires vmin > 0
-        vmax1 = np.nanpercentile(troposphere_vals, 95)
+        vmin1 = max(np.nanpercentile(troposphere_vals, 5), 1e-9)  # LogNorm requires vmin > 0
+        vmax1 = np.nanpercentile(troposphere_vals, 98)
         im1 = pred_ratio_da.plot(ax=ax1, add_colorbar=False, cmap='YlOrRd',
                                  norm=LogNorm(vmin=vmin1, vmax=vmax1))
         fig.colorbar(im1, ax=ax1, label='|Predicted Residual|')

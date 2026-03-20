@@ -141,12 +141,12 @@ online_var_settings = {
 
 # Map model name -> full path to the E3SM run directory (contains *.eam.h1.*.nc files)
 online_paths = {
-    'joint': '/pscratch/sd/k/kfrields/climsim-online-data/scratch/joint_case_name/run',
-    'unet':  '/pscratch/sd/k/kfrields/climsim-online-data/scratch/joint_case_name/run',
+    'joint': '/pscratch/sd/k/kfrields/climsim-online-data/scratch/5_hour_online_test_3/run',
+    'unet':  '/pscratch/sd/k/kfrields/climsim-online-data/scratch/3_day_unet_test_2/run',
 }
 
-seeds = ['seed_7', 'seed_43', 'seed_1024']
-seed_numbers = [7, 43, 1024]
+#seeds = ['seed_7', 'seed_43', 'seed_1024']
+#seed_numbers = [7, 43, 1024]
 
 climsim3_figures_save_path_offline = '/global/homes/k/kfrields/climsim-kaggle-edition/figures/offline'
 climsim3_figures_save_path_online = '/global/homes/k/kfrields/climsim-kaggle-edition/figures/online'
@@ -193,19 +193,40 @@ def get_tcp_mean(ds, area_weight):
     tcp = np.sum(cld*dp, axis = 1)/9.81
     tcp_mean = np.average(tcp, weights = area_weight, axis = 1)
     return tcp_mean
-
+'''
 def read_mmf_online_data(num_years):
     assert num_years <= 5 and num_years >= 1
     years_regexp = '34567'[:num_years]
     ds_mmf_1 = xr.open_mfdataset(f'/pscratch/sd/z/zeyuanhu/hu_etal2024_data_v2/data/h0/5year/mmf_ref/control_fullysp_jan_wmlio_r3.eam.h0.000[{years_regexp}]*.nc')
-    ds_mmf_2 = xr.open_mfdataset(f'/pscratch/sd/z/zeyuanhu/hu_etal2024_data_v2/data/h0/5year/mmf_b/control_fullysp_jan_wmlio_r3_b.eam.h0.000[{years_regexp}]*.nc')
+    #ds_mmf_1 = xr.open_mfdataset(f'/pscratch/sd/z/zeyuanhu/hu_etal2024_data_v2/data/h0/5year/mmf_ref/control_fullysp_jan_wmlio_r3.eam.h0.000[{years_regexp}]*.nc')
+    #ds_mmf_2 = xr.open_mfdataset(f'/pscratch/sd/z/zeyuanhu/hu_etal2024_data_v2/data/h0/5year/mmf_b/control_fullysp_jan_wmlio_r3_b.eam.h0.000[{years_regexp}]*.nc')
     ds_mmf_1['DQnPHYS'] = ds_mmf_1['DQ2PHYS'] + ds_mmf_1['DQ3PHYS']
-    ds_mmf_2['DQnPHYS'] = ds_mmf_2['DQ2PHYS'] + ds_mmf_2['DQ3PHYS']
-    ds_mmf_1['TOTCLD'] = ds_mmf_1['CLDICE'] + ds_mmf_1['CLDLIQ']
-    ds_mmf_2['TOTCLD'] = ds_mmf_2['CLDICE'] + ds_mmf_2['CLDLIQ']
     ds_mmf_1['PRECT'] = ds_mmf_1['PRECC'] + ds_mmf_1['PRECL']
+    ds_mmf_1['TOTCLD'] = ds_mmf_1['CLDICE'] + ds_mmf_1['CLDLIQ']
+    
+    ds_mmf_2['TOTCLD'] = ds_mmf_2['CLDICE'] + ds_mmf_2['CLDLIQ']
+    ds_mmf_2['DQnPHYS'] = ds_mmf_2['DQ2PHYS'] + ds_mmf_2['DQ3PHYS']
     ds_mmf_2['PRECT'] = ds_mmf_2['PRECC'] + ds_mmf_2['PRECL']
-    return ds_mmf_1, ds_mmf_2
+    return ds_mmf_1#, ds_mmf_2
+'''
+def read_new_mmf_h1_data(run_dir, num_days=None):
+    """Load daily h1 output from a new MMF test run (e.g. new_mmf_test_run_4).
+
+    Args:
+        run_dir:  Path to the E3SM run directory containing h1 .nc files.
+        num_days: If set, only load the first num_days files (one file = one day).
+    """
+    h1_files = sorted(glob.glob(os.path.join(run_dir, '*.eam.h1.*.nc')))
+    if len(h1_files) == 0:
+        print(f'No h1 files found in {run_dir}')
+        return None
+    if num_days is not None:
+        h1_files = h1_files[:num_days]
+    ds = xr.open_mfdataset(h1_files)
+    ds['DQnPHYS'] = ds['DQ2PHYS'] + ds['DQ3PHYS']
+    ds['TOTCLD']  = ds['CLDLIQ']  + ds['CLDICE']
+    ds['PRECT']   = ds['PRECC']   + ds['PRECL']
+    return ds
 
 def read_nn_online_data(model_name):
     run_dir = online_paths[model_name]
@@ -247,21 +268,13 @@ def get_pressure_area_weights(ds, surface_type = None):
     else:
         raise ValueError("Invalid surface type. Choose from 'land', 'ocean', or 'ice'.")
 
-def plot_online_zonal_mean_bias_model_comparison(config_name, var, seed, num_years, show = True, save_path = None):
+def plot_online_zonal_mean_bias_model_comparison(var, ds_mmf, ds_nn, num_days, show=True, save_path=None):
     fig, axs = plt.subplots(1, 2, figsize=(8.5, 4), constrained_layout=True)
     labels = [f"({letter})" for letter in string.ascii_lowercase[:2]]
     latitude_ticks = [-60, -30, 0, 30, 60]
     latitude_labels = ['60S', '30S', '0', '30N', '60N']
 
-    ds_mmf_1, ds_mmf_2 = read_mmf_online_data(num_years)
-    ds_nn = {
-        'joint': read_nn_online_data('joint'),
-        'unet':  read_nn_online_data('unet'),
-    }
-    if ds_nn['joint'] is None or ds_nn['unet'] is None:
-        return
-
-    zonal_mean_bias = {model: online_var_settings[var]['scaling'] * (online_area_time_mean_3d(ds_nn[model], var) - online_area_time_mean_3d(ds_mmf_1, var)) for model in model_names}
+    zonal_mean_bias = {model: online_var_settings[var]['scaling'] * (online_area_time_mean_3d(ds_nn[model], var) - online_area_time_mean_3d(ds_mmf, var)) for model in model_names}
 
     joint_bias = zonal_mean_bias['joint'].plot(ax=axs[0], add_colorbar=False, cmap='RdBu_r', vmin=online_var_settings[var]['vmin'], vmax=online_var_settings[var]['vmax'])
     axs[0].set_title(f"{labels[0]} {model_names['joint']}")
@@ -285,10 +298,11 @@ def plot_online_zonal_mean_bias_model_comparison(config_name, var, seed, num_yea
         ax.set_xticks(latitude_ticks)
         ax.set_xticklabels(latitude_labels)
 
-    plt.suptitle(f"{num_years} year {online_var_settings[var]['var_title']} ({online_var_settings[var]['unit']}) zonal mean difference ({config_names[config_name]} Configuration, Seed {seed})", fontsize=14)
+    plt.suptitle(f"{num_days}-day {online_var_settings[var]['var_title']} ({online_var_settings[var]['unit']}) zonal mean bias (Joint & U-Net vs MMF)", fontsize=14)
 
     if save_path:
-        plt.savefig(os.path.join(save_path, f'online_{num_years}_year_zonal_mean_{var}_bias_model_comparison_{config_name}_{seed}.png'), dpi=300, bbox_inches='tight')
+        os.makedirs(save_path, exist_ok=True)
+        plt.savefig(os.path.join(save_path, f'online_{num_days}_day_zonal_mean_{var}_bias_model_comparison.png'), dpi=300, bbox_inches='tight')
     if show:
         plt.show()
     else:
@@ -371,15 +385,23 @@ def plot_single_run_zonal_mean(run_dir, var, run_name=None, ref_ds=None, show=Tr
         plt.close()
 
 
-# --- Single-run diagnostic ---
-single_run_dir = '/pscratch/sd/k/kfrields/climsim-online-data/scratch/5_hour_online_test_3/run'
-single_run_name = '5_hour_online_test_3'
-for online_var in tqdm(online_var_settings.keys()):
-    plot_single_run_zonal_mean(
-        run_dir=single_run_dir,
-        var=online_var,
-        run_name=single_run_name,
-        ref_ds=None,   # set to ds_mmf_1 to show bias instead of raw field
-        show=False,
-        save_path=os.path.join(climsim3_figures_save_path_online, 'single_run_diagnostic')
-    )
+# --- Model vs MMF bias comparison ---
+mmf_run_dir = '/pscratch/sd/k/kfrields/climsim-online-data/scratch/new_mmf_test_run_4/run'
+num_days = 3
+
+ds_mmf = read_new_mmf_h1_data(mmf_run_dir, num_days)
+ds_nn = {
+    'joint': read_nn_online_data('joint'),
+    'unet':  read_nn_online_data('unet'),
+}
+
+if ds_mmf is not None and ds_nn['joint'] is not None and ds_nn['unet'] is not None:
+    for online_var in tqdm(online_var_settings.keys()):
+        plot_online_zonal_mean_bias_model_comparison(
+            var=online_var,
+            ds_mmf=ds_mmf,
+            ds_nn=ds_nn,
+            num_days=num_days,
+            show=False,
+            save_path=os.path.join(climsim3_figures_save_path_online, 'bias_model_comparison')
+        )

@@ -16,7 +16,7 @@ import shutil, glob
 #acct = 'm4334'
 acct = os.environ.get("MMF_NN_SLURM_ACCOUNT", "m4334")
 
-case_prefix = 'new_mmf_test_run_2'
+case_prefix = 'new_mmf_test_run_3'
 # exe_refcase = 'ftorch_test'
 # Added extra physics_state and cam_out variables.
 
@@ -89,7 +89,7 @@ outputlength = 368
 cb_nn_var_combo = 'v2'
 input_rh = '.true.'
 cb_spinup_step = 5
-cb_strato_water_constraint = '.true.' # set .true. to use stratospheric water constraint to remove all stratospheric clouds and set dqv/dt in strato to 0
+cb_strato_water_constraint = '.false.' # set .true. to use stratospheric water constraint to remove all stratospheric clouds and set dqv/dt in strato to 0
 cb_partial_coupling = '.false.'
 cb_do_ramp = '.false.'
 cb_ramp_option = 'step'

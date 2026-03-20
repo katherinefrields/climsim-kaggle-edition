@@ -172,19 +172,12 @@ def online_area_time_mean_3d(ds, var):
     return arr_zonal_time_mean
 
 def difference(ds1, ds2, var):
-    arr1 = ds1[var].values[1:,:,:]
-    arr2 = ds2[var].values[1:,:,:]
-    arr1_reshaped = np.transpose(arr1, (0,2,1))
-    arr2_reshaped = np.transpose(arr2, (0,2,1))
-    diff_arr = np.abs(arr1_reshaped - arr2_reshaped)
-    ratio_arr = diff_arr / (np.abs(arr2_reshaped) + 1e-30)
-    arr_zonal_time_mean = xr.DataArray(ratio_arr.T, dims = ['hybrid pressure (hPa)', 'latitude'], coords = {'hybrid pressure (hPa)':level, 'latitude': lat_bin_mids})
-    
-    #arr_zonal_mean = data_v2_rh_mc.zonal_bin_weight_3d(arr_reshaped)
-    #arr_zonal_time_mean = arr_zonal_mean.mean(axis = 0)
-    #arr_zonal_time_mean = xr.DataArray(arr_zonal_time_mean.T, dims = ['hybrid pressure (hPa)', 'latitude'], coords = {'hybrid pressure (hPa)':level, 'latitude': lat_bin_mids})
-    
-    return arr_zonal_time_mean
+    arr1 = np.transpose(ds1[var].values[1:,:,:], (0,2,1))  # (time, ncol, lev)
+    arr2 = np.transpose(ds2[var].values[1:,:,:], (0,2,1))
+    ratio_arr = np.abs(arr1 - arr2) / (np.abs(arr2) + 1e-30)             # (time, ncol, lev)
+    ratio_zm = data_v2_rh_mc.zonal_bin_weight_3d(ratio_arr).mean(axis=0)  # (n_lat_bins, lev)
+    return xr.DataArray(ratio_zm.T, dims=['hybrid pressure (hPa)', 'latitude'],
+                        coords={'hybrid pressure (hPa)': level, 'latitude': lat_bin_mids})
 
 def area_mean(ds, var):
     arr = ds[var].values
@@ -391,10 +384,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         # zonal time-mean of the actual predictions for each model
         #zm_joint = online_area_time_mean_3d(ds_nn['joint'], var)
         #zm_unet  = online_area_time_mean_3d(ds_nn['unet'],  var)
-        pred_ratio = difference(ds_nn['joint'], ds_nn['unet'],  var)
-        #pred_ratio = (zm_res) / (zm_unet.values + 1e-30)
-        pred_ratio_avg = online_area_time_mean_3d(pred_ratio,  var)
-        pred_ratio_da = xr.DataArray(pred_ratio_avg, dims=rmse_unet.dims, coords=rmse_unet.coords)
+        pred_ratio_da = difference(ds_nn['joint'], ds_nn['unet'], var)
 
         # --- left: deterministic (unet) RMSE ---
         ax0 = axs[row_idx, 0]

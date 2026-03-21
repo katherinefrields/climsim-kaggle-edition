@@ -333,8 +333,27 @@ def h1_zonal_time_mean(ds_run, var):
                         dims=['hybrid pressure (hPa)', 'latitude'],
                         coords={'hybrid pressure (hPa)': level, 'latitude': lat_bin_mids})
 
+# def compute_rmse_zonal(ds_run, ds_ref, var, scaling=1.0):
+#     """Compute RMSE per column then take the area-weighted zonal average.
+#
+#     Returns an xr.DataArray with dims ('hybrid pressure (hPa)', 'latitude').
+#     """
+#     n_time = min(ds_run[var].shape[0], ds_ref[var].shape[0]) - 1
+#
+#     y_pred = np.transpose(ds_run[var].values[1:n_time + 1], (0, 2, 1))  # (time, ncol, lev)
+#     y_true = np.transpose(ds_ref[var].values[1:n_time + 1], (0, 2, 1))  # (time, ncol, lev)
+#
+#     rmse = scaling * np.sqrt(np.mean((y_true - y_pred) ** 2, axis=0))  # (ncol, lev)
+#
+#     # area-weighted zonal average of per-column RMSE -> (n_lat_bins, lev)
+#     rmse_zm = data_v2_rh_mc.zonal_bin_weight_3d(rmse[np.newaxis])[0]
+#
+#     return xr.DataArray(rmse_zm.T,
+#                         dims=['hybrid pressure (hPa)', 'latitude'],
+#                         coords={'hybrid pressure (hPa)': level, 'latitude': lat_bin_mids})
+
 def compute_rmse_zonal(ds_run, ds_ref, var, scaling=1.0):
-    """Compute RMSE per column then take the area-weighted zonal average.
+    """Compute MAE per column then take the area-weighted zonal average.
 
     Returns an xr.DataArray with dims ('hybrid pressure (hPa)', 'latitude').
     """
@@ -343,12 +362,12 @@ def compute_rmse_zonal(ds_run, ds_ref, var, scaling=1.0):
     y_pred = np.transpose(ds_run[var].values[1:n_time + 1], (0, 2, 1))  # (time, ncol, lev)
     y_true = np.transpose(ds_ref[var].values[1:n_time + 1], (0, 2, 1))  # (time, ncol, lev)
 
-    rmse = scaling * np.sqrt(np.mean((y_true - y_pred) ** 2, axis=0))  # (ncol, lev)
+    mae = scaling * np.mean(np.abs(y_true - y_pred), axis=0)  # (ncol, lev)
 
-    # area-weighted zonal average of per-column RMSE -> (n_lat_bins, lev)
-    rmse_zm = data_v2_rh_mc.zonal_bin_weight_3d(rmse[np.newaxis])[0]
+    # area-weighted zonal average of per-column MAE -> (n_lat_bins, lev)
+    mae_zm = data_v2_rh_mc.zonal_bin_weight_3d(mae[np.newaxis])[0]
 
-    return xr.DataArray(rmse_zm.T,
+    return xr.DataArray(mae_zm.T,
                         dims=['hybrid pressure (hPa)', 'latitude'],
                         coords={'hybrid pressure (hPa)': level, 'latitude': lat_bin_mids})
 

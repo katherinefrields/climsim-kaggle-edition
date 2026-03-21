@@ -406,7 +406,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         vmax1 = np.nanpercentile(troposphere_vals, 99.5)
         #vmin1 = (np.nanpercentile(troposphere_vals, 5), 1e-10)
         #vmax1 = np.nanpercentile(troposphere_vals, 95)
-        im1 = pred_ratio_da.plot(ax=ax1, add_colorbar=False, cmap='YlOrRd',
+        im1 = pred_ratio_da.plot(ax=ax1, add_colorbar=False, cmap='viridis',
                                  norm=LogNorm(vmin=vmin1, vmax=vmax1))
         fig.colorbar(im1, ax=ax1, label='|Predicted Residual|')
         ax1.set_title('{} |Predicted Residual| — {}'.format(panel_labels[row_idx * 2 + 1], settings['var_title']))

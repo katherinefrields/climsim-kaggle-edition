@@ -417,8 +417,8 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         # --- left: deterministic (unet) RMSE ---
         ax0 = axs[row_idx, 0]
         im0 = rmse_unet.plot(ax=ax0, add_colorbar=False, cmap='viridis')
-        fig.colorbar(im0, ax=ax0, label='RMSE ({})'.format(settings['unit']))
-        ax0.set_title('{} {} RMSE — {}'.format(panel_labels[row_idx * 2], model_names['unet'], settings['var_title']))
+        fig.colorbar(im0, ax=ax0, label='MAE ({})'.format(settings['unit']))
+        ax0.set_title('{} {} MAE — {}'.format(panel_labels[row_idx * 2], model_names['unet'], settings['var_title']))
         ax0.invert_yaxis()
         ax0.set_xlabel('Latitude')
         ax0.set_ylabel('Hybrid pressure (hPa)')
@@ -455,7 +455,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
                 ax.plot(lat_bin_mids, idx_tropopause_zm, 'k--', label='Tropopause')
                 ax.legend(fontsize=8)
 
-    plt.suptitle('{}-day: Deterministic U-Net RMSE | |Predicted Residual|'.format(num_days), fontsize=14)
+    plt.suptitle('{}-day: Deterministic U-Net MAE | |Predicted Residual|'.format(num_days), fontsize=14)
 
     if save_path:
         os.makedirs(save_path, exist_ok=True)

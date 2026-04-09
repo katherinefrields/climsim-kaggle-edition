@@ -398,7 +398,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
     latitude_ticks  = [-60, -30, 0, 30, 60]
     latitude_labels = ['60S', '30S', '0', '30N', '60N']
 
-    fig, axs = plt.subplots(n_vars, 3, figsize=(11, 4 * n_vars), constrained_layout=True)
+    fig, axs = plt.subplots(n_vars, 3, figsize=(18, 4 * n_vars), constrained_layout=True)
     if n_vars == 1:
         axs = axs[np.newaxis, :]
 

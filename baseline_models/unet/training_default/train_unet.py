@@ -429,8 +429,18 @@ def main(cfg: DictConfig) -> float:
         joint_scheduler = optim.lr_scheduler.CosineAnnealingLR(joint_optimizer, T_max=cfg.scheduler.cosine.T_max, eta_min=cfg.scheduler.cosine.eta_min)
     else:
         raise ValueError('Scheduler not implemented')
-    
-    
+
+    # Load optimizer/scheduler state from checkpoint companion file if available
+    for restart_path in [cfg.restart_path, cfg.diffusion_restart_path]:
+        if len(restart_path) > 0:
+            optim_path = restart_path.replace('.mdlus', '_optim.pt')
+            if os.path.exists(optim_path):
+                print(f"Loading optimizer/scheduler state from: {optim_path}")
+                optim_ckpt = torch.load(optim_path, map_location=dist.device)
+                joint_optimizer.load_state_dict(optim_ckpt['optimizer_state_dict'])
+                joint_scheduler.load_state_dict(optim_ckpt['scheduler_state_dict'])
+                break  # only load once (prefer restart_path over diffusion_restart_path)
+
     # create loss function
     if cfg.loss == 'MSE':
         loss_fn = nn.MSELoss()
@@ -763,6 +773,12 @@ def main(cfg: DictConfig) -> float:
                     else:
                         model.save(ckpt_path)
                         res_model.save(ckpt_res_path)
+
+                    optim_path = ckpt_path.replace('.mdlus', '_optim.pt')
+                    torch.save({
+                        'optimizer_state_dict': joint_optimizer.state_dict(),
+                        'scheduler_state_dict': joint_scheduler.state_dict(),
+                    }, optim_path)
                     top_checkpoints.append((current_metric, ckpt_path))
                     top_res_checkpoints.append((current_metric,ckpt_res_path))
                     # Sort and keep top 5 based on max/min goal at the beginning

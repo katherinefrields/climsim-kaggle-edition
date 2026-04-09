@@ -417,7 +417,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         ax0 = axs[row_idx, 0]
         im0 = rmse_unet.plot(ax=ax0, add_colorbar=False, cmap='viridis')
         fig.colorbar(im0, ax=ax0, label='MAE ({})'.format(settings['unit']))
-        ax0.set_title('{} {} MAE — {}'.format( model_names['unet'], settings['var_title']))
+        ax0.set_title('{} MAE — {}'.format( model_names['unet'], settings['var_title']))
         ax0.invert_yaxis()
         ax0.set_xlabel('Latitude')
         ax0.set_ylabel('Hybrid pressure (hPa)')
@@ -428,7 +428,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         ax1 = axs[row_idx, 1]
         im1 = rmse_joint.plot(ax=ax1, add_colorbar=False, cmap='viridis')
         fig.colorbar(im1, ax=ax1, label='MAE ({})'.format(settings['unit']))
-        ax1.set_title('{} {} MAE — {}'.format( model_names['joint'], settings['var_title']))
+        ax1.set_title('{}MAE — {}'.format( model_names['joint'], settings['var_title']))
         ax1.invert_yaxis()
         ax1.set_xlabel('Latitude')
         ax1.set_ylabel('Hybrid pressure (hPa)')
@@ -453,8 +453,8 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         im1 = pred_ratio_da.plot(ax=ax2, add_colorbar=False, cmap='viridis',
                                  vmin=vmin1, vmax=vmax1)
         fig.colorbar(im1, ax=ax2, label='|Joint Prediction - Deterministic Prediction|')
-        ax2.set_title('{} |Joint Prediction - Deterministic Prediction| — {}'.format( settings['var_title']))
-        ax2.set_title('{} |Joint Prediction - Deterministic Prediction| — {}'.format(settings['var_title']))
+        ax2.set_title('|Joint Prediction - Deterministic Prediction| — {}'.format( settings['var_title']))
+        ax2.set_title('|Joint Prediction - Deterministic Prediction| — {}'.format(settings['var_title']))
         ax2.invert_yaxis()
         ax2.set_xlabel('Latitude')
         ax2.set_ylabel('')

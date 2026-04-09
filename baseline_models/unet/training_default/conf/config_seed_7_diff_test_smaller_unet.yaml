@@ -90,8 +90,8 @@ save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_mode
 expname: 'smaller_model_diff_continued'
 num_workers: 32
 batch_size: 512 #1024
-epochs: 10
-learning_rate: 0.000005 #0.0001 #0.00005 # temporarily changed 0.0001
+epochs: 13
+learning_rate: 0.0001 #0.0001 #0.00005 # temporarily changed 0.0001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'
 optimizer: 'AdamW'

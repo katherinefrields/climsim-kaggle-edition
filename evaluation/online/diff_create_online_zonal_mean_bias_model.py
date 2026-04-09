@@ -398,7 +398,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
     latitude_ticks  = [-60, -30, 0, 30, 60]
     latitude_labels = ['60S', '30S', '0', '30N', '60N']
 
-    fig, axs = plt.subplots(n_vars, 3, figsize=(18, 4 * n_vars), constrained_layout=True)
+    fig, axs = plt.subplots(n_vars, 3, figsize=(20, 4 * n_vars), constrained_layout=True)
     if n_vars == 1:
         axs = axs[np.newaxis, :]
 
@@ -428,7 +428,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         ax1 = axs[row_idx, 1]
         im1 = rmse_joint.plot(ax=ax1, add_colorbar=False, cmap='viridis')
         fig.colorbar(im1, ax=ax1, label='MAE ({})'.format(settings['unit']))
-        ax1.set_title('{}MAE — {}'.format( model_names['joint'], settings['var_title']))
+        ax1.set_title('{} MAE — {}'.format( model_names['joint'], settings['var_title']))
         ax1.invert_yaxis()
         ax1.set_xlabel('Latitude')
         ax1.set_ylabel('Hybrid pressure (hPa)')

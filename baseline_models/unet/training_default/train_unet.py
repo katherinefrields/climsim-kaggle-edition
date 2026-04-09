@@ -38,6 +38,42 @@ from conflictfree.grad_operator import ConFIG_update
 from conflictfree.utils import get_gradient_vector,apply_gradient_vector
 import torch
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
+
+class CRPSLoss(nn.Module):
+    """
+    CRPS for Gaussian forecasts.
+    Expects pred of shape (B, 2*N):
+        pred[:, :N]     = mean (mu)
+        pred[:, N:2*N]  = raw sigma (softplus applied)
+    target must be shape (B, N)
+    """
+    def __init__(self, eps=1e-6):
+        super().__init__()
+        self.eps = eps
+
+    def forward(self, pred, target):
+        B, twoN = pred.shape
+        N = twoN // 2
+
+        mu = pred[:, :N]
+        sigma_raw = pred[:, N:2*N]
+
+        sigma = F.softplus(sigma_raw) + self.eps
+
+        z = (target - mu) / sigma
+
+        pdf = torch.exp(-0.5 * z * z) / math.sqrt(2 * math.pi)
+        cdf = 0.5 * (1 + torch.erf(z / math.sqrt(2)))
+
+        crps = sigma * (z * (2 * cdf - 1) + 2 * pdf - 1 / math.sqrt(math.pi))
+
+        return crps.mean()
+
+
 class EMA:
     def __init__(self, model, decay=0.999):
         self.decay = decay
@@ -405,6 +441,10 @@ def main(cfg: DictConfig) -> float:
     elif cfg.loss == 'Huber':
         loss_fn = nn.HuberLoss()
         criterion = nn.HuberLoss()
+    elif cfg.loss == 'CRPS':
+        loss_fn = CRPSLoss()
+        criterion = CRPSLoss()
+
     else:
         raise ValueError('Loss function not implemented')
     

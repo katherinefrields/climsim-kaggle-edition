@@ -402,7 +402,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
     if n_vars == 1:
         axs = axs[np.newaxis, :]
 
-    panel_labels = ['({})'.format(letter) for letter in string.ascii_lowercase[:2 * n_vars]]
+    panel_labels = ['({})'.format(letter) for letter in string.ascii_lowercase[:3 * n_vars]]
 
     for row_idx, var in enumerate(vars_to_plot):
         settings = online_var_settings[var]

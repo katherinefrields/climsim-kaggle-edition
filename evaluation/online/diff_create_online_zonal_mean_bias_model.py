@@ -398,7 +398,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
     latitude_ticks  = [-60, -30, 0, 30, 60]
     latitude_labels = ['60S', '30S', '0', '30N', '60N']
 
-    fig, axs = plt.subplots(n_vars, 2, figsize=(11, 4 * n_vars), constrained_layout=True)
+    fig, axs = plt.subplots(n_vars, 3, figsize=(11, 4 * n_vars), constrained_layout=True)
     if n_vars == 1:
         axs = axs[np.newaxis, :]
 
@@ -409,6 +409,7 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
 
         rmse_unet = compute_rmse_zonal(ds_nn['unet'], ds_mmf, var, scaling=settings['scaling'])
 
+        rmse_joint = compute_rmse_zonal(ds_nn['joint'], ds_mmf, var, scaling=settings['scaling'])
         # zonal time-mean of the actual predictions for each model
         #zm_joint = online_area_time_mean_3d(ds_nn['joint'], var)
         #zm_unet  = online_area_time_mean_3d(ds_nn['unet'],  var)
@@ -424,9 +425,20 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         ax0.set_ylabel('Hybrid pressure (hPa)')
         ax0.set_xticks(latitude_ticks)
         ax0.set_xticklabels(latitude_labels)
+        
+        # --- middle: joint (unet) RMSE ---
+        ax1 = axs[row_idx, 1]
+        im1 = rmse_joint.plot(ax=ax1, add_colorbar=False, cmap='viridis')
+        fig.colorbar(im1, ax=ax1, label='MAE ({})'.format(settings['unit']))
+        ax1.set_title('{} {} MAE — {}'.format(panel_labels[row_idx * 2 + 1], model_names['joint'], settings['var_title']))
+        ax1.invert_yaxis()
+        ax1.set_xlabel('Latitude')
+        ax1.set_ylabel('Hybrid pressure (hPa)')
+        ax1.set_xticks(latitude_ticks)
+        ax1.set_xticklabels(latitude_labels)
 
         # --- right: |joint predictions| / |unet predictions| ---
-        ax1 = axs[row_idx, 1]
+        ax2 = axs[row_idx, 2]
 
         # old percentile-based LogNorm scaling
         #troposphere_vals = pred_ratio_da.values[:, 12:]  # exclude stratosphere (levels 0-11)
@@ -440,22 +452,22 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         # match colorbar scale to MAE panel
         vmin1 = float(np.nanmin(rmse_unet.values))
         vmax1 = float(np.nanmax(rmse_unet.values))
-        im1 = pred_ratio_da.plot(ax=ax1, add_colorbar=False, cmap='viridis',
+        im1 = pred_ratio_da.plot(ax=ax2, add_colorbar=False, cmap='viridis',
                                  vmin=vmin1, vmax=vmax1)
-        fig.colorbar(im1, ax=ax1, label='|Predicted Residual|')
-        ax1.set_title('{} |Predicted Residual| — {}'.format(panel_labels[row_idx * 2 + 1], settings['var_title']))
-        ax1.invert_yaxis()
-        ax1.set_xlabel('Latitude')
-        ax1.set_ylabel('')
-        ax1.set_xticks(latitude_ticks)
-        ax1.set_xticklabels(latitude_labels)
+        fig.colorbar(im1, ax=ax2, label='|Joint Prediction - Deterministic Prediction|')
+        ax2.set_title('{} |Joint Prediction - Deterministic Prediction| — {}'.format(panel_labels[row_idx * 2 + 2], settings['var_title']))
+        ax2.invert_yaxis()
+        ax2.set_xlabel('Latitude')
+        ax2.set_ylabel('')
+        ax2.set_xticks(latitude_ticks)
+        ax2.set_xticklabels(latitude_labels)
 
-        for ax in [ax0, ax1]:
+        for ax in [ax0, ax1, ax2]:
             if var == 'CLDICE':
                 ax.plot(lat_bin_mids, idx_tropopause_zm, 'k--', label='Tropopause')
                 ax.legend(fontsize=8)
 
-    plt.suptitle('{}-day: Deterministic U-Net MAE | |Predicted Residual|'.format(num_days), fontsize=14)
+    plt.suptitle('{}-day: Deterministic U-Net MAE | |Joint Prediction - Deterministic Prediction|'.format(num_days), fontsize=14)
 
     if save_path:
         os.makedirs(save_path, exist_ok=True)

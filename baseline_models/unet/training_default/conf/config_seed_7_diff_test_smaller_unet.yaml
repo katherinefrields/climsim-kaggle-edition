@@ -87,20 +87,20 @@ restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models
 #diffusion_restart_path: '' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/input_output_cond_embedding_3_epoch_fixed_zeroing_z_dist_continued/diff_model/ckpt/ckpt_epoch_2_metric_0.2441.mdlus' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/dynamic_normalization_1_epoch/diff_model/ckpt/ckpt_epoch_1_metric_0.0023.mdlus' 
 diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/save_LR_state_test_5/diff_model/diff_model.mdlus'
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'save_LR_state_test_5_reload'
+expname: 'platau_test_run'
 num_workers: 32
 batch_size: 512 #1024
-epochs: 2
-learning_rate: .001 #0.0001 #0.0001 #0.00005 # temporarily changed 0.0001
+epochs: 1
+learning_rate: .0001 #0.0001 #0.0001 #0.00005 # temporarily changed 0.0001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'
 optimizer: 'AdamW'
 loss: 'Huber'
-scheduler_name: 'step'
+scheduler_name: 'plateau'
 scheduler:
    step:
       step_size: 1 #temporarily changed for restarting 2
-      gamma: .05
+      gamma: .5
    plateau:
       patience: 2
       factor: 0.1

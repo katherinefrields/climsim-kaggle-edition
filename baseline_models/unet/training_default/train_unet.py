@@ -824,6 +824,12 @@ def main(cfg: DictConfig) -> float:
         res_model = modulus.Module.from_checkpoint(top_res_checkpoints[0][1])
         save_file_res = os.path.join(save_path_res, 'diff_model.mdlus')
         res_model.save(save_file_res)
+
+        # Save joint optimizer/scheduler state alongside the final model files
+        torch.save({
+            'optimizer_state_dict': joint_optimizer.state_dict(),
+            'scheduler_state_dict': joint_scheduler.state_dict(),
+        }, save_file_res.replace('.mdlus', '_optim.pt'))
         
         
         # convert the model to torchscript

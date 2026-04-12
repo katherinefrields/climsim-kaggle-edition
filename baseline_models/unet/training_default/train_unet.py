@@ -799,7 +799,7 @@ def main(cfg: DictConfig) -> float:
                         #    os.remove(worst_res_ckpt[1])
                         #ADD THIS BACK LATER
             if cfg.scheduler_name == 'plateau':
-                joint_scheduler.step(current_deterministic_val_loss_avg)
+                joint_scheduler.step(current_residual_val_loss_avg)
             else:
                 joint_scheduler.step()
                       

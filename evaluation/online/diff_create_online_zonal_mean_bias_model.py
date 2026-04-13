@@ -413,9 +413,13 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         #zm_unet  = online_area_time_mean_3d(ds_nn['unet'],  var)
         pred_ratio_da = difference(ds_nn['joint'], ds_nn['unet'], var,scaling=settings['scaling'])
 
+        # shared colorbar scale across all three panels
+        shared_vmin = float(min(np.nanmin(rmse_unet.values), np.nanmin(rmse_joint.values), np.nanmin(pred_ratio_da.values)))
+        shared_vmax = float(max(np.nanmax(rmse_unet.values), np.nanmax(rmse_joint.values), np.nanmax(pred_ratio_da.values)))
+
         # --- left: deterministic (unet) RMSE ---
         ax0 = axs[row_idx, 0]
-        im0 = rmse_unet.plot(ax=ax0, add_colorbar=False, cmap='viridis')
+        im0 = rmse_unet.plot(ax=ax0, add_colorbar=False, cmap='viridis', vmin=shared_vmin, vmax=shared_vmax)
         fig.colorbar(im0, ax=ax0, label='MAE ({})'.format(settings['unit']))
         ax0.set_title('{} MAE — {}'.format( model_names['unet'], settings['var_title']))
         ax0.invert_yaxis()
@@ -423,10 +427,10 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         ax0.set_ylabel('Hybrid pressure (hPa)')
         ax0.set_xticks(latitude_ticks)
         ax0.set_xticklabels(latitude_labels)
-        
+
         # --- middle: joint (unet) RMSE ---
         ax1 = axs[row_idx, 1]
-        im1 = rmse_joint.plot(ax=ax1, add_colorbar=False, cmap='viridis')
+        im1 = rmse_joint.plot(ax=ax1, add_colorbar=False, cmap='viridis', vmin=shared_vmin, vmax=shared_vmax)
         fig.colorbar(im1, ax=ax1, label='MAE ({})'.format(settings['unit']))
         ax1.set_title('{} MAE — {}'.format( model_names['joint'], settings['var_title']))
         ax1.invert_yaxis()
@@ -438,20 +442,8 @@ def plot_r2_comparison(ds_mmf, ds_nn, num_days, vars_to_plot=None, show=True, sa
         # --- right: |joint predictions| / |unet predictions| ---
         ax2 = axs[row_idx, 2]
 
-        # old percentile-based LogNorm scaling
-        #troposphere_vals = pred_ratio_da.values[:, 12:]  # exclude stratosphere (levels 0-11)
-        #vmin1 = max(np.nanpercentile(troposphere_vals, 5), 1e-10)  # LogNorm requires vmin > 0
-        #vmax1 = np.nanpercentile(troposphere_vals, 99.5)
-        #vmin1 = (np.nanpercentile(troposphere_vals, 5), 1e-10)
-        #vmax1 = np.nanpercentile(troposphere_vals, 95)
-        #im1 = pred_ratio_da.plot(ax=ax1, add_colorbar=False, cmap='viridis',
-        #                         norm=LogNorm(vmin=vmin1, vmax=vmax1))
-
-        # match colorbar scale to MAE panel
-        vmin1 = float(np.nanmin(rmse_unet.values))
-        vmax1 = float(np.nanmax(rmse_unet.values))
         im1 = pred_ratio_da.plot(ax=ax2, add_colorbar=False, cmap='viridis',
-                                 vmin=vmin1, vmax=vmax1)
+                                 vmin=shared_vmin, vmax=shared_vmax)
         fig.colorbar(im1, ax=ax2, label='|Joint Prediction - Deterministic Prediction|')
         ax2.set_title('|Joint Prediction - Deterministic Prediction| — {}'.format( settings['var_title']))
         ax2.set_title('|Joint Prediction - Deterministic Prediction| — {}'.format(settings['var_title']))

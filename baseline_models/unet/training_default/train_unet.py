@@ -42,6 +42,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+try:
+    import torch.cuda.nvtx as nvtx
+except ImportError:
+    class nvtx:  # no-op shim for CPU-only environments
+        @staticmethod
+        def range_push(_msg): pass
+        @staticmethod
+        def range_pop(): pass
 
 class CRPSLoss(nn.Module):
     """
@@ -537,7 +545,7 @@ def main(cfg: DictConfig) -> float:
     
     
     for epoch in range(cfg.epochs):
-        
+        nvtx.range_push(f"epoch_{epoch}")
         if dist.distributed:
             train_sampler.set_epoch(epoch)
         
@@ -598,34 +606,26 @@ def main(cfg: DictConfig) -> float:
                 #     target[:,120:120+cfg.strato_lev] = 0
                 #     target[:,180:180+cfg.strato_lev] = 0
                 #print(f'starting step {current_step} of epoch {epoch+1}')
+                nvtx.range_push("data_to_device")
                 data_input, target = data_input.to(device), target.to(device)
-                
-                #scaled predicted
-                #scaled predicted
-                #returns reshaped target
+                nvtx.range_pop()
+
+                nvtx.range_push("forward")
                 output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
-                
-                #calcluate loss using normalized residuals
-                
-                
-                
-                
-                #train_targets.append(target.cpu().numpy())
-                #train_preds.append(output.cpu().numpy())
-                
-                #calcluate loss using normalized residuals
-                
-                #output, residual, predicted_residual, normalized_residual, normalized_predicted_residual, weight = joint_model(data_input, target)
-                
-                #calcluate loss using normalized residuals
-                #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, normalized_predicted_residual, normalized_residual, weight)
+                nvtx.range_pop()
+
+                nvtx.range_push("loss_and_backward")
                 if joint_training_enabled:
                     deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
                     joint_model.module.joint_backward(deterministic_loss, res_loss, joint_optimizer)
                 else:
                     deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
-                    joint_model.module.backward(res_loss, joint_optimizer)    
+                    joint_model.module.backward(res_loss, joint_optimizer)
+                nvtx.range_pop()
+
+                nvtx.range_push("optimizer_step")
                 joint_optimizer.step()
+                nvtx.range_pop()
                 
                 #with torch.no_grad():
                 #    det_param = next(joint_model.module.deterministic_model.parameters())
@@ -677,9 +677,12 @@ def main(cfg: DictConfig) -> float:
             #np.save(train_targets_path, train_targets)       
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})
             
+            nvtx.range_push("train_epoch_end")
             model.eval()
             res_model.eval()
-            
+            nvtx.range_pop()
+
+            nvtx.range_push(f"validation_epoch_{epoch}")
             deterministic_val_loss = 0.0
             residual_val_loss = 0.0
             num_samples_processed = 0
@@ -701,14 +704,17 @@ def main(cfg: DictConfig) -> float:
                 #     target[:,120:120+cfg.strato_lev] = 0
                 #     target[:,180:180+cfg.strato_lev] = 0
                 # Move data to the device
+                nvtx.range_push("val_data_to_device")
                 data_input, target = data_input.to(device), target.to(device)
-                
-                
-                #scaled predicted
+                nvtx.range_pop()
+
+                nvtx.range_push("val_forward")
                 output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
-                
-                #calcluate loss using normalized residuals
-                deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual,  weight)
+                nvtx.range_pop()
+
+                nvtx.range_push("val_loss")
+                deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
+                nvtx.range_pop()
                 
                
                 #output, residual, predicted_residual = joint_model(data_input, target)
@@ -798,14 +804,16 @@ def main(cfg: DictConfig) -> float:
                         #if worst_res_ckpt[1] is not None:
                         #    os.remove(worst_res_ckpt[1])
                         #ADD THIS BACK LATER
+            nvtx.range_pop()  # validation_epoch
+
             if cfg.scheduler_name == 'plateau':
                 joint_scheduler.step(current_residual_val_loss_avg)
             else:
                 joint_scheduler.step()
-                      
-            
+
             if dist.world_size > 1:
                 torch.distributed.barrier()
+            nvtx.range_pop()  # epoch
                 
     if dist.rank == 0:
         logger.info("Start recovering the model from the top checkpoint to do torchscript conversion")         

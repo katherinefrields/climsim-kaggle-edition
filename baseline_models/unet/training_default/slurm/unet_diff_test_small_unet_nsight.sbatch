@@ -27,11 +27,11 @@ PROFILE_CMD="nsys profile \
   --force-overwrite=true \
   python train_unet.py \
   --config-name=config_seed_7_diff_test_smaller_unet \
-  early_stop_step=200"
+  early_stop_step=200 epochs=1"
 
 TRAIN_CMD="python train_unet.py \
   --config-name=config_seed_7_diff_test_smaller_unet \
-  early_stop_step=200"
+  early_stop_step=200 epochs=1"
 
 cd ..
 srun -n $SLURM_NTASKS shifter bash -c \

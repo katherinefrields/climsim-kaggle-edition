@@ -396,7 +396,7 @@ def main(cfg: DictConfig) -> float:
                             nu = cfg.diffusion_model.nu,
                             t_sampling=cfg.diffusion_model.t_sampling).to(dist.device)
 
-    joint_model = torch.compile(joint_model)
+    joint_model = torch.compile(joint_model, backend="cudagraphs")
 
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to

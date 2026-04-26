@@ -2,7 +2,7 @@
 #SBATCH -A m4334
 #SBATCH -C gpu
 #SBATCH -q debug
-#SBATCH -t 00:10:00
+#SBATCH -t 00:05:00
 #SBATCH --ntasks-per-node 4
 #SBATCH --cpus-per-task 32
 #SBATCH --gpus-per-node 4
@@ -14,7 +14,6 @@
 #SBATCH --error=eo_%j.err
 
 export HYDRA_FULL_ERROR=1
-export LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib:$LD_LIBRARY_PATH
 
 PROFILE_DIR=$SCRATCH/nsight_profiles/${SLURM_JOB_ID}
 mkdir -p $PROFILE_DIR

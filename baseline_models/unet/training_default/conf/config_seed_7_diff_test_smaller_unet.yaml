@@ -89,7 +89,7 @@ diffusion_restart_path: /pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/di
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
 expname: 'plateau_run_fixed_continued'
 num_workers: 64
-batch_size: 1024
+batch_size: 2048 #1024
 epochs: 7
 learning_rate: .0001 #0.0001 #0.0001 #0.00005 # temporarily changed 0.0001
 save_top_ckpts: 15

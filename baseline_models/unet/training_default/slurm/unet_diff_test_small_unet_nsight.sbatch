@@ -14,6 +14,7 @@
 #SBATCH --error=eo_%j.err
 
 export HYDRA_FULL_ERROR=1
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib:$LD_LIBRARY_PATH
 
 PROFILE_DIR=$SCRATCH/nsight_profiles/${SLURM_JOB_ID}
 mkdir -p $PROFILE_DIR

@@ -378,16 +378,16 @@ def main(cfg: DictConfig) -> float:
             
     
         
-    joint_model = JointModel(model, 
+    joint_model = JointModel(model,
                             res_model.to(dist.device),
                             res_std.to(dist.device),
                             res_mean.to(dist.device),
                             preds_std.to(dist.device),
-                            preds_mean.to(dist.device), 
-                            input_profile_num = data.input_profile_num, 
+                            preds_mean.to(dist.device),
+                            input_profile_num = data.input_profile_num,
                             input_scalar_num = data.input_scalar_num,
                             target_profile_num = data.target_profile_num,
-                            target_scalar_num = data.target_scalar_num, 
+                            target_scalar_num = data.target_scalar_num,
                             condition_channel_num = res_model.condition_channels,
                             condition_type = cfg.diffusion_model.condition_type,
                             condtition_location=cfg.diffusion_model.condition_location,
@@ -395,7 +395,9 @@ def main(cfg: DictConfig) -> float:
                             p_std = cfg.diffusion_model.p_std,
                             nu = cfg.diffusion_model.nu,
                             t_sampling=cfg.diffusion_model.t_sampling).to(dist.device)
-    
+
+    joint_model = torch.compile(joint_model)
+
     # Set up DistributedDataParallel if using more than a single process.
     # The `distributed` property of DistributedManager can be used to
     # check this.

@@ -215,7 +215,8 @@ def main(cfg: DictConfig) -> float:
                                 sampler=train_sampler,
                                 drop_last=True,
                                 #persistent_workers=True,# TEMPORARILY ADDED FOR DEBUGGING
-                                #pin_memory=torch.cuda.is_available(),# TEMPORARILY DISABLED FOR DEBUGGING
+                                prefetch_factor=2,# TEMPORARILY ADDED FOR DEBUGGING
+                                pin_memory=torch.cuda.is_available(),# TEMPORARILY DISABLED FOR DEBUGGING
                                 num_workers=cfg.num_workers)
 
     val_dataset = ValidationDataset(val_input_path = cfg.val_input_path,

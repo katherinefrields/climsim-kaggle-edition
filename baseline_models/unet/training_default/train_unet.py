@@ -14,8 +14,11 @@ from modulus.launch.logging import (
     LaunchLogger,
     initialize_wandb,
     RankZeroLoggingWrapper,
-    initialize_mlflow,
 )
+try:
+    from modulus.launch.logging import initialize_mlflow
+except ImportError:
+    initialize_mlflow = None
 from physicsnemo.launch.utils import (
     load_checkpoint,
     save_checkpoint,
@@ -482,7 +485,8 @@ def main(cfg: DictConfig) -> float:
         )
         LaunchLogger.initialize(use_wandb=True)
     else:
-        # Initialize the MLFlow logger
+        if initialize_mlflow is None:
+            raise RuntimeError("initialize_mlflow is not available in this version of modulus — set logger: 'wandb' in your config")
         initialize_mlflow(
             experiment_name=cfg.mlflow.project,
             experiment_desc="Modulus launch development",

@@ -589,7 +589,9 @@ def main(cfg: DictConfig) -> float:
             #train_targets = []
             
             joint_training_enabled = False
+            nvtx.range_push("dataloader_iter")
             for data_input, target in train_loop:
+                nvtx.range_pop()  # dataloader_iter — ends when batch is ready
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
                 if current_step % 200 == 0:
@@ -672,7 +674,9 @@ def main(cfg: DictConfig) -> float:
                 #print(torch.cuda.memory_summary())
                 current_step += 1
                 del data_input, target, output, normalized_residual, normalized_predicted_residual , denormalized_predicted_residual, denormalized_residual
-                
+                nvtx.range_push("dataloader_iter")  # reopens — measures next batch fetch time
+
+            nvtx.range_pop()  # close final dataloader_iter
             #np.save(train_preds_path, train_preds)
             #np.save(train_targets_path, train_targets)       
             #launchlog.log_epoch({"Learning Rate": optimizer.param_groups[0]["lr"]})

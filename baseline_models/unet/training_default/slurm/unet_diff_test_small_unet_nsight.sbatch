@@ -22,7 +22,7 @@ mkdir -p $PROFILE_DIR
 # early_stop_step=200 keeps the profile to a few representative steps
 PROFILE_CMD="nsys profile \
   --output ${PROFILE_DIR}/unet_rank0 \
-  --trace=cuda,nvtx \
+  --trace=cuda,nvtx,osrt \
   --stats=true \
   --force-overwrite=true \
   python train_unet.py \

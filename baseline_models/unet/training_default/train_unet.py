@@ -630,6 +630,11 @@ def main(cfg: DictConfig) -> float:
                 else:
                     deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
                     joint_model.module.backward(res_loss, joint_optimizer)
+                
+                if torch.isnan(res_loss):
+                    print(f"NaN loss at step {current_step}, skipping optimizer step")
+                
+
                 nvtx.range_pop()
 
                 nvtx.range_push("optimizer_step")

@@ -620,7 +620,8 @@ def main(cfg: DictConfig) -> float:
                 nvtx.range_pop()
 
                 nvtx.range_push("forward")
-                output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
+                with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
+                    output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
                 nvtx.range_pop()
 
                 nvtx.range_push("loss_and_backward")
@@ -725,7 +726,8 @@ def main(cfg: DictConfig) -> float:
                 nvtx.range_pop()
 
                 nvtx.range_push("val_forward")
-                output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
+                with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
+                    output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
                 nvtx.range_pop()
 
                 nvtx.range_push("val_loss")

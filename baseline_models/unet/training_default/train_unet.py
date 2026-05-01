@@ -397,7 +397,8 @@ def main(cfg: DictConfig) -> float:
                             p_mean = cfg.diffusion_model.p_mean,
                             p_std = cfg.diffusion_model.p_std,
                             nu = cfg.diffusion_model.nu,
-                            t_sampling=cfg.diffusion_model.t_sampling).to(dist.device)
+                            t_sampling=cfg.diffusion_model.t_sampling,
+                            amp_mode=cfg.use_bf16).to(dist.device)
 
     joint_model = torch.compile(joint_model)
 

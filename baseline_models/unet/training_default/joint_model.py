@@ -51,9 +51,10 @@ class JointModel(modulus.Module):
                  condition_channel_num,
                  condition_type = 'input_output',
                  condtition_location = 'embedding',
-                 vertical_level_num=60, 
-                 img_resolution=64, sigma_data = .5, 
-                 p_mean = -4.0, p_std=1.2, nu = 3, t_sampling = False):
+                 vertical_level_num=60,
+                 img_resolution=64, sigma_data = .5,
+                 p_mean = -4.0, p_std=1.2, nu = 3, t_sampling = False,
+                 amp_mode = False):
         """
         deterministic_model, res_model: already-instantiated nn.Module objects
         """
@@ -89,6 +90,12 @@ class JointModel(modulus.Module):
         self.nu = nu
         
         self.t_sampling = t_sampling
+
+        #loops through all modules and their layers and sets the amp mode to true if the layer has an amp mode attribute. this is necessary for the layers in the res_model to be in amp mode, which is important for memory efficiency and speed.
+        if amp_mode:
+            for m in self.modules():
+                if hasattr(m, 'amp_mode'):
+                    m.amp_mode = True
         
         '''self.res_affine = nn.Sequential(
             nn.LayerNorm([self.target_profile_num + self.target_scalar_num, 64], elementwise_affine = False)

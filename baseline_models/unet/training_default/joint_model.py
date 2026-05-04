@@ -311,6 +311,92 @@ class JointModel(modulus.Module):
         
         return joint_pred
     
+    def forward_crps(self, input, target, num_members: int = 16):
+        """
+        AIFS-CRPS training forward: generates num_members denoised predictions
+        from different noise realizations.
+
+        Returns:
+            ensemble:    (B, num_members, C*L)
+            target_flat: (B, C*L)
+            det_pred:    (B, C*L)
+        """
+        input = self.reshape_input(input)
+        target = self.reshape_target(target)
+
+        output, latent_output = self.deterministic_model(input)
+
+        residual = (target - output).to(output.device)
+        safe_std = torch.clamp(self.res_std, min=1e-2)
+        normalized_residual = (residual / (safe_std + 1e-8)) * 0.5
+        condition_output = ((output - self.preds_mean) / (self.preds_std + 1e-8)) * 0.5
+
+        latent_condition = torch.cat((input, condition_output), dim=1)
+        condition_data = latent_condition  # default; overwritten below as needed
+        if self.condition_location == 'front':
+            if self.condition_type == 'input_output':
+                condition_data = latent_condition
+        elif self.condition_location == 'embedding':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+            else:
+                latent_condition = latent_output
+            condition_data = latent_condition.reshape(latent_condition.shape[0], -1)
+        elif self.condition_location == 'middle' or self.condition_location == 'cross':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+            condition_data = latent_condition
+
+        B, C, L = normalized_residual.shape
+        members = []
+        for _ in range(num_members):
+            rnd_normal = torch.randn([B, 1, 1], device=residual.device)
+            sigma = (rnd_normal * self.p_std + self.p_mean).exp()
+            n = torch.randn_like(normalized_residual) * sigma
+            noised_residual = normalized_residual + n
+
+            norm_pred_res = self.res_model(noised_residual, sigma, condition=condition_data)
+            denorm_pred_res = norm_pred_res / 0.5 * (safe_std + 1e-8)
+            pred = self.reverse_reshape_target(output) + self.reverse_reshape_target(denorm_pred_res)
+            members.append(pred)
+            
+        ensemble = torch.stack(members, dim=1)  # (B, M, C*L)
+        target_flat = self.reverse_reshape_target(target)
+        det_pred = self.reverse_reshape_target(output)
+        return ensemble, target_flat, det_pred
+
+    def compute_crps_training_loss(self, criterion, ensemble, target_flat, det_pred, eps: float = 0.0):
+        """
+        Almost-fair CRPS from AIFS-CRPS paper (unsimplified form for numerical stability):
+
+        afCRPS = 1/(2*M*(M-1)) * Σ_j Σ_{k≠j} (|x_j-y| + |x_k-y| - (1-ε)*|x_j-x_k|)
+
+        Each per-pair term is non-negative by the triangle inequality, avoiding
+        catastrophic cancellation from subtracting two large quantities.
+        ε=0: fully fair (unbiased). ε=1/M: biased estimator.
+        """
+        deterministic_loss = criterion(det_pred, target_flat)
+
+        M = ensemble.shape[1]
+        ens_j = ensemble.unsqueeze(2)               # (B, M, 1, C*L)
+        ens_k = ensemble.unsqueeze(1)               # (B, 1, M, C*L)
+        tgt   = target_flat[:, None, None, :]       # (B, 1, 1, C*L)
+
+        # each (B, M, M, C*L) — broadcasts over j and k
+        mae_j    = torch.abs(ens_j - tgt)           # |x_j - y|
+        mae_k    = torch.abs(ens_k - tgt)           # |x_k - y|
+        spread_jk = torch.abs(ens_j - ens_k)        # |x_j - x_k|
+
+        per_pair = mae_j + mae_k - (1.0 - eps) * spread_jk   # (B, M, M, C*L)
+
+        # sum over all M^2 pairs then subtract diagonal (j==k contributes 2*|x_j-y|, spread=0)
+        full_sum = per_pair.sum(dim=(1, 2))                                          # (B, C*L)
+        diag_sum = 2.0 * torch.abs(ensemble - target_flat.unsqueeze(1)).sum(dim=1)  # (B, C*L)
+        off_diag_sum = full_sum - diag_sum                                           # (B, C*L)
+
+        crps_loss = (off_diag_sum / (2.0 * M * (M - 1))).mean()
+        return deterministic_loss, crps_loss
+
     @torch.no_grad()
     def sample_ensemble(self, input: torch.Tensor, num_samples: int = 10) -> torch.Tensor:
         """

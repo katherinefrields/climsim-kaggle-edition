@@ -687,7 +687,7 @@ def main(cfg: DictConfig) -> float:
                 # scheduler.step()
                 #launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy()})
                 #if dist.rank == 0:
-                launchlog.log_minibatch({"loss_det_train": deterministic_loss.detach().cpu().numpy(),"loss_res_train": res_loss.detach().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"]})
+                launchlog.log_minibatch({"loss_det_train": deterministic_loss.detach().float().cpu().numpy(),"loss_res_train": res_loss.detach().float().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"]})
                 # Update the progress bar description with the current loss
                 train_loop.set_description(f'Epoch {epoch+1}')
                 train_loop.set_postfix(det_loss=deterministic_loss.item(), res_loss=res_loss.item())

@@ -120,7 +120,7 @@ early_stop_step: 100
 use_bf16: True
 crps_val_batches: 5
 crps_num_samples: 10
-use_crps_loss: False
+use_crps_loss: True
 crps_num_members: 16
 crps_eps: 0.0
 logger: 'wandb'

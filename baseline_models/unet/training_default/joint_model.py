@@ -126,7 +126,6 @@ class JointModel(modulus.Module):
         #output shape is (B, C, L), scalar values are all expanded mean value across levels
         output, latent_output = self.deterministic_model(input)
         
-        
         residual = target - output
         residual = residual.to(output.device)
         
@@ -136,18 +135,6 @@ class JointModel(modulus.Module):
         safe_std = torch.clamp(self.res_std, min=1e-2)
         normalized_residual = ((residual)/((safe_std+ 1e-8)))*.5
         condition_output = ((output - self.preds_mean)/((self.preds_std + 1e-8)))*.5
-        
-        #apply affine layers to enble dynamic normalization
-        #normalized_residual = self.res_affine(normalized_residual)
-        #condition_output = self.cond_affine(condition_output)
-        
-        #print("gamma:", self.res_affine[0].weight.mean().item())
-        #print("beta:", self.res_affine[0].bias.mean().item())
-
-        #print(self.res().item(), self.res_affine.gamma.min_affine.gamma.max().item())
-
-
-
         
         latent_condition = torch.cat((input, condition_output), dim=1)
         condition_data = latent_condition  # default; overwritten below as needed
@@ -165,64 +152,6 @@ class JointModel(modulus.Module):
                 latent_condition = torch.cat((input, condition_output), dim=1)
             condition_data = latent_condition
             #print(latent_condition.shape)
-
-
-
-        #condition_data = torch.cat((latent_condition, input), dim=1)
-        #normalized_residual = self.reverse_reshape_target(normalized_residual)
-        #normalized_residual = self.reshape_target(normalized_residual)
-        '''
-        B,C,L = residual.shape[0],residual.shape[1],residual.shape[2]
-        
-        rnd_normal = torch.randn([B,1,1], device=residual.device)
-        sigma = (rnd_normal * self.p_std + self.p_mean).exp()   # no scaling applied
-        t_distribution = StudentT(df=self.nu, loc=0, scale=sigma)
-        n = t_distribution.sample(sample_shape = torch.Size([B,C,L])).squeeze(-1)
-        '''
-        
-        '''
-        #Batch size
-        P_mean = -1.2
-        P_std = 1.2
-        batch_size = residual.shape[0]
-
-        # Sample log-normal σ
-        sigma = torch.exp(
-            P_mean + P_std * torch.randn(batch_size, device=output.device)
-        )
-        '''
-        '''
-            batch_size = residual.shape[0]
-            
-            #trying this rand shape. it was different in the EDM Sampler -->
-            #rnd_normal = torch.randn(x.shape, device=x.device)
-            nu = self.nu
-
-            # apply the same noise level σ to all features in the batch
-            rnd_normal = torch.randn([batch_size, 1, 1], device=residual.device)
-            sigma = (rnd_normal * self.p_std + self.p_mean).exp()   # no scaling applied
-
-            # --- Student‑t noise (Pandey et al. 2024) ---
-            # Gaussian base noise
-            z = torch.randn_like(normalized_residual)
-
-            # One kappa per sample (correct multivariate Student‑t)
-            B = normalized_residual.shape[0]
-            kappa = torch.distributions.Chi2(df=nu).sample((B,)).to(normalized_residual.device)
-            kappa = (kappa / nu).view(B, 1, 1)   # broadcast to (B, C, L)
-
-            # Student‑t noise
-            t_noise = z / torch.sqrt(kappa)
-            
-            
-
-            # Apply σ
-            n = t_noise * sigma
-            # --------------------------------------------
-
-            noised_residual = normalized_residual + n'''
-        
-        
         
         B, C, L = normalized_residual.shape
         
@@ -282,18 +211,6 @@ class JointModel(modulus.Module):
         target = self.reverse_reshape_target(target)
         #output is denormalized
         
-        '''if normalized_predicted_residual.flatten().max() > 1000:
-            print (f'normalized_predicted_residual is exploding: {normalized_predicted_residual.flatten().max()}')
-            
-        if normalized_residual.flatten().max() > 1000:
-            print (f'normalized_residual is exploding {normalized_residual.flatten().max()}')
-            
-        if denormalized_predicted_residual.flatten().max() > 1000:
-            print (f'denormalized_predicted_residual is exploding {denormalized_predicted_residual.flatten().max()}')
-            
-        if denormalized_residual.flatten().max() > 1000:
-            print (f'denormalized_residual is exploding {denormalized_residual.flatten().max()}')'''
-            
         return output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight
 
 
@@ -394,6 +311,42 @@ class JointModel(modulus.Module):
         
         return joint_pred
     
+    @torch.no_grad()
+    def sample_ensemble(self, input: torch.Tensor, num_samples: int = 10) -> torch.Tensor:
+        """
+        Draw num_samples from the diffusion model and return ensemble predictions.
+
+        Returns (B, num_samples, C*L) — ready for EnsembleCRPSLoss.
+        """
+        input = self.reshape_input(input)
+        output, latent_output = self.deterministic_model(input)
+
+        safe_std = torch.clamp(self.res_std, min=1e-2)
+        condition_output = ((output - self.preds_mean) / (self.preds_std + 1e-8)) * 0.5
+
+        if self.condition_location == 'embedding':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+            else:
+                latent_condition = latent_output
+            condition_data = latent_condition.reshape(latent_condition.shape[0], -1)
+        elif self.condition_location == 'front' or self.condition_location == 'middle' or self.condition_location == 'cross':
+            latent_condition = torch.cat((input, condition_output), dim=1)
+            condition_data = latent_condition
+        else:
+            condition_data = torch.cat((input, condition_output), dim=1)
+
+        samples = []
+        for _ in range(num_samples):
+            latents = torch.randn_like(output)
+            res = self.res_model.edm_sampler(latents, condition_input=condition_data,
+                                             sigma_min=0.1, sigma_max=45.0, rho=7.0, num_steps=18)
+            denorm_res = (res / 0.5) * (safe_std + 1e-8)
+            pred = self.reverse_reshape_target(output) + self.reverse_reshape_target(denorm_res)
+            samples.append(pred)
+
+        return torch.stack(samples, dim=1)  # (B, num_samples, C*L)
+
     def compute_loss(self, criterion, output, target, x, D_x, weight):
         """
         Customize loss combination here.

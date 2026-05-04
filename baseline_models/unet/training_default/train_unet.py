@@ -85,6 +85,26 @@ class CRPSLoss(nn.Module):
         return crps.mean()
 
 
+class EnsembleCRPSLoss(nn.Module):
+    """
+    Distribution-free CRPS via the energy score formulation.
+    Works for any forecast distribution represented as ensemble members.
+
+    pred:   (B, M, N)  —  M ensemble members, N output features
+    target: (B, N)
+
+    CRPS = E[|X - y|] - 0.5 * E[|X - X'|]
+    """
+    def forward(self, pred, target):
+        # (B, M, N) - (B, 1, N) -> (B, M, N)
+        mae = torch.abs(pred - target.unsqueeze(1)).mean(dim=1)  # (B, N)
+
+        # pairwise spread: (B, M, 1, N) - (B, 1, M, N) -> (B, M, M, N)
+        spread = torch.abs(pred.unsqueeze(2) - pred.unsqueeze(1)).mean(dim=(1, 2))  # (B, N)
+
+        return (mae - 0.5 * spread).mean()
+
+
 class EMA:
     def __init__(self, model, decay=0.999):
         self.decay = decay
@@ -703,7 +723,9 @@ def main(cfg: DictConfig) -> float:
             nvtx.range_push(f"validation_epoch_{epoch}")
             deterministic_val_loss = 0.0
             residual_val_loss = 0.0
+            crps_val_loss = 0.0
             num_samples_processed = 0
+            crps_criterion = EnsembleCRPSLoss()
             val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]')
             current_step = 0
             
@@ -716,12 +738,6 @@ def main(cfg: DictConfig) -> float:
             for data_input, target in val_loop:
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
-                # if cfg.output_prune:
-                #     # the following code only works for the v2/v3 output cases!
-                #     target[:,60:60+cfg.strato_lev] = 0
-                #     target[:,120:120+cfg.strato_lev] = 0
-                #     target[:,180:180+cfg.strato_lev] = 0
-                # Move data to the device
                 nvtx.range_push("val_data_to_device")
                 data_input, target = data_input.to(device), target.to(device)
                 nvtx.range_pop()
@@ -734,23 +750,20 @@ def main(cfg: DictConfig) -> float:
                 nvtx.range_push("val_loss")
                 deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
                 nvtx.range_pop()
-                
-               
-                #output, residual, predicted_residual = joint_model(data_input, target)
-                #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
-                
-                
-                #val_targets.append(target.cpu().numpy())
-                #val_preds.append(output.cpu().numpy())
-                
+
+                # CRPS on first cfg.crps_val_batches batches — expensive (18-step sampler × num_samples)
+                if current_step < cfg.crps_val_batches:
+                    ensemble = joint_model.module.sample_ensemble(data_input, num_samples=cfg.crps_num_samples)
+                    crps_loss = crps_criterion(ensemble, target)
+                    crps_val_loss += crps_loss.item() * data_input.size(0)
+
                 deterministic_val_loss += deterministic_loss.item() * data_input.size(0)
                 residual_val_loss += res_loss.item() * data_input.size(0)
                 num_samples_processed += data_input.size(0)
 
-                # Calculate and update the current average loss
                 current_deterministic_val_loss_avg = deterministic_val_loss / num_samples_processed
                 current_residual_val_loss_avg = residual_val_loss / num_samples_processed
-                val_loop.set_postfix(det_loss=current_deterministic_val_loss_avg, res_loss = current_residual_val_loss_avg)
+                val_loop.set_postfix(det_loss=current_deterministic_val_loss_avg, res_loss=current_residual_val_loss_avg)
                 current_step += 1
                 del data_input, target, output, normalized_residual, normalized_predicted_residual, denormalized_predicted_residual, denormalized_residual
 
@@ -773,8 +786,10 @@ def main(cfg: DictConfig) -> float:
                 torch.distributed.all_reduce(current_residual_val_loss_avg)
                 current_residual_val_loss_avg = current_residual_val_loss_avg.item() / dist.world_size
 
+            crps_val_loss_avg = crps_val_loss / min(cfg.crps_val_batches * cfg.batch_size, num_samples_processed)
+
             if dist.rank == 0:
-                launchlog.log_epoch({"loss_det_valid": current_deterministic_val_loss_avg, "los_res_valid": current_residual_val_loss_avg})
+                launchlog.log_epoch({"loss_det_valid": current_deterministic_val_loss_avg, "los_res_valid": current_residual_val_loss_avg, "crps_valid": crps_val_loss_avg})
 
                 #currently saving the model with the best deterministic performance
                 current_metric = current_residual_val_loss_avg

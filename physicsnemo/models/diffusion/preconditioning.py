@@ -190,7 +190,7 @@ class EDMPrecond(modulus.Module):
         force_fp32: bool = False,
     ) -> torch.Tensor:
         #=====Cast to floats=====
-        x_n = x_n.to(torch.float32)
+        #x_n = x_n.to(torch.float32)
 
         #print(f'noise residual shape: { x.shape}, residual shape: {x.shape}')
         #=====Reshape Input=====

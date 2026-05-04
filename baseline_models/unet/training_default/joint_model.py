@@ -355,7 +355,12 @@ class JointModel(modulus.Module):
             n = torch.randn_like(normalized_residual) * sigma
             noised_residual = normalized_residual + n
 
-            norm_pred_res = self.res_model(noised_residual, sigma, condition=condition_data)
+            # gradient checkpointing: recompute activations on backward instead of storing them,
+            # trading compute for memory — critical when holding M members simultaneously
+            norm_pred_res = torch.utils.checkpoint.checkpoint(
+                self.res_model, noised_residual, sigma, condition_data,
+                use_reentrant=False
+            )
             denorm_pred_res = norm_pred_res / 0.5 * (safe_std + 1e-8)
             pred = self.reverse_reshape_target(output) + self.reverse_reshape_target(denorm_pred_res)
             members.append(pred)

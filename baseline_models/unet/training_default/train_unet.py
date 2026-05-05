@@ -737,11 +737,17 @@ def main(cfg: DictConfig) -> float:
 
                 nvtx.range_push("val_forward")
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
-                    output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
+                    if cfg.use_crps_loss:
+                        ensemble, target_flat, det_pred = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members)
+                    else:
+                        output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
                 nvtx.range_pop()
 
                 nvtx.range_push("val_loss")
-                deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
+                if cfg.use_crps_loss:
+                    deterministic_loss, res_loss = joint_model.module.compute_crps_training_loss(criterion, ensemble, target_flat, det_pred, eps=cfg.crps_eps)
+                else:
+                    deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
                 nvtx.range_pop()
                 
                
@@ -761,7 +767,10 @@ def main(cfg: DictConfig) -> float:
                 current_residual_val_loss_avg = residual_val_loss / num_samples_processed
                 val_loop.set_postfix(det_loss=current_deterministic_val_loss_avg, res_loss = current_residual_val_loss_avg)
                 current_step += 1
-                del data_input, target, output, normalized_residual, normalized_predicted_residual, denormalized_predicted_residual, denormalized_residual
+                if cfg.use_crps_loss:
+                    del data_input, target_flat, ensemble, det_pred
+                else:
+                    del data_input, target, output, normalized_residual, normalized_predicted_residual, denormalized_predicted_residual, denormalized_residual
 
             #debugging purposes
             #val_preds = np.concatenate(val_preds, axis=0)

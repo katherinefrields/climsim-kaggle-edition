@@ -190,9 +190,7 @@ class EDMPrecond(modulus.Module):
         force_fp32: bool = False,
     ) -> torch.Tensor:
         #=====Cast to floats=====
-        cast_dtype = torch.get_autocast_gpu_dtype() if torch.is_autocast_enabled() else torch.float32
-        x_n = x_n.to(cast_dtype)
-        sigma = sigma.to(cast_dtype)
+        sigma = sigma.to(x_n.dtype)
 
         #print(f'noise residual shape: { x.shape}, residual shape: {x.shape}')
         #=====Reshape Input=====

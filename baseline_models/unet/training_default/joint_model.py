@@ -3,6 +3,14 @@ import torch.nn as nn
 
 import numpy as np
 import torch
+try:
+    import torch.cuda.nvtx as nvtx
+except ImportError:
+    class nvtx:
+        @staticmethod
+        def range_push(_msg): pass
+        @staticmethod
+        def range_pop(): pass
 import torch.optim as optim
 import torch.nn as nn
 from dataclasses import dataclass
@@ -124,8 +132,10 @@ class JointModel(modulus.Module):
         
         #=====Calculate Residual=====
         #output shape is (B, C, L), scalar values are all expanded mean value across levels
+        nvtx.range_push("deterministic_model_forward")
         output, latent_output = self.deterministic_model(input)
-        
+        nvtx.range_pop()
+
         residual = target - output
         residual = residual.to(output.device)
         

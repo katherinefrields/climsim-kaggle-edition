@@ -87,9 +87,9 @@ restart_path: /pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_mo
 #diffusion_restart_path: '' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/input_output_cond_embedding_3_epoch_fixed_zeroing_z_dist_continued/diff_model/ckpt/ckpt_epoch_2_metric_0.2441.mdlus' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/dynamic_normalization_1_epoch/diff_model/ckpt/ckpt_epoch_1_metric_0.0023.mdlus' 
 diffusion_restart_path: '' #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/plateau_run_fixed/diff_model/ckpt/ckpt_epoch_3_metric_0.2423.mdlus  #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/save_LR_state_test_5/diff_model/diff_model.mdlus'
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: 'crps_test_large_batch_3'
+expname: 'crps_nsight_test_1'
 num_workers: 32
-batch_size: 1024
+batch_size: 4096
 epochs: 1
 learning_rate: .0001 #0.0001 #0.0001 #0.00005 # temporarily changed 0.0001
 save_top_ckpts: 15
@@ -116,7 +116,7 @@ scheduler_warmup:
    warmup_steps: 20
    warmup_strategy: 'cos'
    init_lr: 1e-7
-early_stop_step: 200
+early_stop_step: 100
 use_bf16: True
 use_crps_loss: True
 crps_num_members: 2

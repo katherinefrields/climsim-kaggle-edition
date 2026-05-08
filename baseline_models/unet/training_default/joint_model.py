@@ -336,7 +336,11 @@ class JointModel(modulus.Module):
         input = self.reshape_input(input)
         target = self.reshape_target(target)
 
+        if not torch.jit.is_scripting():
+            nvtx.range_push("deterministic_model_forward")
         output, latent_output = self.deterministic_model(input)
+        if not torch.jit.is_scripting():
+            nvtx.range_pop()
 
         residual = (target - output).to(output.device)
         safe_std = torch.clamp(self.res_std, min=1e-2)

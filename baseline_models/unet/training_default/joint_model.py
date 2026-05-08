@@ -132,9 +132,11 @@ class JointModel(modulus.Module):
         
         #=====Calculate Residual=====
         #output shape is (B, C, L), scalar values are all expanded mean value across levels
-        nvtx.range_push("deterministic_model_forward")
+        if not torch.jit.is_scripting():
+            nvtx.range_push("deterministic_model_forward")
         output, latent_output = self.deterministic_model(input)
-        nvtx.range_pop()
+        if not torch.jit.is_scripting():
+            nvtx.range_pop()
 
         residual = target - output
         residual = residual.to(output.device)

@@ -592,7 +592,7 @@ def main(cfg: DictConfig) -> float:
         with LaunchLogger("train", epoch=epoch, mini_batch_log_freq=10) as launchlog:
             # model.train()
             # Wrap train_loader with tqdm for a progress bar
-            train_loop = tqdm(train_loader, desc=f'Epoch {epoch+1}')
+            train_loop = tqdm(train_loader, desc=f'Epoch {epoch+1}', disable=not dist.rank == 0)
             current_step = 0
             for param in joint_model.module.deterministic_model.parameters():
                 param.requires_grad = False
@@ -724,7 +724,7 @@ def main(cfg: DictConfig) -> float:
             deterministic_val_loss = 0.0
             residual_val_loss = 0.0
             num_samples_processed = 0
-            val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]')
+            val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]', disable=not dist.rank == 0)
             current_step = 0
             
             

@@ -7,6 +7,7 @@ from omegaconf import DictConfig, OmegaConf
 import hydra
 import os
 import xarray as xr
+import h5py
 
 from climsim_utils.data_utils import *
 from climsim_datasets import TrainingDataset, ValidationDataset
@@ -131,31 +132,28 @@ def main(cfg: DictConfig) -> None:
             num_workers=cfg.num_workers,
         )
         n = len(dataset)
-        preds_mm = targets_mm = None
         row = 0
-        with torch.no_grad():
-            for x, y in tqdm(loader, desc=desc):
-                x = x.to(device)
-                with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
-                    inp = joint_model.reshape_input(x)
-                    out, _ = joint_model.deterministic_model(inp)
-                    out = joint_model.reverse_reshape_target(out)
-                out_np = out.float().cpu().numpy()
-                y_np = y.numpy()
-                b = out_np.shape[0]
+        preds_ds = targets_ds = None
+        with h5py.File(preds_path, 'w') as pf, h5py.File(targets_path, 'w') as tf:
+            with torch.no_grad():
+                for x, y in tqdm(loader, desc=desc):
+                    x = x.to(device)
+                    with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
+                        inp = joint_model.reshape_input(x)
+                        out, _ = joint_model.deterministic_model(inp)
+                        out = joint_model.reverse_reshape_target(out)
+                    out_np = out.float().cpu().numpy()
+                    y_np = y.numpy()
+                    b = out_np.shape[0]
 
-                if preds_mm is None:
-                    preds_mm = np.lib.format.open_memmap(
-                        preds_path, mode='w+', dtype=np.float32, shape=(n, out_np.shape[1]))
-                    targets_mm = np.lib.format.open_memmap(
-                        targets_path, mode='w+', dtype=np.float32, shape=(n, y_np.shape[1]))
+                    if preds_ds is None:
+                        preds_ds = pf.create_dataset('data', shape=(n, out_np.shape[1]), dtype=np.float32)
+                        targets_ds = tf.create_dataset('data', shape=(n, y_np.shape[1]), dtype=np.float32)
 
-                preds_mm[row:row + b] = out_np
-                targets_mm[row:row + b] = y_np
-                row += b
+                    preds_ds[row:row + b] = out_np
+                    targets_ds[row:row + b] = y_np
+                    row += b
 
-        preds_mm.flush()
-        targets_mm.flush()
         print(f"Saved {row} samples -> {preds_path}")
 
     train_dataset = TrainingDataset(

@@ -27,7 +27,8 @@ class TrainingDataset(Dataset):
                  strato_lev_tinput = -1,
                  strato_lev_out = 12,
                  input_clip = True,
-                 input_clip_rhonly = True,):
+                 input_clip_rhonly = True,
+                 precomputed_preds_path = None,):
         """
         Args:
             parent_path (str): Path to the .zarr file containing the inputs and targets.
@@ -88,6 +89,13 @@ class TrainingDataset(Dataset):
 
         if self.strato_lev_qinput <self.strato_lev:
             raise ValueError('strato_lev_qinput should be greater than or equal to strato_lev, otherwise inconsistent with E3SM')
+
+        self.precomputed_preds_file = None
+        if precomputed_preds_path is not None:
+            self.precomputed_preds_file = h5py.File(precomputed_preds_path, 'r')
+            assert self.precomputed_preds_file['data'].shape[0] == self.total_samples, (
+                f"Precomputed preds length {self.precomputed_preds_file['data'].shape[0]} != dataset length {self.total_samples}"
+            )
 
     def __len__(self):
         return self.total_samples
@@ -167,6 +175,9 @@ class TrainingDataset(Dataset):
             y[120:120+self.strato_lev_out] = 0
             y[180:180+self.strato_lev_out] = 0
             y[240:240+self.strato_lev_out] = 0
+        if self.precomputed_preds_file is not None:
+            pred = torch.tensor(self.precomputed_preds_file['data'][idx], dtype=torch.float32)
+            return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32), pred
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
 
 class ValidationDataset(Dataset):
@@ -187,7 +198,8 @@ class ValidationDataset(Dataset):
                  strato_lev_tinput = -1,
                  strato_lev_out = 12,
                  input_clip = True,
-                 input_clip_rhonly = True,):
+                 input_clip_rhonly = True,
+                 precomputed_preds_path = None,):
         """
         Args:
             val_input_path (str): Path to the .npy file containing the inputs.
@@ -224,6 +236,13 @@ class ValidationDataset(Dataset):
         if self.strato_lev_qinput <self.strato_lev:
             raise ValueError('strato_lev_qinput should be greater than or equal to strato_lev, otherwise inconsistent with E3SM')
         assert len(self.val_input) == len(self.val_target)
+
+        self.precomputed_preds_file = None
+        if precomputed_preds_path is not None:
+            self.precomputed_preds_file = h5py.File(precomputed_preds_path, 'r')
+            assert self.precomputed_preds_file['data'].shape[0] == len(self.val_input), (
+                f"Precomputed preds length {self.precomputed_preds_file['data'].shape[0]} != dataset length {len(self.val_input)}"
+            )
 
     def __len__(self):
         return len(self.val_input)
@@ -289,4 +308,7 @@ class ValidationDataset(Dataset):
             y[120:120+self.strato_lev_out] = 0
             y[180:180+self.strato_lev_out] = 0
             y[240:240+self.strato_lev_out] = 0
+        if self.precomputed_preds_file is not None:
+            pred = torch.tensor(self.precomputed_preds_file['data'][idx], dtype=torch.float32)
+            return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32), pred
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)

@@ -403,6 +403,9 @@ class JointModel(modulus.Module):
         target = self.reshape_target(target)
         output = self.reshape_target(precomputed_output)
 
+        
+        print("using precomputation...")
+        
         safe_std = torch.clamp(self.res_std, min=1e-2)
         residual = (target - output).to(output.device)
         normalized_residual = (residual / (safe_std + 1e-8)) * 0.5

@@ -196,6 +196,7 @@ def main(cfg: DictConfig) -> float:
     _train_preds_path = cfg.train_preds_path if (cfg.train_preds_path and os.path.exists(cfg.train_preds_path)) else None
     _val_preds_path = cfg.val_preds_path if (cfg.val_preds_path and os.path.exists(cfg.val_preds_path)) else None
 
+    
     train_dataset = TrainingDataset(parent_path = cfg.data_path,
                                     input_sub = input_sub,
                                     input_div = input_div,

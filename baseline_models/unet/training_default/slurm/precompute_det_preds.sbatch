@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -A m4334
 #SBATCH -C gpu
-#SBATCH -q regular
-#SBATCH -t 01:00:00
+#SBATCH -q debug
+#SBATCH -t 00:10:00
 #SBATCH --ntasks-per-node 1
 #SBATCH --cpus-per-task 32
 #SBATCH --gpus-per-node 1
@@ -13,7 +13,7 @@
 #SBATCH --output=out_%j.out
 #SBATCH --error=eo_%j.err
 
-cmd="python precompute_det_preds.py --config-name=config_seed_7_diff_test_smaller_unet"
+cmd="python precompute_det_preds.py --config-name=precompute_det_preds.yaml"
 
 export HYDRA_FULL_ERROR=1
 

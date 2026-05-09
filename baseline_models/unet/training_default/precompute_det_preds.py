@@ -130,19 +130,33 @@ def main(cfg: DictConfig) -> None:
             pin_memory=torch.cuda.is_available(),
             num_workers=cfg.num_workers,
         )
-        preds, targets = [], []
+        n = len(dataset)
+        preds_mm = targets_mm = None
+        row = 0
         with torch.no_grad():
             for x, y in tqdm(loader, desc=desc):
-                x, y = x.to(device), y.to(device)
+                x = x.to(device)
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
                     inp = joint_model.reshape_input(x)
                     out, _ = joint_model.deterministic_model(inp)
                     out = joint_model.reverse_reshape_target(out)
-                preds.append(out.float().cpu().numpy())
-                targets.append(y.float().cpu().numpy())
-        np.save(preds_path, np.concatenate(preds, axis=0))
-        np.save(targets_path, np.concatenate(targets, axis=0))
-        print(f"Saved {len(preds)} batches -> {preds_path}")
+                out_np = out.float().cpu().numpy()
+                y_np = y.numpy()
+                b = out_np.shape[0]
+
+                if preds_mm is None:
+                    preds_mm = np.lib.format.open_memmap(
+                        preds_path, mode='w+', dtype=np.float32, shape=(n, out_np.shape[1]))
+                    targets_mm = np.lib.format.open_memmap(
+                        targets_path, mode='w+', dtype=np.float32, shape=(n, y_np.shape[1]))
+
+                preds_mm[row:row + b] = out_np
+                targets_mm[row:row + b] = y_np
+                row += b
+
+        preds_mm.flush()
+        targets_mm.flush()
+        print(f"Saved {row} samples -> {preds_path}")
 
     train_dataset = TrainingDataset(
         parent_path=cfg.data_path,

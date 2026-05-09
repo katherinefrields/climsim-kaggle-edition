@@ -133,6 +133,7 @@ def main(cfg: DictConfig) -> None:
         )
         n = len(dataset)
         row = 0
+        batch_idx = 0
         preds_ds = targets_ds = None
         with h5py.File(preds_path, 'w') as pf, h5py.File(targets_path, 'w') as tf:
             with torch.no_grad():
@@ -144,17 +145,20 @@ def main(cfg: DictConfig) -> None:
                         out = joint_model.reverse_reshape_target(out)
                     out_np = out.float().cpu().numpy()
                     y_np = y.numpy()
-                    b = out_np.shape[0]
+                    b = min(out_np.shape[0], n - row)  # clamp to avoid exceeding n
+                    if b <= 0:
+                        break
 
                     if preds_ds is None:
                         preds_ds = pf.create_dataset('data', shape=(n, out_np.shape[1]), dtype=np.float32)
                         targets_ds = tf.create_dataset('data', shape=(n, y_np.shape[1]), dtype=np.float32)
 
-                    preds_ds[row:row + b] = out_np
-                    targets_ds[row:row + b] = y_np
+                    preds_ds[row:row + b] = out_np[:b]
+                    targets_ds[row:row + b] = y_np[:b]
                     row += b
-                    if (row // 100) != ((row - b) // 100):
-                        print(f"{desc}: saved rows 0-{row} / {n}", flush=True)
+                    batch_idx += 1
+                    if batch_idx % 100 == 0:
+                        print(f"{desc}: saved row {row} / {n}", flush=True)
 
         print(f"Saved {row} samples -> {preds_path}", flush=True)
 

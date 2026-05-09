@@ -17,5 +17,7 @@ cmd="python precompute_det_preds.py --config-name=precompute_det_preds.yaml"
 
 export HYDRA_FULL_ERROR=1
 
+mkdir -p /pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds
+
 cd ..
 srun -n 1 shifter bash -c "source ddp_export.sh && $cmd"

@@ -57,11 +57,12 @@ res_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/
 preds_std_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_remade_preds_std.pt'
 preds_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_remade_preds_mean.pt'
 
-val_preds_path: '/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/new_val_preds_epoch_1.npy'
-val_targets_path: '/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/new_val_targets_epoch_1.npy'
 
-train_preds_path: '/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/new_train_preds_epoch_1.npy'
-train_targets_path: '/global/u2/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/new_train_targets_epoch_1.npy'
+val_preds_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/val_preds.h5'
+val_targets_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/val_targets.h5'
+
+train_preds_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_preds.h5'
+train_targets_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_targets.h5'
 
 
 # dataset preprocessing settings

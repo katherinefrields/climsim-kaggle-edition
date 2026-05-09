@@ -153,8 +153,10 @@ def main(cfg: DictConfig) -> None:
                     preds_ds[row:row + b] = out_np
                     targets_ds[row:row + b] = y_np
                     row += b
+                    if (row // 100) != ((row - b) // 100):
+                        print(f"{desc}: saved rows 0-{row} / {n}", flush=True)
 
-        print(f"Saved {row} samples -> {preds_path}")
+        print(f"Saved {row} samples -> {preds_path}", flush=True)
 
     train_dataset = TrainingDataset(
         parent_path=cfg.data_path,

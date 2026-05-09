@@ -193,6 +193,9 @@ def main(cfg: DictConfig) -> float:
 
     input_sub, input_div, out_scale = data.save_norm(write=False)
     
+    _train_preds_path = cfg.train_preds_path if (cfg.train_preds_path and os.path.exists(cfg.train_preds_path)) else None
+    _val_preds_path = cfg.val_preds_path if (cfg.val_preds_path and os.path.exists(cfg.val_preds_path)) else None
+
     train_dataset = TrainingDataset(parent_path = cfg.data_path,
                                     input_sub = input_sub,
                                     input_div = input_div,
@@ -208,7 +211,8 @@ def main(cfg: DictConfig) -> float:
                                     strato_lev_tinput = cfg.strato_lev_tinput,
                                     strato_lev_out = cfg.strato_lev_out,
                                     input_clip = cfg.input_clip,
-                                    input_clip_rhonly = cfg.input_clip_rhonly)
+                                    input_clip_rhonly = cfg.input_clip_rhonly,
+                                    precomputed_preds_path = _train_preds_path)
             
     train_sampler = DistributedSampler(train_dataset, seed = cfg.seed) if dist.distributed else None
     
@@ -238,7 +242,8 @@ def main(cfg: DictConfig) -> float:
                                     strato_lev_tinput = cfg.strato_lev_tinput,
                                     strato_lev_out = cfg.strato_lev_out,
                                     input_clip = cfg.input_clip,
-                                    input_clip_rhonly = cfg.input_clip_rhonly)
+                                    input_clip_rhonly = cfg.input_clip_rhonly,
+                                    precomputed_preds_path = _val_preds_path)
 
     #train_sampler = DistributedSampler(train_dataset) if dist.distributed else None
     val_sampler = DistributedSampler(val_dataset, shuffle=False) if dist.distributed else None
@@ -598,8 +603,10 @@ def main(cfg: DictConfig) -> float:
             
             joint_training_enabled = False
             nvtx.range_push("dataloader_iter")
-            for data_input, target in train_loop:
+            for batch in train_loop:
                 nvtx.range_pop()  # dataloader_iter — ends when batch is ready
+                data_input, target = batch[0], batch[1]
+                precomputed_output = batch[2].to(device) if len(batch) == 3 else None
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
                 if current_step % 200 == 0:
@@ -623,7 +630,10 @@ def main(cfg: DictConfig) -> float:
                 nvtx.range_push("forward")
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
                     if cfg.use_crps_loss:
-                        ensemble, target_flat, det_pred = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members)
+                        if precomputed_output is not None:
+                            ensemble, target_flat, det_pred = joint_model.module.forward_crps_precomputed(data_input, target, precomputed_output, num_members=cfg.crps_num_members)
+                        else:
+                            ensemble, target_flat, det_pred = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members)
                     else:
                         output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
                 nvtx.range_pop()
@@ -722,7 +732,9 @@ def main(cfg: DictConfig) -> float:
             #val_targets = []
             
             
-            for data_input, target in val_loop:
+            for batch in val_loop:
+                val_input, val_target = batch[0], batch[1]
+                val_precomputed_output = batch[2].to(device) if len(batch) == 3 else None
                 if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
                     break
                 # if cfg.output_prune:
@@ -732,13 +744,16 @@ def main(cfg: DictConfig) -> float:
                 #     target[:,180:180+cfg.strato_lev] = 0
                 # Move data to the device
                 nvtx.range_push("val_data_to_device")
-                data_input, target = data_input.to(device), target.to(device)
+                data_input, target = val_input.to(device), val_target.to(device)
                 nvtx.range_pop()
 
                 nvtx.range_push("val_forward")
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
                     if cfg.use_crps_loss:
-                        ensemble, target_flat, det_pred = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members)
+                        if val_precomputed_output is not None:
+                            ensemble, target_flat, det_pred = joint_model.module.forward_crps_precomputed(data_input, target, val_precomputed_output, num_members=cfg.crps_num_members)
+                        else:
+                            ensemble, target_flat, det_pred = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members)
                     else:
                         output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
                 nvtx.range_pop()

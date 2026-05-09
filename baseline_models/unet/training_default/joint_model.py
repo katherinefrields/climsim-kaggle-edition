@@ -363,11 +363,12 @@ class JointModel(modulus.Module):
                 latent_condition = torch.cat((input, condition_output), dim=1)
             condition_data = latent_condition
 
-        B, C, L = normalized_residual.shape
+        B = normalized_residual.shape[0]
+        rnd_normal = torch.randn([B, 1, 1], device=residual.device)
+        sigma = (rnd_normal * self.p_std + self.p_mean).exp()
+
         members = []
         for _ in range(num_members):
-            rnd_normal = torch.randn([B, 1, 1], device=residual.device)
-            sigma = (rnd_normal * self.p_std + self.p_mean).exp()
             n = torch.randn_like(normalized_residual) * sigma
             noised_residual = normalized_residual + n
 
@@ -380,7 +381,64 @@ class JointModel(modulus.Module):
             denorm_pred_res = norm_pred_res / 0.5 * (safe_std + 1e-8)
             pred = self.reverse_reshape_target(output) + self.reverse_reshape_target(denorm_pred_res)
             members.append(pred)
-            
+
+        ensemble = torch.stack(members, dim=1)  # (B, M, C*L)
+        target_flat = self.reverse_reshape_target(target)
+        det_pred = self.reverse_reshape_target(output)
+        return ensemble, target_flat, det_pred
+
+    def forward_crps_precomputed(self, input, target, precomputed_output, num_members: int = 16):
+        """
+        CRPS forward using a precomputed deterministic prediction, skipping the
+        deterministic model forward pass entirely.
+
+        Args:
+            precomputed_output: (B, C*L) flat deterministic predictions (already unnormalized)
+        Returns:
+            ensemble:    (B, num_members, C*L)
+            target_flat: (B, C*L)
+            det_pred:    (B, C*L)
+        """
+        input = self.reshape_input(input)
+        target = self.reshape_target(target)
+        output = self.reshape_target(precomputed_output)
+
+        safe_std = torch.clamp(self.res_std, min=1e-2)
+        residual = (target - output).to(output.device)
+        normalized_residual = (residual / (safe_std + 1e-8)) * 0.5
+        condition_output = ((output - self.preds_mean) / (self.preds_std + 1e-8)) * 0.5
+
+        latent_condition = torch.cat((input, condition_output), dim=1)
+        condition_data = latent_condition
+        if self.condition_location == 'front':
+            if self.condition_type == 'input_output':
+                condition_data = latent_condition
+        elif self.condition_location == 'embedding':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+            condition_data = latent_condition.reshape(latent_condition.shape[0], -1)
+        elif self.condition_location == 'middle' or self.condition_location == 'cross':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+            condition_data = latent_condition
+
+        B = normalized_residual.shape[0]
+        rnd_normal = torch.randn([B, 1, 1], device=residual.device)
+        sigma = (rnd_normal * self.p_std + self.p_mean).exp()
+
+        members = []
+        for _ in range(num_members):
+            n = torch.randn_like(normalized_residual) * sigma
+            noised_residual = normalized_residual + n
+
+            norm_pred_res = torch.utils.checkpoint.checkpoint(
+                self.res_model, noised_residual, sigma, condition_data,
+                use_reentrant=False
+            )
+            denorm_pred_res = norm_pred_res / 0.5 * (safe_std + 1e-8)
+            pred = self.reverse_reshape_target(output) + self.reverse_reshape_target(denorm_pred_res)
+            members.append(pred)
+
         ensemble = torch.stack(members, dim=1)  # (B, M, C*L)
         target_flat = self.reverse_reshape_target(target)
         det_pred = self.reverse_reshape_target(output)

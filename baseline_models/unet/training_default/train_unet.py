@@ -216,8 +216,8 @@ def main(cfg: DictConfig) -> float:
                                 shuffle=False if dist.distributed else True,
                                 sampler=train_sampler,
                                 drop_last=True,
-                                #persistent_workers=True,# TEMPORARILY ADDED FOR DEBUGGING
-                                prefetch_factor=2,# TEMPORARILY ADDED FOR DEBUGGING
+                                persistent_workers=True,
+                                prefetch_factor=2,
                                 pin_memory=torch.cuda.is_available(),# TEMPORARILY DISABLED FOR DEBUGGING
                                 num_workers=cfg.num_workers)
 

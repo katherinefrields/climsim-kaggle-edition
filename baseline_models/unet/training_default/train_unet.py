@@ -420,8 +420,8 @@ def main(cfg: DictConfig) -> float:
                 bucket_cap_mb=35,
                 gradient_as_bucket_view=True,
                 broadcast_buffers=dist.broadcast_buffers,
-                find_unused_parameters=True,
-                static_graph=False,#since you have joint trianing sometimes enabled, sometimes not
+                find_unused_parameters=cfg.diffusion_model.joint_training_step != -1, # only set find_unused_parameters to True if we're doing joint training, otherwise it can cause significant slowdown
+                static_graph=cfg.diffusion_model.joint_training_step == -1, # if not doing joint training, we can set static_graph=True for potential speedup
             )
             
         torch.cuda.current_stream().wait_stream(ddps)

@@ -403,9 +403,6 @@ class JointModel(modulus.Module):
         input = self.reshape_input(input)
         target = self.reshape_target(target)
         output = self.reshape_target(precomputed_output)
-
-        
-        print("using precomputation...")
         
         safe_std = torch.clamp(self.res_std, min=1e-2)
         residual = (target - output).to(output.device)

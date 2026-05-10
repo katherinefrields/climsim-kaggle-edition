@@ -325,7 +325,7 @@ class JointModel(modulus.Module):
         
         return joint_pred
     
-    def forward_crps(self, input, target, num_members: int = 16):
+    def forward_crps(self, input, target, num_members: int = 16, sigma: torch.Tensor = None):
         """
         AIFS-CRPS training forward: generates num_members denoised predictions
         from different noise realizations.
@@ -366,8 +366,9 @@ class JointModel(modulus.Module):
             condition_data = latent_condition
 
         B = normalized_residual.shape[0]
-        rnd_normal = torch.randn([B, 1, 1], device=residual.device)
-        sigma = (rnd_normal * self.p_std + self.p_mean).exp()
+        if sigma is None:
+            rnd_normal = torch.randn([B, 1, 1], device=residual.device)
+            sigma = (rnd_normal * self.p_std + self.p_mean).exp()
 
         ch = self.diffusion_channel_indices
         nr = normalized_residual[:, ch, :] if ch is not None else normalized_residual
@@ -398,7 +399,7 @@ class JointModel(modulus.Module):
         det_pred = det_flat
         return ensemble, target_flat, det_pred
 
-    def forward_crps_precomputed(self, input, target, precomputed_output, num_members: int = 16):
+    def forward_crps_precomputed(self, input, target, precomputed_output, num_members: int = 16, sigma: torch.Tensor = None):
         """
         CRPS forward using a precomputed deterministic prediction, skipping the
         deterministic model forward pass entirely.
@@ -434,8 +435,9 @@ class JointModel(modulus.Module):
             condition_data = latent_condition
 
         B = normalized_residual.shape[0]
-        rnd_normal = torch.randn([B, 1, 1], device=residual.device)
-        sigma = (rnd_normal * self.p_std + self.p_mean).exp()
+        if sigma is None:
+            rnd_normal = torch.randn([B, 1, 1], device=residual.device)
+            sigma = (rnd_normal * self.p_std + self.p_mean).exp()
 
         ch = self.diffusion_channel_indices
         nr = normalized_residual[:, ch, :] if ch is not None else normalized_residual

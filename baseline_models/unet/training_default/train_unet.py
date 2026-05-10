@@ -726,6 +726,13 @@ def main(cfg: DictConfig) -> float:
             val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]', disable=not dist.rank == 0)
             current_step = 0
             
+            # Fixed sigma sequence for validation: uniform quantiles of the log-normal noise distribution.
+            # Using len(val_loader) sigmas cycles exactly once through the full noise range per epoch.
+            import math as _math
+            _n_val = len(val_loader)
+            _quantiles = torch.linspace(0.5 / _n_val, 1 - 0.5 / _n_val, _n_val)
+            val_sigma_seq = (torch.erfinv(2 * _quantiles - 1) * _math.sqrt(2) * cfg.diffusion_model.p_std + cfg.diffusion_model.p_mean).exp().to(device)
+            
             
             #for debugging
             #val_preds = []
@@ -750,10 +757,11 @@ def main(cfg: DictConfig) -> float:
                 nvtx.range_push("val_forward")
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
                     if cfg.use_crps_loss:
+                        val_sigma = val_sigma_seq[current_step % len(val_sigma_seq)].reshape(1, 1, 1).expand(data_input.shape[0], 1, 1)
                         if val_precomputed_output is not None:
-                            ensemble, target_flat, det_pred = joint_model.module.forward_crps_precomputed(data_input, target, val_precomputed_output, num_members=cfg.crps_num_members)
+                            ensemble, target_flat, det_pred = joint_model.module.forward_crps_precomputed(data_input, target, val_precomputed_output, num_members=cfg.crps_num_members, sigma=val_sigma)
                         else:
-                            ensemble, target_flat, det_pred = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members)
+                            ensemble, target_flat, det_pred = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members, sigma=val_sigma)
                     else:
                         output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
                 nvtx.range_pop()

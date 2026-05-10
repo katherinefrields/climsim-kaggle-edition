@@ -62,7 +62,7 @@ class JointModel(modulus.Module):
                  vertical_level_num=60,
                  img_resolution=64, sigma_data = .5,
                  p_mean = -4.0, p_std=1.2, nu = 3, t_sampling = False,
-                 amp_mode = False):
+                 amp_mode = False, gradient_checkpointing = True):
         """
         deterministic_model, res_model: already-instantiated nn.Module objects
         """
@@ -98,6 +98,7 @@ class JointModel(modulus.Module):
         self.nu = nu
         
         self.t_sampling = t_sampling
+        self.gradient_checkpointing = gradient_checkpointing
 
         #loops through all modules and their layers and sets the amp mode to true if the layer has an amp mode attribute. this is necessary for the layers in the res_model to be in amp mode, which is important for memory efficiency and speed.
         if amp_mode:
@@ -371,13 +372,13 @@ class JointModel(modulus.Module):
         for _ in range(num_members):
             n = torch.randn_like(normalized_residual) * sigma
             noised_residual = normalized_residual + n
-
-            # gradient checkpointing: recompute activations on backward instead of storing them,
-            # trading compute for memory — critical when holding M members simultaneously
-            norm_pred_res = torch.utils.checkpoint.checkpoint(
-                self.res_model, noised_residual, sigma, condition_data,
-                use_reentrant=False
-            )
+            if self.gradient_checkpointing:
+                norm_pred_res = torch.utils.checkpoint.checkpoint(
+                    self.res_model, noised_residual, sigma, condition_data,
+                    use_reentrant=False
+                )
+            else:
+                norm_pred_res = self.res_model(noised_residual, sigma, condition_data)
             denorm_pred_res = norm_pred_res / 0.5 * (safe_std + 1e-8)
             pred = self.reverse_reshape_target(output) + self.reverse_reshape_target(denorm_pred_res)
             members.append(pred)
@@ -433,11 +434,13 @@ class JointModel(modulus.Module):
         for _ in range(num_members):
             n = torch.randn_like(normalized_residual) * sigma
             noised_residual = normalized_residual + n
-
-            norm_pred_res = torch.utils.checkpoint.checkpoint(
-                self.res_model, noised_residual, sigma, condition_data,
-                use_reentrant=False
-            )
+            if self.gradient_checkpointing:
+                norm_pred_res = torch.utils.checkpoint.checkpoint(
+                    self.res_model, noised_residual, sigma, condition_data,
+                    use_reentrant=False
+                )
+            else:
+                norm_pred_res = self.res_model(noised_residual, sigma, condition_data)
             denorm_pred_res = norm_pred_res / 0.5 * (safe_std + 1e-8)
             pred = self.reverse_reshape_target(output) + self.reverse_reshape_target(denorm_pred_res)
             members.append(pred)

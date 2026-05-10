@@ -135,12 +135,6 @@ def main(cfg: DictConfig) -> float:
     random.seed(cfg.seed)
     DistributedManager.initialize()
     dist = DistributedManager()
-
-    val_preds_path = cfg.val_preds_path
-    val_targets_path = cfg.val_targets_path
-    
-    train_preds_path = cfg.train_preds_path
-    train_targets_path = cfg.train_targets_path
     
     res_std = torch.load(cfg.res_std_path)
     res_std = res_std.to(torch.float32)
@@ -404,7 +398,8 @@ def main(cfg: DictConfig) -> float:
                             p_std = cfg.diffusion_model.p_std,
                             nu = cfg.diffusion_model.nu,
                             t_sampling=cfg.diffusion_model.t_sampling,
-                            amp_mode=cfg.use_bf16).to(dist.device)
+                            amp_mode=cfg.use_bf16,
+                            gradient_checkpointing=cfg.gradient_checkpointing).to(dist.device)
 
     joint_model = torch.compile(joint_model)
 

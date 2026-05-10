@@ -122,6 +122,7 @@ use_bf16: True
 use_crps_loss: True
 crps_num_members: 2
 crps_eps: 0.0
+gradient_checkpointing: False
 logger: 'wandb'
 wandb:
    project: "residual_diffusion"

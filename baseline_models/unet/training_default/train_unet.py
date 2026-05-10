@@ -315,18 +315,21 @@ def main(cfg: DictConfig) -> float:
             cond_channels = data.target_profile_num  + data.target_scalar_num + data.input_profile_num + data.input_scalar_num
         
     
+    diff_ch_idx = OmegaConf.to_container(cfg.diffusion_channel_indices, resolve=True) if cfg.diffusion_channel_indices is not None else None
+    diff_num_channels = len(diff_ch_idx) if diff_ch_idx is not None else (data.target_profile_num + data.target_scalar_num)
+    # all diffusion channels are treated as profile vars (each has L levels); scalars not supported in subset mode
+    diff_profile_num = diff_num_channels if diff_ch_idx is not None else data.target_profile_num
+    diff_scalar_num = 0 if diff_ch_idx is not None else data.target_scalar_num
+
     res_model = EDMPrecond(
-        img_resolution=cfg.diffusion_model.seq_resolution,         # vertical levels
-        #img_channels=data.target_profile_num * 60 + data.target_scalar_num,# output variable count
-        #img_in_channels= 2* data.target_profile_num * 60 + data.target_scalar_num + data.input_profile_num * 60 + data.input_scalar_num,        # residual tendences + conditioning on deterministic output + deterministic input
-        #starting with unconditional
-        img_channels= data.target_profile_num  + data.target_scalar_num,
-        input_profile_num = data.target_profile_num,
-        input_scalar_num = data.target_scalar_num,
+        img_resolution=cfg.diffusion_model.seq_resolution,
+        img_channels=diff_num_channels,
+        input_profile_num=diff_profile_num,
+        input_scalar_num=diff_scalar_num,
         use_fp16=False,
-        model_type="DhariwalUNet",  # or another backbone
-        img_in_channels= data.target_profile_num  + data.target_scalar_num,
-        img_out_channels=data.target_profile_num  + data.target_scalar_num,# predicting tendency output variables residuals
+        model_type="DhariwalUNet",
+        img_in_channels=diff_num_channels,
+        img_out_channels=diff_num_channels,
         #label_dim=0,               # not class-conditional
         
         #sigma_min=0.002,
@@ -399,7 +402,8 @@ def main(cfg: DictConfig) -> float:
                             nu = cfg.diffusion_model.nu,
                             t_sampling=cfg.diffusion_model.t_sampling,
                             amp_mode=cfg.use_bf16,
-                            gradient_checkpointing=cfg.gradient_checkpointing).to(dist.device)
+                            gradient_checkpointing=cfg.gradient_checkpointing,
+                            diffusion_channel_indices=diff_ch_idx).to(dist.device)
 
     joint_model = torch.compile(joint_model)
 

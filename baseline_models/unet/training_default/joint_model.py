@@ -62,7 +62,7 @@ class JointModel(modulus.Module):
                  vertical_level_num=60,
                  img_resolution=64, sigma_data = .5,
                  p_mean = -4.0, p_std=1.2, nu = 3, t_sampling = False,
-                 amp_mode = False, gradient_checkpointing = True):
+                 amp_mode = False, gradient_checkpointing = True, diffusion_channel_indices = None):
         """
         deterministic_model, res_model: already-instantiated nn.Module objects
         """
@@ -99,6 +99,7 @@ class JointModel(modulus.Module):
         
         self.t_sampling = t_sampling
         self.gradient_checkpointing = gradient_checkpointing
+        self.diffusion_channel_indices = diffusion_channel_indices
 
         #loops through all modules and their layers and sets the amp mode to true if the layer has an amp mode attribute. this is necessary for the layers in the res_model to be in amp mode, which is important for memory efficiency and speed.
         if amp_mode:
@@ -368,24 +369,33 @@ class JointModel(modulus.Module):
         rnd_normal = torch.randn([B, 1, 1], device=residual.device)
         sigma = (rnd_normal * self.p_std + self.p_mean).exp()
 
+        ch = self.diffusion_channel_indices
+        nr = normalized_residual[:, ch, :] if ch is not None else normalized_residual
+        std_sub = safe_std[ch, :] if ch is not None else safe_std
+        det_flat = self.reverse_reshape_target(output)
+
         members = []
         for _ in range(num_members):
-            n = torch.randn_like(normalized_residual) * sigma
-            noised_residual = normalized_residual + n
+            n = torch.randn_like(nr) * sigma
+            noised = nr + n
             if self.gradient_checkpointing:
                 norm_pred_res = torch.utils.checkpoint.checkpoint(
-                    self.res_model, noised_residual, sigma, condition_data,
-                    use_reentrant=False
+                    self.res_model, noised, sigma, condition_data, use_reentrant=False
                 )
             else:
-                norm_pred_res = self.res_model(noised_residual, sigma, condition_data)
-            denorm_pred_res = norm_pred_res / 0.5 * (safe_std + 1e-8)
-            pred = self.reverse_reshape_target(output) + self.reverse_reshape_target(denorm_pred_res)
+                norm_pred_res = self.res_model(noised, sigma, condition_data)
+            denorm = norm_pred_res / 0.5 * (std_sub + 1e-8)
+            if ch is not None:
+                full_res = torch.zeros_like(output)
+                full_res[:, ch, :] = denorm
+                pred = det_flat + self.reverse_reshape_target(full_res)
+            else:
+                pred = det_flat + self.reverse_reshape_target(denorm)
             members.append(pred)
 
         ensemble = torch.stack(members, dim=1)  # (B, M, C*L)
         target_flat = self.reverse_reshape_target(target)
-        det_pred = self.reverse_reshape_target(output)
+        det_pred = det_flat
         return ensemble, target_flat, det_pred
 
     def forward_crps_precomputed(self, input, target, precomputed_output, num_members: int = 16):
@@ -427,24 +437,33 @@ class JointModel(modulus.Module):
         rnd_normal = torch.randn([B, 1, 1], device=residual.device)
         sigma = (rnd_normal * self.p_std + self.p_mean).exp()
 
+        ch = self.diffusion_channel_indices
+        nr = normalized_residual[:, ch, :] if ch is not None else normalized_residual
+        std_sub = safe_std[ch, :] if ch is not None else safe_std
+        det_flat = self.reverse_reshape_target(output)
+
         members = []
         for _ in range(num_members):
-            n = torch.randn_like(normalized_residual) * sigma
-            noised_residual = normalized_residual + n
+            n = torch.randn_like(nr) * sigma
+            noised = nr + n
             if self.gradient_checkpointing:
                 norm_pred_res = torch.utils.checkpoint.checkpoint(
-                    self.res_model, noised_residual, sigma, condition_data,
-                    use_reentrant=False
+                    self.res_model, noised, sigma, condition_data, use_reentrant=False
                 )
             else:
-                norm_pred_res = self.res_model(noised_residual, sigma, condition_data)
-            denorm_pred_res = norm_pred_res / 0.5 * (safe_std + 1e-8)
-            pred = self.reverse_reshape_target(output) + self.reverse_reshape_target(denorm_pred_res)
+                norm_pred_res = self.res_model(noised, sigma, condition_data)
+            denorm = norm_pred_res / 0.5 * (std_sub + 1e-8)
+            if ch is not None:
+                full_res = torch.zeros_like(output)
+                full_res[:, ch, :] = denorm
+                pred = det_flat + self.reverse_reshape_target(full_res)
+            else:
+                pred = det_flat + self.reverse_reshape_target(denorm)
             members.append(pred)
 
         ensemble = torch.stack(members, dim=1)  # (B, M, C*L)
         target_flat = self.reverse_reshape_target(target)
-        det_pred = self.reverse_reshape_target(output)
+        det_pred = det_flat
         return ensemble, target_flat, det_pred
 
     def compute_crps_training_loss(self, criterion, ensemble, target_flat, det_pred, eps: float = 0.0):

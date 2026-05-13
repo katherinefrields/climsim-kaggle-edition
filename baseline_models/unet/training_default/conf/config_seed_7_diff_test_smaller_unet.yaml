@@ -121,7 +121,7 @@ use_bf16: True
 use_crps_loss: False
 crps_num_members: 2
 crps_eps: 0.0
-gradient_checkpointing: True
+gradient_checkpointing: False
 # Channel indices into (B,C,L) target for diffusion residual prediction. null = all channels.
 diffusion_channel_indices: null
 logger: 'wandb'

@@ -90,11 +90,11 @@ class TrainingDataset(Dataset):
         if self.strato_lev_qinput <self.strato_lev:
             raise ValueError('strato_lev_qinput should be greater than or equal to strato_lev, otherwise inconsistent with E3SM')
 
-        self.precomputed_preds_file = None
+        self.precomputed_preds = None
         if precomputed_preds_path is not None:
-            self.precomputed_preds_file = h5py.File(precomputed_preds_path, 'r')
-            assert self.precomputed_preds_file['data'].shape[0] == self.total_samples, (
-                f"Precomputed preds length {self.precomputed_preds_file['data'].shape[0]} != dataset length {self.total_samples}"
+            self.precomputed_preds = np.load(precomputed_preds_path, mmap_mode='r')
+            assert len(self.precomputed_preds) == self.total_samples, (
+                f"Precomputed preds length {len(self.precomputed_preds)} != dataset length {self.total_samples}"
             )
 
     def __len__(self):
@@ -175,8 +175,8 @@ class TrainingDataset(Dataset):
             y[120:120+self.strato_lev_out] = 0
             y[180:180+self.strato_lev_out] = 0
             y[240:240+self.strato_lev_out] = 0
-        if self.precomputed_preds_file is not None:
-            pred = torch.tensor(self.precomputed_preds_file['data'][idx], dtype=torch.float32)
+        if self.precomputed_preds is not None:
+            pred = torch.tensor(self.precomputed_preds[idx].copy(), dtype=torch.float32)
             return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32), pred
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
 
@@ -237,11 +237,11 @@ class ValidationDataset(Dataset):
             raise ValueError('strato_lev_qinput should be greater than or equal to strato_lev, otherwise inconsistent with E3SM')
         assert len(self.val_input) == len(self.val_target)
 
-        self.precomputed_preds_file = None
+        self.precomputed_preds = None
         if precomputed_preds_path is not None:
-            self.precomputed_preds_file = h5py.File(precomputed_preds_path, 'r')
-            assert self.precomputed_preds_file['data'].shape[0] == len(self.val_input), (
-                f"Precomputed preds length {self.precomputed_preds_file['data'].shape[0]} != dataset length {len(self.val_input)}"
+            self.precomputed_preds = np.load(precomputed_preds_path, mmap_mode='r')
+            assert len(self.precomputed_preds) == len(self.val_input), (
+                f"Precomputed preds length {len(self.precomputed_preds)} != dataset length {len(self.val_input)}"
             )
 
     def __len__(self):
@@ -308,7 +308,7 @@ class ValidationDataset(Dataset):
             y[120:120+self.strato_lev_out] = 0
             y[180:180+self.strato_lev_out] = 0
             y[240:240+self.strato_lev_out] = 0
-        if self.precomputed_preds_file is not None:
-            pred = torch.tensor(self.precomputed_preds_file['data'][idx], dtype=torch.float32)
+        if self.precomputed_preds is not None:
+            pred = torch.tensor(self.precomputed_preds[idx].copy(), dtype=torch.float32)
             return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32), pred
         return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)

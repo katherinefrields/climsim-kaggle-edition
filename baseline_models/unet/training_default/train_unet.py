@@ -635,7 +635,10 @@ def main(cfg: DictConfig) -> float:
                         else:
                             ensemble, target_flat, det_pred = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members)
                     else:
-                        output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
+                        if precomputed_output is not None:
+                            output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model.module.forward_precomputed(data_input, target, precomputed_output)
+                        else:
+                            output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
                 nvtx.range_pop()
 
                 nvtx.range_push("loss_and_backward")
@@ -763,7 +766,10 @@ def main(cfg: DictConfig) -> float:
                         else:
                             ensemble, target_flat, det_pred = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members, sigma=val_sigma)
                     else:
-                        output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
+                        if val_precomputed_output is not None:
+                            output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model.module.forward_precomputed(data_input, target, val_precomputed_output)
+                        else:
+                            output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
                 nvtx.range_pop()
 
                 nvtx.range_push("val_loss")

@@ -468,6 +468,58 @@ class JointModel(modulus.Module):
         det_pred = det_flat
         return ensemble, target_flat, det_pred
 
+    def forward_precomputed(self, input, target, precomputed_output):
+        """
+        EDM/MSE forward using precomputed deterministic predictions, skipping the det model.
+        Returns same 7-tuple as forward(), with gradient checkpointing applied to res_model.
+        """
+        input = self.reshape_input(input)
+        target = self.reshape_target(target)
+        output = self.reshape_target(precomputed_output)
+
+        residual = (target - output).to(output.device)
+        safe_std = torch.clamp(self.res_std, min=1e-2)
+        normalized_residual = (residual / (safe_std + 1e-8)) * 0.5
+        condition_output = ((output - self.preds_mean) / (self.preds_std + 1e-8)) * 0.5
+
+        latent_condition = torch.cat((input, condition_output), dim=1)
+        condition_data = latent_condition
+        if self.condition_location == 'front':
+            if self.condition_type == 'input_output':
+                condition_data = latent_condition
+        elif self.condition_location == 'embedding':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+            condition_data = latent_condition.reshape(latent_condition.shape[0], -1)
+        elif self.condition_location == 'middle' or self.condition_location == 'cross':
+            if self.condition_type == 'input_output':
+                latent_condition = torch.cat((input, condition_output), dim=1)
+            condition_data = latent_condition
+
+        B = normalized_residual.shape[0]
+        rnd_normal = torch.randn([B, 1, 1], device=residual.device)
+        sigma = (rnd_normal * self.p_std + self.p_mean).exp()
+
+        n = torch.randn_like(normalized_residual) * sigma
+        noised_residual = normalized_residual + n
+
+        weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
+
+        if self.gradient_checkpointing:
+            normalized_predicted_residual = torch.utils.checkpoint.checkpoint(
+                self.res_model, noised_residual, sigma, condition_data, use_reentrant=False
+            )
+        else:
+            normalized_predicted_residual = self.res_model(noised_residual, sigma, condition_data)
+
+        denormalized_residual = normalized_residual / 0.5 * (safe_std + 1e-8)
+        denormalized_predicted_residual = normalized_predicted_residual / 0.5 * (safe_std + 1e-8)
+
+        output = self.reverse_reshape_target(output)
+        target = self.reverse_reshape_target(target)
+
+        return output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight
+
     def compute_crps_training_loss(self, criterion, ensemble, target_flat, det_pred, eps: float = 0.0):
         """
         Almost-fair CRPS from AIFS-CRPS paper (unsimplified form for numerical stability):

@@ -631,9 +631,9 @@ def main(cfg: DictConfig) -> float:
                 with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
                     if cfg.use_crps_loss:
                         if precomputed_output is not None:
-                            ensemble, target_flat, det_pred = joint_model.module.forward_crps_precomputed(data_input, target, precomputed_output, num_members=cfg.crps_num_members)
+                            ensemble, target_flat, det_pred, weight = joint_model.module.forward_crps_precomputed(data_input, target, precomputed_output, num_members=cfg.crps_num_members)
                         else:
-                            ensemble, target_flat, det_pred = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members)
+                            ensemble, target_flat, det_pred, weight = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members)
                     else:
                         if precomputed_output is not None:
                             output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model.module.forward_precomputed(data_input, target, precomputed_output)
@@ -643,7 +643,7 @@ def main(cfg: DictConfig) -> float:
 
                 nvtx.range_push("loss_and_backward")
                 if cfg.use_crps_loss:
-                    deterministic_loss, res_loss = joint_model.module.compute_crps_training_loss(criterion, ensemble, target_flat, det_pred, eps=cfg.crps_eps)
+                    deterministic_loss, res_loss = joint_model.module.compute_crps_training_loss(criterion, ensemble, target_flat, det_pred, weight, eps=cfg.crps_eps)
                     joint_model.module.backward(res_loss, joint_optimizer)
                 elif joint_training_enabled:
                     deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
@@ -762,9 +762,9 @@ def main(cfg: DictConfig) -> float:
                     if cfg.use_crps_loss:
                         val_sigma = val_sigma_seq[current_step % len(val_sigma_seq)].reshape(1, 1, 1).expand(data_input.shape[0], 1, 1)
                         if val_precomputed_output is not None:
-                            ensemble, target_flat, det_pred = joint_model.module.forward_crps_precomputed(data_input, target, val_precomputed_output, num_members=cfg.crps_num_members, sigma=val_sigma)
+                            ensemble, target_flat, det_pred, weight = joint_model.module.forward_crps_precomputed(data_input, target, val_precomputed_output, num_members=cfg.crps_num_members, sigma=val_sigma)
                         else:
-                            ensemble, target_flat, det_pred = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members, sigma=val_sigma)
+                            ensemble, target_flat, det_pred, weight = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members, sigma=val_sigma)
                     else:
                         if val_precomputed_output is not None:
                             output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model.module.forward_precomputed(data_input, target, val_precomputed_output)
@@ -774,7 +774,7 @@ def main(cfg: DictConfig) -> float:
 
                 nvtx.range_push("val_loss")
                 if cfg.use_crps_loss:
-                    deterministic_loss, res_loss = joint_model.module.compute_crps_training_loss(criterion, ensemble, target_flat, det_pred, eps=cfg.crps_eps)
+                    deterministic_loss, res_loss = joint_model.module.compute_crps_training_loss(criterion, ensemble, target_flat, det_pred, weight, eps=cfg.crps_eps)
                 else:
                     deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
                 nvtx.range_pop()

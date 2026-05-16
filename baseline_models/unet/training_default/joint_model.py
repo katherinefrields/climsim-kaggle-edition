@@ -370,6 +370,8 @@ class JointModel(modulus.Module):
             rnd_normal = torch.randn([B, 1, 1], device=residual.device)
             sigma = (rnd_normal * self.p_std + self.p_mean).exp()
 
+        weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
+
         ch = self.diffusion_channel_indices
         nr = normalized_residual[:, ch, :] if ch is not None else normalized_residual
         std_sub = safe_std[ch, :] if ch is not None else safe_std
@@ -397,7 +399,7 @@ class JointModel(modulus.Module):
         ensemble = torch.stack(members, dim=1)  # (B, M, C*L)
         target_flat = self.reverse_reshape_target(target)
         det_pred = det_flat
-        return ensemble, target_flat, det_pred
+        return ensemble, target_flat, det_pred, weight
 
     def forward_crps_precomputed(self, input, target, precomputed_output, num_members: int = 16, sigma: torch.Tensor = None):
         """
@@ -439,6 +441,8 @@ class JointModel(modulus.Module):
             rnd_normal = torch.randn([B, 1, 1], device=residual.device)
             sigma = (rnd_normal * self.p_std + self.p_mean).exp()
 
+        weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
+
         ch = self.diffusion_channel_indices
         nr = normalized_residual[:, ch, :] if ch is not None else normalized_residual
         std_sub = safe_std[ch, :] if ch is not None else safe_std
@@ -466,7 +470,7 @@ class JointModel(modulus.Module):
         ensemble = torch.stack(members, dim=1)  # (B, M, C*L)
         target_flat = self.reverse_reshape_target(target)
         det_pred = det_flat
-        return ensemble, target_flat, det_pred
+        return ensemble, target_flat, det_pred, weight
 
     def forward_precomputed(self, input, target, precomputed_output):
         """
@@ -520,7 +524,7 @@ class JointModel(modulus.Module):
 
         return output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight
 
-    def compute_crps_training_loss(self, criterion, ensemble, target_flat, det_pred, eps: float = 0.0):
+    def compute_crps_training_loss(self, criterion, ensemble, target_flat, det_pred, weight, eps: float = 0.0):
         """
         Almost-fair CRPS from AIFS-CRPS paper (unsimplified form for numerical stability):
 
@@ -549,7 +553,8 @@ class JointModel(modulus.Module):
         diag_sum = 2.0 * torch.abs(ensemble - target_flat.unsqueeze(1)).sum(dim=1)  # (B, C*L)
         off_diag_sum = full_sum - diag_sum                                           # (B, C*L)
 
-        crps_loss = (off_diag_sum / (2.0 * M * (M - 1))).mean()
+        w = weight.reshape(-1, 1)  # (B, 1) — broadcasts against (B, C*L)
+        crps_loss = (w * off_diag_sum / (2.0 * M * (M - 1))).mean()
         return deterministic_loss, crps_loss
 
     @torch.no_grad()

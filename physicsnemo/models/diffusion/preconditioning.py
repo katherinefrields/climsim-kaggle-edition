@@ -232,7 +232,6 @@ class EDMPrecond(modulus.Module):
         #currently x(batch, target_profile_num*levels+target_scalar_num)
         if condition is not None:
             #input = torch.cat([arg, condition], dim=1)
-            print(f'EDMPrecond Forward. Shape: {arg.shape}')
             F_x = self.model(
             arg.to(dtype),
             noise_labels = c_noise.flatten(),

@@ -87,7 +87,7 @@ restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models
 #diffusion_restart_path: '' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/input_output_cond_embedding_3_epoch_fixed_zeroing_z_dist_continued/diff_model/ckpt/ckpt_epoch_2_metric_0.2441.mdlus' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/dynamic_normalization_1_epoch/diff_model/ckpt/ckpt_epoch_1_metric_0.0023.mdlus' 
 diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/2_epoch_no_precompute_preds_full_precision_crps_fixed/diff_model/ckpt/ckpt_epoch_1_metric_0.3774.mdlus' #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/plateau_run_fixed/diff_model/ckpt/ckpt_epoch_3_metric_0.2423.mdlus  #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/save_LR_state_test_5/diff_model/diff_model.mdlus'
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/'
-expname: '2_epoch_no_precompute_preds_full_precision_crps_fixed_continued'
+expname: 'test_full_diff_model'
 num_workers: 32
 batch_size: 4096
 epochs: 1
@@ -116,7 +116,7 @@ scheduler_warmup:
    warmup_steps: 20
    warmup_strategy: 'cos'
    init_lr: 1e-7
-early_stop_step: 100
+early_stop_step: 1000
 use_bf16: False
 use_crps_loss: True
 crps_num_members: 4
@@ -151,10 +151,10 @@ deterministic_model:
    resample_filter: [1, 1]
 
 diffusion_model:
-   channel_mult: [1, 2, 2]
-   attn_resolutions: [16, 8]
-   num_blocks: 2
-   model_channels: 96
+   channel_mult: [1,2,2,2] #[1, 2, 2]
+   attn_resolutions: [32,16,8] #[16, 8]
+   num_blocks: 3 #2
+   model_channels: 128 #96
    seq_resolution: 64
    dropout: .10
    condition: True

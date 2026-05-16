@@ -199,8 +199,8 @@ class JointModel(modulus.Module):
             # Apply sigma
             sigma = sigma.view(B, 1, 1)
             n = t_noise * sigma
-            print(f'n shape is {n.shape}')
-            print(f'normalized_residual shape is {normalized_residual.shape}')
+            #print(f'n shape is {n.shape}')
+            #print(f'normalized_residual shape is {normalized_residual.shape}')
             noised_residual = normalized_residual + n
             sigma = sigma*torch.sqrt(nu/(nu-2))
             

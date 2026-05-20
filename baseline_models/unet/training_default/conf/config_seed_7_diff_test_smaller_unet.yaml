@@ -80,7 +80,7 @@ input_clip: True
 input_clip_rhonly: True
 # the difference between strato_lev and strato_lev_out is that strato_lev is used as a reference for pruning the input
 # and strato_lev_out is a constant value for pruning the output vector
-s
+
 # training settings
 seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
@@ -120,7 +120,7 @@ early_stop_step: -1
 use_bf16: True
 use_crps_loss: True
 crps_num_members: 2
-crps_eps: .50
+crps_eps: .80
 gradient_checkpointing: True
 # Channel indices into (B,C,L) target for diffusion residual prediction. null = all channels.
 diffusion_channel_indices: null
@@ -151,10 +151,10 @@ deterministic_model:
    resample_filter: [1, 1]
 
 diffusion_model:
-   channel_mult: [1, 2, 2] #[1,2,2,2] #[1, 2, 2]
+   channel_mult: [1,2,2,2] #[1, 2, 2]
    attn_resolutions: [16,8] #[16, 8]
    num_blocks: 2 #2
-   model_channels: 96 #128 #96
+   model_channels: 128 #96
    seq_resolution: 64
    dropout: .10
    condition: True

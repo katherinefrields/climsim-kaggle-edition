@@ -57,11 +57,11 @@ res_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/
 preds_std_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_remade_preds_std.pt'
 preds_mean_path: '/global/homes/k/kfrields/climsim-kaggle-edition/baseline_models/unet/training_default/reshaped_remade_preds_mean.pt'
 
-val_preds_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/val_preds.npy'
-val_targets_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/val_targets.npy'
+val_preds_path: '' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/val_preds.npy'
+val_targets_path: '' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/val_targets.npy'
 
-train_preds_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_preds.npy'
-train_targets_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_targets.npy'
+train_preds_path: '' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_preds.npy'
+train_targets_path: '' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_targets.npy'
 
 
 # dataset preprocessing settings
@@ -87,10 +87,10 @@ restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models
 #diffusion_restart_path: '' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/input_output_cond_embedding_3_epoch_fixed_zeroing_z_dist_continued/diff_model/ckpt/ckpt_epoch_2_metric_0.2441.mdlus' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/dynamic_normalization_1_epoch/diff_model/ckpt/ckpt_epoch_1_metric_0.0023.mdlus' 
 diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch/diff_model/diff_model.mdlus' #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/plateau_run_fixed/diff_model/ckpt/ckpt_epoch_3_metric_0.2423.mdlus  #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/save_LR_state_test_5/diff_model/diff_model.mdlus'
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models'
-expname: '2_epoch_smaller_model' # 'diff_test_smaller_unet' # 'dynamic_normalization_1_epoch' # 'plateau_run_fixed' # 'save_LR_state_test_5' # '2_epoch_no_precompute_preds_full_precision_crps_fixed'
+expname: '24_hour_test' # 'diff_test_smaller_unet' # 'dynamic_normalization_1_epoch' # 'plateau_run_fixed' # 'save_LR_state_test_5' # '2_epoch_no_precompute_preds_full_precision_crps_fixed'
 num_workers: 32
 batch_size: 4096
-epochs: 2
+epochs: 1
 learning_rate: .0001 #0.0001 #0.0001 #0.00005 # temporarily changed 0.0001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'
@@ -120,7 +120,7 @@ early_stop_step: -1
 use_bf16: True
 use_crps_loss: True
 crps_num_members: 2
-crps_eps: .80
+crps_eps: .50
 gradient_checkpointing: True
 # Channel indices into (B,C,L) target for diffusion residual prediction. null = all channels.
 diffusion_channel_indices: null

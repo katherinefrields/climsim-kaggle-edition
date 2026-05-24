@@ -129,6 +129,89 @@ def compute_zonal_stats(var, preds_ds, targets_ds, n_rows, n_time, time_mask=Non
     return bias_da, mae_da
 
 
+def compute_diurnal_stats(var, preds_ds, targets_ds, n_rows, n_time):
+    """Return (bias, mae) of shape (24, n_levels): area-weighted global mean per hour of day."""
+    s   = var_settings[var]
+    sc  = s['scaling']
+    idx = s['var_index']
+    sl  = slice(idx, idx + n_levels)
+
+    pred_var   = preds_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+    target_var = targets_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+    residual   = target_var - pred_var
+    del pred_var, target_var
+
+    w = grid_area / grid_area.sum()                                          # (ncol,)
+    res_gm  = (residual         * w[None, :, None]).sum(axis=1)              # (n_time, n_levels)
+    ares_gm = (np.abs(residual) * w[None, :, None]).sum(axis=1)
+    del residual
+
+    minutes_abs = START_DOY * 1440 + np.arange(n_time) * TIMESTEP_MINUTES
+    hour_of_day = (minutes_abs // 60) % 24                                   # integer 0-23
+
+    bias_d = np.stack([res_gm [hour_of_day == h].mean(axis=0) for h in range(24)])  # (24, n_levels)
+    mae_d  = np.stack([ares_gm[hour_of_day == h].mean(axis=0) for h in range(24)])
+    del res_gm, ares_gm
+
+    return sc * bias_d, sc * mae_d
+
+
+def plot_diurnal_cycle(preds_ds, targets_ds, n_rows, n_time,
+                        title='Diurnal Cycle of Residuals',
+                        fname='residual_diurnal_cycle.png', show=True, out_dir=None):
+    """Rows=variables, cols=(bias, MAE). x=hour of day (UTC), y=pressure level."""
+    vars_list = list(var_settings.keys())
+    n_vars    = len(vars_list)
+    hours     = np.arange(24)
+    labels    = [f'({l})' for l in string.ascii_lowercase[:n_vars * 2]]
+
+    fig, axs = plt.subplots(n_vars, 2, figsize=(9, 2.8 * n_vars), constrained_layout=True)
+
+    for row, var in enumerate(vars_list):
+        s = var_settings[var]
+        bias_d, mae_d = compute_diurnal_stats(var, preds_ds, targets_ds, n_rows, n_time)
+
+        bias_abs_max = float(np.nanmax(np.abs(bias_d)))
+
+        bias_da = xr.DataArray(bias_d.T, dims=['hybrid pressure (hPa)', 'hour'],
+                               coords={'hybrid pressure (hPa)': level, 'hour': hours})
+        mae_da  = xr.DataArray(mae_d.T,  dims=['hybrid pressure (hPa)', 'hour'],
+                               coords={'hybrid pressure (hPa)': level, 'hour': hours})
+
+        ax0 = axs[row, 0]
+        im0 = bias_da.plot(ax=ax0, add_colorbar=False, cmap='RdBu_r',
+                           vmin=-bias_abs_max, vmax=bias_abs_max)
+        fig.colorbar(im0, ax=ax0, label=s['unit'], pad=0.02)
+        ax0.set_title(f"{labels[row*2]} {s['var_title']} — Mean Bias (Target − Pred)", fontsize=8)
+        ax0.invert_yaxis()
+        ax0.set_xlabel('Hour of Day (UTC)', fontsize=7)
+        ax0.set_ylabel('Hybrid pressure (hPa)', fontsize=7)
+        ax0.set_xticks(np.arange(0, 24, 6))
+        ax0.tick_params(labelsize=7)
+
+        ax1 = axs[row, 1]
+        im1 = mae_da.plot(ax=ax1, add_colorbar=False, cmap='viridis')
+        fig.colorbar(im1, ax=ax1, label=s['unit'], pad=0.02)
+        ax1.set_title(f"{labels[row*2+1]} {s['var_title']} — MAE", fontsize=8)
+        ax1.invert_yaxis()
+        ax1.set_xlabel('Hour of Day (UTC)', fontsize=7)
+        ax1.set_ylabel('', fontsize=7)
+        ax1.set_xticks(np.arange(0, 24, 6))
+        ax1.tick_params(labelsize=7)
+
+    fig.suptitle(title, fontsize=11)
+
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+        fpath = os.path.join(out_dir, fname)
+        plt.savefig(fpath, dpi=200, bbox_inches='tight')
+        print(f'Saved: {fpath}', flush=True)
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
 def plot_all_residual_zonal_means(preds_ds, targets_ds, n_rows, n_time, time_mask=None,
                                    title='Zonal Mean Residuals',
                                    fname='residual_zonal_means_all.png', show=True, out_dir=None):
@@ -225,5 +308,10 @@ with h5py.File(preds_path, 'r') as preds_f, h5py.File(targets_path, 'r') as targ
             fname=f'residual_zonal_means_{key.lower()}.png',
             show=False, out_dir=save_path,
         )
+
+    # --- Plot diurnal cycle ---
+    print('Plotting diurnal cycle...', flush=True)
+    plot_diurnal_cycle(preds_ds, targets_ds, n_rows, n_time,
+                        show=False, out_dir=save_path)
 
 print('Done.', flush=True)

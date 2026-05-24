@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import os, string
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+import matplotlib.tri as mtri
 from climsim_utils.data_utils import *
 
 parser = argparse.ArgumentParser()
@@ -176,17 +177,30 @@ def compute_column_mean_residual(var, preds_ds, targets_ds, n_rows, n_time, time
     return s['scaling'] * residual
 
 
-def plot_monthly_bias_maps(preds_ds, targets_ds, n_rows, n_time, months, lat, lon,
-                            out_dir=None):
-    """One figure per calendar month; rows = variables, map = column-mean bias."""
-    from datetime import datetime as _dt
+def _make_triangulation(lon, lat):
+    """Delaunay triangulation with antimeridian-spanning triangles masked out."""
+    tri = mtri.Triangulation(lon, lat)
+    # mask triangles whose vertices straddle the antimeridian (lon gap > 180°)
+    lons = lon[tri.triangles]
+    mask = (lons.max(axis=1) - lons.min(axis=1)) > 180
+    tri.set_mask(mask)
+    return tri
+
+
+def plot_seasonal_bias_maps(preds_ds, targets_ds, n_rows, n_time, season_masks, lat, lon,
+                             out_dir=None):
+    """One figure per season; rows = variables, map = tiled column-mean bias."""
     vars_list    = list(var_settings.keys())
     n_vars       = len(vars_list)
     panel_labels = [f'({l})' for l in string.ascii_lowercase[:n_vars]]
 
-    for month in np.unique(months):
-        mask  = np.where(months == month)[0]
-        label = _dt(2000, month, 1).strftime('%b')
+    tri = _make_triangulation(lon, lat)
+
+    for key, info in SEASONS.items():
+        mask = season_masks[key]
+        if len(mask) == 0:
+            print(f'  No timesteps for {key}, skipping maps.', flush=True)
+            continue
 
         fig, axs = plt.subplots(
             n_vars, 1,
@@ -198,28 +212,28 @@ def plot_monthly_bias_maps(preds_ds, targets_ds, n_rows, n_time, months, lat, lo
             axs = [axs]
 
         for row, var in enumerate(vars_list):
-            s          = var_settings[var]
-            col_bias   = compute_column_mean_residual(var, preds_ds, targets_ds,
-                                                      n_rows, n_time, time_mask=mask)
-            mean_bias  = col_bias.mean(axis=0)  # (ncol,)
-            abs_max    = float(np.nanpercentile(np.abs(mean_bias), 99))
+            s         = var_settings[var]
+            col_bias  = compute_column_mean_residual(var, preds_ds, targets_ds,
+                                                     n_rows, n_time, time_mask=mask)
+            mean_bias = col_bias.mean(axis=0)  # (ncol,)
+            abs_max   = float(np.nanpercentile(np.abs(mean_bias), 99))
 
             ax = axs[row]
             ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
             ax.set_global()
-            sc = ax.scatter(lon, lat, c=mean_bias,
-                            cmap='RdBu_r', vmin=-abs_max, vmax=abs_max,
-                            s=3, transform=ccrs.PlateCarree(), rasterized=True)
-            fig.colorbar(sc, ax=ax, orientation='horizontal', pad=0.04,
+            tc = ax.tripcolor(tri, mean_bias,
+                              cmap='RdBu_r', vmin=-abs_max, vmax=abs_max,
+                              transform=ccrs.PlateCarree(), rasterized=True)
+            fig.colorbar(tc, ax=ax, orientation='horizontal', pad=0.04,
                          shrink=0.7, label=s['unit'])
             ax.set_title(f"{panel_labels[row]} {s['var_title']} — Mean Bias (Target − Pred)",
                          fontsize=9)
 
-        fig.suptitle(f'Monthly Mean Column Bias — {label}', fontsize=11)
+        fig.suptitle(f'Seasonal Mean Column Bias — {info["label"]}', fontsize=11)
 
         if out_dir:
             os.makedirs(out_dir, exist_ok=True)
-            fpath = os.path.join(out_dir, f'monthly_bias_map_{label}.png')
+            fpath = os.path.join(out_dir, f'seasonal_bias_map_{key.lower()}.png')
             plt.savefig(fpath, dpi=150, bbox_inches='tight')
             print(f'Saved: {fpath}', flush=True)
         plt.close()
@@ -383,9 +397,9 @@ with h5py.File(preds_path, 'r') as preds_f, h5py.File(targets_path, 'r') as targ
     plot_diurnal_cycle(preds_ds, targets_ds, n_rows, n_time,
                         show=False, out_dir=save_path)
 
-    # --- Plot monthly bias maps ---
-    print('Plotting monthly bias maps...', flush=True)
-    plot_monthly_bias_maps(preds_ds, targets_ds, n_rows, n_time, months, lat, lon,
-                            out_dir=save_path)
+    # --- Plot seasonal bias maps ---
+    print('Plotting seasonal bias maps...', flush=True)
+    plot_seasonal_bias_maps(preds_ds, targets_ds, n_rows, n_time, season_masks, lat, lon,
+                             out_dir=save_path)
 
 print('Done.', flush=True)

@@ -17,4 +17,7 @@ conda activate myenv
 
 N_BATCHES=${N_BATCHES:-400}  # set to 0 for all batches
 
+echo "Files in precomputed_preds dir:"
+ls /pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/
+
 python plot_residual_zonal_means.py --n_batches $N_BATCHES

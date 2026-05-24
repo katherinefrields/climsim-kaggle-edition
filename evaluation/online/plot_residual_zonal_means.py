@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import argparse
+import h5py
 import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,8 +19,8 @@ input_max_v2_rh_mc_file  = 'input_max_v2_rh_mc_pervar.nc'
 input_min_v2_rh_mc_file  = 'input_min_v2_rh_mc_pervar.nc'
 output_scale_v2_rh_mc_file = 'output_scale_std_lowerthred_v2_rh_mc.nc'
 
-preds_path   = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_preds.npy'
-targets_path = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_targets.npy'
+preds_path   = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_preds.h5'
+targets_path = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_targets.h5'
 
 save_path = '/global/homes/k/kfrields/climsim-kaggle-edition/figures/offline/residual_zonal_means'
 
@@ -136,9 +137,15 @@ def plot_residual_zonal_mean(var, preds_3d, targets_3d, show=True, out_dir=None)
 n_batches_to_load = args.n_batches
 
 print('Loading predictions...', flush=True)
-preds   = np.load(preds_path)    # (n_samples, n_output_vars)
+with h5py.File(preds_path, 'r') as f:
+    keys = list(f.keys())
+    print(f'  preds h5 keys: {keys}', flush=True)
+    preds = f[keys[0]][:]    # (n_samples, n_output_vars)
 print('Loading targets...', flush=True)
-targets = np.load(targets_path)  # (n_samples, n_output_vars)
+with h5py.File(targets_path, 'r') as f:
+    keys = list(f.keys())
+    print(f'  targets h5 keys: {keys}', flush=True)
+    targets = f[keys[0]][:]  # (n_samples, n_output_vars)
 
 n_samples    = preds.shape[0]
 n_output_vars = preds.shape[1]

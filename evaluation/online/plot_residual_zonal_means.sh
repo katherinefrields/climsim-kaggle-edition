@@ -2,7 +2,7 @@
 #SBATCH -A m4334
 #SBATCH -C gpu
 #SBATCH -q debug
-#SBATCH -t 00:02:00
+#SBATCH -t 00:05:00
 #SBATCH --ntasks-per-node 1
 #SBATCH --cpus-per-task 32
 #SBATCH --gpus-per-node 1
@@ -15,4 +15,6 @@
 module load conda
 conda activate myenv
 
-python plot_residual_zonal_means.py
+N_BATCHES=${N_BATCHES:-400}  # set to 0 for all batches
+
+python plot_residual_zonal_means.py --n_batches $N_BATCHES

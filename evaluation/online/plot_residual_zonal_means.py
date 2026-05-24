@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
+import argparse
 import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 import os, string
 from climsim_utils.data_utils import *
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--n_batches', type=int, default=None)
+args = parser.parse_args()
 
 # --- Paths ---
 grid_path = '/global/cfs/cdirs/m4334/jerry/climsim3_dev/grid_info/ClimSim_low-res_grid-info.nc'
@@ -128,6 +133,8 @@ def plot_residual_zonal_mean(var, preds_3d, targets_3d, show=True, out_dir=None)
 
 
 # --- Load precomputed predictions and targets ---
+n_batches_to_load = args.n_batches
+
 print('Loading predictions...', flush=True)
 preds   = np.load(preds_path)    # (n_samples, n_output_vars)
 print('Loading targets...', flush=True)
@@ -136,6 +143,11 @@ targets = np.load(targets_path)  # (n_samples, n_output_vars)
 n_samples    = preds.shape[0]
 n_output_vars = preds.shape[1]
 n_time       = n_samples // ncol
+
+if n_batches_to_load:
+    n_time = min(n_batches_to_load, n_time)
+    preds   = preds[:n_time * ncol]
+    targets = targets[:n_time * ncol]
 
 print(f'n_samples={n_samples}, ncol={ncol}, n_time={n_time}, n_output_vars={n_output_vars}', flush=True)
 

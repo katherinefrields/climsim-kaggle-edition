@@ -5,6 +5,8 @@ import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 import os, string
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 from climsim_utils.data_utils import *
 
 parser = argparse.ArgumentParser()
@@ -29,6 +31,8 @@ print('Opening grid info...', flush=True)
 grid_info = xr.open_dataset(grid_path)
 grid_area = grid_info['area'].values
 level     = grid_info.lev.values
+lat       = grid_info['lat'].values
+lon       = ((grid_info['lon'].values + 180) % 360) - 180
 
 print('Opening input normalizations...', flush=True)
 input_mean_v2_rh_mc  = xr.open_dataset('/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normalizations/inputs/'  + input_mean_v2_rh_mc_file)
@@ -154,6 +158,71 @@ def compute_diurnal_stats(var, preds_ds, targets_ds, n_rows, n_time):
     del res_gm, ares_gm
 
     return sc * bias_d, sc * mae_d
+
+
+def compute_column_mean_residual(var, preds_ds, targets_ds, n_rows, n_time, time_mask=None):
+    """Vertical mean of residual (target - pred) → (n_t, ncol)."""
+    s   = var_settings[var]
+    idx = s['var_index']
+    sl  = slice(idx, idx + n_levels)
+
+    pred_var   = preds_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+    target_var = targets_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+    if time_mask is not None:
+        pred_var   = pred_var[time_mask]
+        target_var = target_var[time_mask]
+    residual = (target_var - pred_var).mean(axis=2)
+    del pred_var, target_var
+    return s['scaling'] * residual
+
+
+def plot_monthly_bias_maps(preds_ds, targets_ds, n_rows, n_time, months, lat, lon,
+                            out_dir=None):
+    """One figure per calendar month; rows = variables, map = column-mean bias."""
+    from datetime import datetime as _dt
+    vars_list    = list(var_settings.keys())
+    n_vars       = len(vars_list)
+    panel_labels = [f'({l})' for l in string.ascii_lowercase[:n_vars]]
+
+    for month in np.unique(months):
+        mask  = np.where(months == month)[0]
+        label = _dt(2000, month, 1).strftime('%b')
+
+        fig, axs = plt.subplots(
+            n_vars, 1,
+            figsize=(10, 3.5 * n_vars),
+            subplot_kw={'projection': ccrs.Robinson()},
+            constrained_layout=True,
+        )
+        if n_vars == 1:
+            axs = [axs]
+
+        for row, var in enumerate(vars_list):
+            s          = var_settings[var]
+            col_bias   = compute_column_mean_residual(var, preds_ds, targets_ds,
+                                                      n_rows, n_time, time_mask=mask)
+            mean_bias  = col_bias.mean(axis=0)  # (ncol,)
+            abs_max    = float(np.nanpercentile(np.abs(mean_bias), 99))
+
+            ax = axs[row]
+            ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
+            ax.set_global()
+            sc = ax.scatter(lon, lat, c=mean_bias,
+                            cmap='RdBu_r', vmin=-abs_max, vmax=abs_max,
+                            s=3, transform=ccrs.PlateCarree(), rasterized=True)
+            fig.colorbar(sc, ax=ax, orientation='horizontal', pad=0.04,
+                         shrink=0.7, label=s['unit'])
+            ax.set_title(f"{panel_labels[row]} {s['var_title']} — Mean Bias (Target − Pred)",
+                         fontsize=9)
+
+        fig.suptitle(f'Monthly Mean Column Bias — {label}', fontsize=11)
+
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+            fpath = os.path.join(out_dir, f'monthly_bias_map_{label}.png')
+            plt.savefig(fpath, dpi=150, bbox_inches='tight')
+            print(f'Saved: {fpath}', flush=True)
+        plt.close()
 
 
 def plot_diurnal_cycle(preds_ds, targets_ds, n_rows, n_time,
@@ -313,5 +382,10 @@ with h5py.File(preds_path, 'r') as preds_f, h5py.File(targets_path, 'r') as targ
     print('Plotting diurnal cycle...', flush=True)
     plot_diurnal_cycle(preds_ds, targets_ds, n_rows, n_time,
                         show=False, out_dir=save_path)
+
+    # --- Plot monthly bias maps ---
+    print('Plotting monthly bias maps...', flush=True)
+    plot_monthly_bias_maps(preds_ds, targets_ds, n_rows, n_time, months, lat, lon,
+                            out_dir=save_path)
 
 print('Done.', flush=True)

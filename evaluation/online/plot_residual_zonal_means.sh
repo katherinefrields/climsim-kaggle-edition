@@ -1,10 +1,11 @@
 #!/bin/bash
 #SBATCH -A m4334
-#SBATCH -C cpu
+#SBATCH -C gpu
 #SBATCH -q debug
 #SBATCH -t 00:02:00
 #SBATCH --ntasks-per-node 1
 #SBATCH --cpus-per-task 32
+#SBATCH --gpus-per-node 1
 #SBATCH -n 1
 #SBATCH --mail-user=frieldskatherine@uci.edu
 #SBATCH --mail-type=ALL

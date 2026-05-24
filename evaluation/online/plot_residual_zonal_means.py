@@ -19,15 +19,19 @@ targets_path = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precompute
 save_path = '/global/homes/k/kfrields/climsim-kaggle-edition/figures/offline/residual_zonal_means'
 
 # --- Grid and normalizations ---
+print('Opening grid info...', flush=True)
 grid_info = xr.open_dataset(grid_path)
 grid_area = grid_info['area'].values
 level     = grid_info.lev.values
 
+print('Opening input normalizations...', flush=True)
 input_mean_v2_rh_mc  = xr.open_dataset('/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normalizations/inputs/'  + input_mean_v2_rh_mc_file)
 input_max_v2_rh_mc   = xr.open_dataset('/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normalizations/inputs/'  + input_max_v2_rh_mc_file)
 input_min_v2_rh_mc   = xr.open_dataset('/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normalizations/inputs/'  + input_min_v2_rh_mc_file)
+print('Opening output normalizations...', flush=True)
 output_scale_v2_rh_mc = xr.open_dataset('/global/cfs/cdirs/m4334/jerry/climsim3_dev/preprocessing/normalizations/outputs/' + output_scale_v2_rh_mc_file)
 
+print('Initializing data_utils...', flush=True)
 data_utils_obj = data_utils(
     grid_info    = grid_info,
     input_mean   = input_mean_v2_rh_mc,
@@ -37,6 +41,7 @@ data_utils_obj = data_utils(
     qinput_log   = False,
     normalize    = False,
 )
+print('Setting v2 rh mc vars...', flush=True)
 data_utils_obj.set_to_v2_rh_mc_vars()
 
 lat_bin_mids = data_utils_obj.lat_bin_mids
@@ -115,7 +120,7 @@ def plot_residual_zonal_mean(var, preds_3d, targets_3d, show=True, out_dir=None)
         os.makedirs(out_dir, exist_ok=True)
         fname = os.path.join(out_dir, f'residual_zonal_mean_{var}.png')
         plt.savefig(fname, dpi=300, bbox_inches='tight')
-        print(f'Saved: {fname}')
+        print(f'Saved: {fname}', flush=True)
     if show:
         plt.show()
     else:
@@ -123,23 +128,23 @@ def plot_residual_zonal_mean(var, preds_3d, targets_3d, show=True, out_dir=None)
 
 
 # --- Load precomputed predictions and targets ---
-print('Loading predictions...')
+print('Loading predictions...', flush=True)
 preds   = np.load(preds_path)    # (n_samples, n_output_vars)
-print('Loading targets...')
+print('Loading targets...', flush=True)
 targets = np.load(targets_path)  # (n_samples, n_output_vars)
 
 n_samples    = preds.shape[0]
 n_output_vars = preds.shape[1]
 n_time       = n_samples // ncol
 
-print(f'n_samples={n_samples}, ncol={ncol}, n_time={n_time}, n_output_vars={n_output_vars}')
+print(f'n_samples={n_samples}, ncol={ncol}, n_time={n_time}, n_output_vars={n_output_vars}', flush=True)
 
 preds_3d   = preds.reshape(n_time, ncol, n_output_vars)    # (time, ncol, n_vars)
 targets_3d = targets.reshape(n_time, ncol, n_output_vars)
 
 # --- Plot ---
 for var in var_settings:
-    print(f'Plotting {var}...')
+    print(f'Plotting {var}...', flush=True)
     plot_residual_zonal_mean(var, preds_3d, targets_3d, show=False, out_dir=save_path)
 
-print('Done.')
+print('Done.', flush=True)

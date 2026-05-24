@@ -100,8 +100,9 @@ def plot_residual_zonal_mean(var, preds_3d, targets_3d, show=True, out_dir=None)
     labels = [f'({l})' for l in string.ascii_lowercase[:2]]
 
     # --- Bias panel ---
+    bias_abs_max = float(np.nanmax(np.abs(bias_da.values)))
     im0 = bias_da.plot(ax=axs[0], add_colorbar=False, cmap='RdBu_r',
-                       vmin=s['vmin'], vmax=s['vmax'])
+                       vmin=-bias_abs_max, vmax=bias_abs_max)
     fig.colorbar(im0, ax=axs[0], label=f"{s['var_title']} ({s['unit']})")
     axs[0].set_title(f"{labels[0]} Mean Bias (Target − Pred)")
     axs[0].invert_yaxis()

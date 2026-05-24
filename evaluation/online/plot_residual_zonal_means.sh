@@ -2,7 +2,7 @@
 #SBATCH -A m4334
 #SBATCH -C gpu
 #SBATCH -q debug
-#SBATCH -t 00:08:00
+#SBATCH -t 00:30:00
 #SBATCH --ntasks-per-node 1
 #SBATCH --cpus-per-task 32
 #SBATCH --gpus-per-node 1
@@ -15,7 +15,7 @@
 module load conda
 conda activate myenv
 
-N_BATCHES=${N_BATCHES:-400}  # set to 0 for all batches
+N_BATCHES=${N_BATCHES:-0}  # set to 0 for all batches, -1000 for 1000 batches
 
 echo "Files in precomputed_preds dir:"
 ls /pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/

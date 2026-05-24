@@ -15,7 +15,7 @@
 module load conda
 conda activate myenv
 
-N_BATCHES=${N_BATCHES:-0}  # set to 0 for all batches, -1000 for 1000 batches
+N_BATCHES=${N_BATCHES:-26,280}  # set to 0 for all batches, -1000 for 1000 batches
 
 echo "Files in precomputed_preds dir:"
 ls /pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/

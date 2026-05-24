@@ -104,18 +104,34 @@ def zonal_mean_da(arr_3d):
     )
 
 
-def compute_zonal_stats(var, preds_3d, targets_3d):
-    """Return (bias_da, mae_da) scaled DataArrays for one variable."""
-    s  = var_settings[var]
-    sc = s['scaling']
+def compute_zonal_stats(var, preds_ds, targets_ds, n_rows, n_time, time_mask=None):
+    """Load only the 60 columns for `var` from the h5 datasets, then compute stats.
+
+    Allocates (n_t, ncol, 60) per array instead of (n_t, ncol, n_output_vars),
+    so memory scales with one variable at a time regardless of dataset width.
+    """
+    s   = var_settings[var]
+    sc  = s['scaling']
     idx = s['var_index']
-    pred_var   = preds_3d[:, :, idx:idx + n_levels]
-    target_var = targets_3d[:, :, idx:idx + n_levels]
-    residual   = target_var - pred_var
-    return sc * zonal_mean_da(residual), sc * zonal_mean_da(np.abs(residual))
+    sl  = slice(idx, idx + n_levels)
+
+    pred_var   = preds_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+    target_var = targets_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+
+    if time_mask is not None:
+        pred_var   = pred_var[time_mask]
+        target_var = target_var[time_mask]
+
+    residual = target_var - pred_var
+    del pred_var, target_var
+    bias_da = sc * zonal_mean_da(residual)
+    mae_da  = sc * zonal_mean_da(np.abs(residual))
+    del residual
+    return bias_da, mae_da
 
 
-def plot_all_residual_zonal_means(preds_3d, targets_3d, title='Zonal Mean Residuals',
+def plot_all_residual_zonal_means(preds_ds, targets_ds, n_rows, n_time, time_mask=None,
+                                   title='Zonal Mean Residuals',
                                    fname='residual_zonal_means_all.png', show=True, out_dir=None):
     """Single figure with all variables; rows=variables, cols=(bias, MAE)."""
     vars_list = list(var_settings.keys())
@@ -127,7 +143,8 @@ def plot_all_residual_zonal_means(preds_3d, targets_3d, title='Zonal Mean Residu
 
     for row, var in enumerate(vars_list):
         s = var_settings[var]
-        bias_da, mae_da = compute_zonal_stats(var, preds_3d, targets_3d)
+        bias_da, mae_da = compute_zonal_stats(var, preds_ds, targets_ds, n_rows, n_time,
+                                              time_mask=time_mask)
 
         bias_abs_max = float(np.nanmax(np.abs(bias_da.values)))
 
@@ -169,57 +186,45 @@ def plot_all_residual_zonal_means(preds_3d, targets_3d, title='Zonal Mean Residu
         plt.close()
 
 
-# --- Load precomputed predictions and targets ---
+# --- Open h5 files and keep them open for lazy per-variable loading ---
 n_batches_to_load = args.n_batches
 
-print('Loading predictions...', flush=True)
-with h5py.File(preds_path, 'r') as f:
-    keys = list(f.keys())
-    print(f'  preds h5 keys: {keys}', flush=True)
-    preds = f[keys[0]][:]    # (n_samples, n_output_vars)
-print('Loading targets...', flush=True)
-with h5py.File(targets_path, 'r') as f:
-    keys = list(f.keys())
-    print(f'  targets h5 keys: {keys}', flush=True)
-    targets = f[keys[0]][:]  # (n_samples, n_output_vars)
+print('Opening h5 files...', flush=True)
+with h5py.File(preds_path, 'r') as preds_f, h5py.File(targets_path, 'r') as targets_f:
+    preds_ds   = preds_f['data']
+    targets_ds = targets_f['data']
 
-n_samples    = preds.shape[0]
-n_output_vars = preds.shape[1]
-n_time       = n_samples // ncol
+    n_output_vars = preds_ds.shape[1]
+    n_time_total  = preds_ds.shape[0] // ncol
+    n_time        = min(n_batches_to_load, n_time_total) if n_batches_to_load else n_time_total
+    n_rows        = n_time * ncol
+    print(f'ncol={ncol}, n_time={n_time}/{n_time_total}, n_output_vars={n_output_vars}', flush=True)
 
-if n_batches_to_load:
-    n_time = min(n_batches_to_load, n_time)
-    preds   = preds[:n_time * ncol]
-    targets = targets[:n_time * ncol]
+    # --- Build seasonal masks (pure index math, no data loaded yet) ---
+    months = np.array([_timestep_month(t) for t in range(n_time)])
+    season_masks = {
+        key: np.where(np.isin(months, list(info['months'])))[0]
+        for key, info in SEASONS.items()
+    }
 
-print(f'n_samples={n_samples}, ncol={ncol}, n_time={n_time}, n_output_vars={n_output_vars}', flush=True)
+    # --- Plot annual ---
+    print('Plotting annual...', flush=True)
+    plot_all_residual_zonal_means(preds_ds, targets_ds, n_rows, n_time,
+                                   show=False, out_dir=save_path)
 
-preds_3d   = preds.reshape(n_time, ncol, n_output_vars)    # (time, ncol, n_vars)
-targets_3d = targets.reshape(n_time, ncol, n_output_vars)
-
-# --- Build seasonal masks ---
-months = np.array([_timestep_month(t) for t in range(n_time)])
-season_masks = {
-    key: np.where(np.isin(months, list(info['months'])))[0]
-    for key, info in SEASONS.items()
-}
-
-# --- Plot annual ---
-print('Plotting annual...', flush=True)
-plot_all_residual_zonal_means(preds_3d, targets_3d, show=False, out_dir=save_path)
-
-# --- Plot per season ---
-for key, info in SEASONS.items():
-    mask = season_masks[key]
-    if len(mask) == 0:
-        print(f'  No timesteps for {key}, skipping.', flush=True)
-        continue
-    print(f'Plotting {info["label"]} ({len(mask)} timesteps)...', flush=True)
-    plot_all_residual_zonal_means(
-        preds_3d[mask], targets_3d[mask],
-        title=f'Zonal Mean Residuals — {info["label"]}',
-        fname=f'residual_zonal_means_{key.lower()}.png',
-        show=False, out_dir=save_path,
-    )
+    # --- Plot per season ---
+    for key, info in SEASONS.items():
+        mask = season_masks[key]
+        if len(mask) == 0:
+            print(f'  No timesteps for {key}, skipping.', flush=True)
+            continue
+        print(f'Plotting {info["label"]} ({len(mask)} timesteps)...', flush=True)
+        plot_all_residual_zonal_means(
+            preds_ds, targets_ds, n_rows, n_time,
+            time_mask=mask,
+            title=f'Zonal Mean Residuals — {info["label"]}',
+            fname=f'residual_zonal_means_{key.lower()}.png',
+            show=False, out_dir=save_path,
+        )
 
 print('Done.', flush=True)

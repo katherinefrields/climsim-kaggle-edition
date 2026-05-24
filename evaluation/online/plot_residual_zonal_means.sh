@@ -15,6 +15,9 @@
 module load conda
 conda activate myenv
 
+pip install cartopy --quiet
+
+
 N_BATCHES=${N_BATCHES:-26280}  # set to 0 for all batches, -1000 for 1000 batches
 
 echo "Files in precomputed_preds dir:"

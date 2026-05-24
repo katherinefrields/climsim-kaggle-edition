@@ -56,12 +56,11 @@ ncol         = grid_area.shape[0]
 # --- Variable settings ---
 # Each 3D output variable has 60 pressure levels; var_index is the first column in the flat output array.
 var_settings = {
-    'DTPHYS':  {'var_title': 'Heating Tendency',         'scaling': 1.,   'unit': 'K/s',      'var_index': 0,   'vmax': 5e-7,  'vmin': -5e-7},
-    'DQ1PHYS': {'var_title': 'Moistening Tendency',      'scaling': 1e3,  'unit': 'g/kg/s',   'var_index': 60,  'vmax': 1e-6,  'vmin': -1e-6},
-    'DQ2PHYS': {'var_title': 'Liquid Cloud Tendency',    'scaling': 1e6,  'unit': 'mg/kg/s',  'var_index': 120, 'vmax': 1e-3,  'vmin': -1e-3},
-    'DQ3PHYS': {'var_title': 'Ice Cloud Tendency',       'scaling': 1e6,  'unit': 'mg/kg/s',  'var_index': 180, 'vmax': 1e-3,  'vmin': -1e-3},
-    'DUPHYS':  {'var_title': 'Zonal Wind Tendency',      'scaling': 1.,   'unit': 'm/s²',     'var_index': 240, 'vmax': 5e-7,  'vmin': -5e-7},
-    'DVPHYS':  {'var_title': 'Meridional Wind Tendency', 'scaling': 1.,   'unit': 'm/s²',     'var_index': 300, 'vmax': 5e-7,  'vmin': -5e-7},
+    'DTPHYS':  {'var_title': 'Heating Tendency',          'scaling': 1.,   'unit': 'K/s',      'var_index': 0,   'vmax': 5e-7,  'vmin': -5e-7},
+    'DQ1PHYS': {'var_title': 'RH Tendency',               'scaling': 1.,   'unit': '',         'var_index': 60,  'vmax': 1e-6,  'vmin': -1e-6},
+    'DQnPHYS': {'var_title': 'Liquid+Ice Cloud Tendency', 'scaling': 1e6,  'unit': 'mg/kg/s',  'var_index': 120, 'vmax': 1e-3,  'vmin': -1e-3},
+    'DUPHYS':  {'var_title': 'Zonal Wind Tendency',       'scaling': 1.,   'unit': 'm/s²',     'var_index': 180, 'vmax': 5e-7,  'vmin': -5e-7},
+    'DVPHYS':  {'var_title': 'Meridional Wind Tendency',  'scaling': 1.,   'unit': 'm/s²',     'var_index': 240, 'vmax': 5e-7,  'vmin': -5e-7},
 }
 
 n_levels = 60

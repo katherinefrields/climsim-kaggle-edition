@@ -196,6 +196,19 @@ def plot_seasonal_bias_maps(preds_ds, targets_ds, n_rows, n_time, season_masks, 
 
     tri = _make_triangulation(lon, lat)
 
+    # Compute shared color limits per variable across all seasons
+    print('  Computing shared color limits across seasons...', flush=True)
+    var_abs_max = {}
+    for var in vars_list:
+        all_biases = []
+        for mask in season_masks.values():
+            if len(mask) == 0:
+                continue
+            col_bias = compute_column_mean_residual(var, preds_ds, targets_ds,
+                                                    n_rows, n_time, time_mask=mask)
+            all_biases.append(col_bias.mean(axis=0))
+        var_abs_max[var] = float(np.nanpercentile(np.abs(np.concatenate(all_biases)), 99))
+
     for key, info in SEASONS.items():
         mask = season_masks[key]
         if len(mask) == 0:
@@ -216,7 +229,7 @@ def plot_seasonal_bias_maps(preds_ds, targets_ds, n_rows, n_time, season_masks, 
             col_bias  = compute_column_mean_residual(var, preds_ds, targets_ds,
                                                      n_rows, n_time, time_mask=mask)
             mean_bias = col_bias.mean(axis=0)  # (ncol,)
-            abs_max   = float(np.nanpercentile(np.abs(mean_bias), 99))
+            abs_max   = var_abs_max[var]
 
             ax = axs[row]
             ax.add_feature(cfeature.COASTLINE, linewidth=0.5)

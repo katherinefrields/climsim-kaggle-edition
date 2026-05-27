@@ -726,6 +726,88 @@ def run_diffusion_inference(joint_model, diff_data, torch_input, out_scale_np,
     return joint_preds_flat, det_preds_flat, diff_preds_flat
 
 
+# ---------------------------------------------------------------------------
+# Optional: diffusion model inference + comparison visualisations (runs first)
+# ---------------------------------------------------------------------------
+if args.diff_config_path:
+    if not args.diff_input_npy or not args.diff_target_npy:
+        raise ValueError('--diff_input_npy and --diff_target_npy are required '
+                         'when --diff_config_path is provided.')
+
+    print('\n=== Diffusion model ===', flush=True)
+    print('Loading joint model...', flush=True)
+    joint_model, torch_input_diff, targets_flat_diff, n_time_diff, diff_data, out_scale_diff = \
+        load_joint_model(
+            config_path      = args.diff_config_path,
+            checkpoint_path  = args.diff_checkpoint_path,
+            input_npy_path   = args.diff_input_npy,
+            target_npy_path  = args.diff_target_npy,
+        )
+
+    print('Running inference...', flush=True)
+    joint_preds_flat, det_preds_flat, diff_preds_flat = run_diffusion_inference(
+        joint_model, diff_data, torch_input_diff, out_scale_diff,
+        n_batches_limit = args.diff_n_batches,
+    )
+
+    # n_time may be truncated if --diff_n_batches was set
+    ncol_diff   = diff_data.num_latlon
+    n_time_used = joint_preds_flat.shape[0] // ncol_diff
+    n_rows_diff = n_time_used * ncol_diff
+
+    # Build seasonal masks using the same calendar logic
+    diff_start_doy = args.diff_start_doy if args.diff_start_doy is not None else START_DOY
+
+    def _diff_timestep_month(t):
+        doy = (diff_start_doy + t * TIMESTEP_MINUTES // (60 * 24)) % 365
+        for m in range(11, -1, -1):
+            if doy >= _MONTH_DOY_START[m]:
+                return m + 1
+        return 1
+
+    diff_months = np.array([_diff_timestep_month(t) for t in range(n_time_used)])
+    diff_season_masks = {
+        key: np.where(np.isin(diff_months, list(info['months'])))[0]
+        for key, info in SEASONS.items()
+    }
+
+    diff_save_path = os.path.join(save_path, 'diffusion')
+    os.makedirs(diff_save_path, exist_ok=True)
+
+    # --- Annual comparison: true vs predicted residual ---
+    print('Plotting annual comparison zonal means...', flush=True)
+    plot_comparison_zonal_means(
+        det_preds_flat, targets_flat_diff, diff_preds_flat, n_rows_diff, n_time_used,
+        title   = 'True vs Predicted Residual — Annual',
+        fname   = 'comparison_zonal_means_annual.png',
+        show    = False, out_dir = diff_save_path,
+    )
+
+    # --- Seasonal comparisons ---
+    print('Plotting seasonal comparison zonal means...', flush=True)
+    for key, info in SEASONS.items():
+        mask = diff_season_masks[key]
+        if len(mask) == 0:
+            print(f'  No timesteps for {key}, skipping.', flush=True)
+            continue
+        print(f'  {info["label"]} ({len(mask)} timesteps)...', flush=True)
+        plot_comparison_zonal_means(
+            det_preds_flat, targets_flat_diff, diff_preds_flat, n_rows_diff, n_time_used,
+            time_mask = mask,
+            title     = f'True vs Predicted Residual — {info["label"]}',
+            fname     = f'comparison_zonal_means_{key.lower()}.png',
+            show      = False, out_dir = diff_save_path,
+        )
+
+    print('Plotting seasonal comparison bias maps...', flush=True)
+    plot_seasonal_bias_maps_comparison(
+        det_preds_flat, targets_flat_diff, diff_preds_flat, n_rows_diff, n_time_used,
+        diff_season_masks, lat, lon,
+        out_dir = diff_save_path,
+    )
+
+    print('=== Diffusion model done ===\n', flush=True)
+
 # --- Open h5 files and keep them open for lazy per-variable loading ---
 n_batches_to_load = args.n_batches
 
@@ -776,89 +858,5 @@ with h5py.File(preds_path, 'r') as preds_f, h5py.File(targets_path, 'r') as targ
     print('Plotting seasonal bias maps...', flush=True)
     plot_seasonal_bias_maps(preds_ds, targets_ds, n_rows, n_time, season_masks, lat, lon,
                              out_dir=save_path)
-
-print('Done.', flush=True)
-
-# ---------------------------------------------------------------------------
-# Optional: diffusion model inference + same visualisations
-# ---------------------------------------------------------------------------
-if args.diff_config_path:
-    if not args.diff_input_npy or not args.diff_target_npy:
-        raise ValueError('--diff_input_npy and --diff_target_npy are required '
-                         'when --diff_config_path is provided.')
-
-    print('\n=== Diffusion model ===', flush=True)
-    print('Loading joint model...', flush=True)
-    joint_model, torch_input_diff, targets_flat_diff, n_time_diff, diff_data, out_scale_diff = \
-        load_joint_model(
-            config_path      = args.diff_config_path,
-            checkpoint_path  = args.diff_checkpoint_path,
-            input_npy_path   = args.diff_input_npy,
-            target_npy_path  = args.diff_target_npy,
-        )
-
-    print('Running inference...', flush=True)
-    joint_preds_flat, det_preds_flat, diff_preds_flat = run_diffusion_inference(
-        joint_model, diff_data, torch_input_diff, out_scale_diff,
-        n_batches_limit = args.diff_n_batches,
-    )
-
-    # n_time may be truncated if --diff_n_batches was set
-    ncol_diff   = diff_data.num_latlon
-    n_time_used = joint_preds_flat.shape[0] // ncol_diff
-    n_rows_diff = n_time_used * ncol_diff
-
-    # Build seasonal masks using the same calendar logic
-    diff_start_doy = args.diff_start_doy if args.diff_start_doy is not None else START_DOY
-
-    def _diff_timestep_month(t):
-        doy = (diff_start_doy + t * TIMESTEP_MINUTES // (60 * 24)) % 365
-        for m in range(11, -1, -1):
-            if doy >= _MONTH_DOY_START[m]:
-                return m + 1
-        return 1
-
-    diff_months = np.array([_diff_timestep_month(t) for t in range(n_time_used)])
-    diff_season_masks = {
-        key: np.where(np.isin(diff_months, list(info['months'])))[0]
-        for key, info in SEASONS.items()
-    }
-
-    diff_save_path = os.path.join(save_path, 'diffusion')
-    os.makedirs(diff_save_path, exist_ok=True)
-    
-    print('Plotting seasonal comparison bias maps...', flush=True)
-    plot_seasonal_bias_maps_comparison(
-        det_preds_flat, targets_flat_diff, diff_preds_flat, n_rows_diff, n_time_used,
-        diff_season_masks, lat, lon,
-        out_dir = diff_save_path,
-    )
-    
-    # --- Annual comparison: true vs predicted residual ---
-    print('Plotting annual comparison zonal means...', flush=True)
-    plot_comparison_zonal_means(
-        det_preds_flat, targets_flat_diff, diff_preds_flat, n_rows_diff, n_time_used,
-        title   = 'True vs Predicted Residual — Annual',
-        fname   = 'comparison_zonal_means_annual.png',
-        show    = False, out_dir = diff_save_path,
-    )
-
-    # --- Seasonal comparisons ---
-    print('Plotting seasonal comparison zonal means...', flush=True)
-    for key, info in SEASONS.items():
-        mask = diff_season_masks[key]
-        if len(mask) == 0:
-            print(f'  No timesteps for {key}, skipping.', flush=True)
-            continue
-        print(f'  {info["label"]} ({len(mask)} timesteps)...', flush=True)
-        plot_comparison_zonal_means(
-            det_preds_flat, targets_flat_diff, diff_preds_flat, n_rows_diff, n_time_used,
-            time_mask = mask,
-            title     = f'True vs Predicted Residual — {info["label"]}',
-            fname     = f'comparison_zonal_means_{key.lower()}.png',
-            show      = False, out_dir = diff_save_path,
-        )
-
-   
 
 print('All done.', flush=True)

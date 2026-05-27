@@ -4,14 +4,30 @@ import h5py
 import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
-import os, string
+import os, sys, string
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.tri as mtri
+import torch
+from tqdm import tqdm
 from climsim_utils.data_utils import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--n_batches', type=int, default=None)
+parser.add_argument('--n_batches',          type=int,   default=None)
+# --- optional diffusion model ---
+parser.add_argument('--diff_config_path',   type=str,   default=None,
+                    help='Path to saved_config.yaml for the joint diffusion model.')
+parser.add_argument('--diff_checkpoint_path', type=str, default='',
+                    help='Optional .mdlus checkpoint path (overrides diff_model.pt in config).')
+parser.add_argument('--diff_input_npy',     type=str,   default=None,
+                    help='Path to input .npy file for diffusion inference.')
+parser.add_argument('--diff_target_npy',    type=str,   default=None,
+                    help='Path to target .npy file for diffusion inference.')
+parser.add_argument('--diff_n_batches',     type=int,   default=None,
+                    help='Limit number of timestep batches for diffusion inference.')
+parser.add_argument('--diff_start_doy',     type=int,   default=None,
+                    help='Start day-of-year (0-indexed) for the diffusion npy data '
+                         '(defaults to START_DOY used by the h5 data).')
 args = parser.parse_args()
 
 # --- Paths ---
@@ -364,6 +380,185 @@ def plot_all_residual_zonal_means(preds_ds, targets_ds, n_rows, n_time, time_mas
         plt.close()
 
 
+# ---------------------------------------------------------------------------
+# Diffusion model loading and inference
+# ---------------------------------------------------------------------------
+
+def load_joint_model(config_path, checkpoint_path, input_npy_path, target_npy_path):
+    """Load joint (deterministic + diffusion) model and preprocess npy data.
+
+    Returns
+    -------
+    joint_model   : JointModel on CUDA/CPU
+    torch_input   : FloatTensor  (n_total, input_features)  — normalised inputs
+    targets_flat  : ndarray      (n_time*ncol, n_output)    — raw physical targets
+    n_time_diff   : int
+    diff_data     : data_utils instance
+    out_scale_np  : ndarray  (1, n_output)  — output std for denormalisation
+    """
+    # Project root needs to be on sys.path for physicsnemo + baseline_models
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+
+    from omegaconf import OmegaConf
+    from modulus import Module
+    from baseline_models.unet.training_default.joint_model import JointModel
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    with open(config_path) as f:
+        cfg = OmegaConf.load(f)
+
+    # --- normalisations ---
+    gi   = xr.open_dataset(cfg.grid_info_path)
+    imn  = xr.open_dataset(cfg.input_mean_path)
+    imx  = xr.open_dataset(cfg.input_max_path)
+    imi  = xr.open_dataset(cfg.input_min_path)
+    osc  = xr.open_dataset(cfg.output_scale_path)
+    qn_lbd = np.loadtxt(cfg.qn_lbd_path, delimiter=',')
+
+    res_std    = torch.load(cfg.res_std_path,   map_location=device).to(torch.float32)
+    res_mean   = torch.load(cfg.res_mean_path,  map_location=device).to(torch.float32)
+    preds_std  = torch.load(cfg.preds_std_path, map_location=device).to(torch.float32)
+    preds_mean = torch.load(cfg.preds_mean_path,map_location=device).to(torch.float32)
+
+    diff_data = data_utils(
+        grid_info=gi, input_mean=imn, input_max=imx, input_min=imi,
+        output_scale=osc, qinput_log=False, normalize=False,
+        res_std=res_std, res_mean=res_mean,
+        preds_std=preds_std, preds_mean=preds_mean,
+    )
+    diff_data.set_to_v2_rh_mc_vars()
+
+    input_sub, input_div, out_scale = diff_data.save_norm(write=False)
+    input_sub    = input_sub[None, :]
+    input_div    = input_div[None, :]
+    out_scale_np = out_scale[None, :]          # (1, n_output)
+
+    # --- preprocess npy inputs (mirrors preprocessing_v2_rh_mc in notebook) ---
+    npy_input  = np.load(input_npy_path)
+    npy_target = np.load(target_npy_path)
+
+    npy_input[:, 120:180] = 1 - np.exp(-npy_input[:, 120:180] * qn_lbd)
+    npy_input = (npy_input - input_sub) / input_div
+    npy_input = np.where(np.isnan(npy_input), 0, npy_input)
+    npy_input = np.where(np.isinf(npy_input), 0, npy_input)
+    npy_input[:, 120:135]  = 0
+    npy_input[:, 60:120]   = np.clip(npy_input[:, 60:120], 0, 1.2)
+    torch_input = torch.tensor(npy_input).float()
+
+    ncol_diff    = diff_data.num_latlon
+    n_time_diff  = npy_input.shape[0] // ncol_diff
+    targets_flat = npy_target[:n_time_diff * ncol_diff]   # (n_time*ncol, n_output)
+
+    # --- deterministic model ---
+    base = os.path.join(cfg.save_path, cfg.expname)
+    det_model = torch.jit.load(os.path.join(base, 'unet_model.pt')).to(device)
+    det_model.eval()
+
+    # --- diffusion model ---
+    if checkpoint_path:
+        diff_model = Module.from_checkpoint(checkpoint_path).to(device)
+    else:
+        diff_model = torch.load(os.path.join(base, 'diff_model.pt')).to(device)
+    diff_model.eval()
+
+    # --- condition channel count (mirrors notebook logic exactly) ---
+    loc   = cfg.diffusion_model.condition_location
+    ctype = cfg.diffusion_model.condition_type
+    base_ch = (diff_data.target_profile_num + diff_data.target_scalar_num +
+               diff_data.input_profile_num  + diff_data.input_scalar_num)
+    if loc == 'front':
+        cond_channels = base_ch if ctype == 'input_output' else base_ch
+    if loc == 'embedding':
+        cond_channels = base_ch * 64 if ctype == 'input_output' else 8192
+    elif loc in ('middle', 'cross'):
+        cond_channels = base_ch
+
+    joint_model = JointModel(
+        det_model, diff_model, res_std, res_mean, preds_std, preds_mean,
+        input_profile_num      = diff_data.input_profile_num,
+        input_scalar_num       = diff_data.input_scalar_num,
+        target_profile_num     = diff_data.target_profile_num,
+        target_scalar_num      = diff_data.target_scalar_num,
+        condition_channel_num  = cond_channels,
+        condition_type         = ctype,
+        condtition_location    = loc,
+        p_mean                 = cfg.diffusion_model.p_mean,
+        p_std                  = cfg.diffusion_model.p_std,
+        t_sampling             = cfg.diffusion_model.t_sampling,
+    ).to(device)
+
+    return joint_model, torch_input, targets_flat, n_time_diff, diff_data, out_scale_np
+
+
+def run_diffusion_inference(joint_model, diff_data, torch_input, out_scale_np,
+                             n_batches_limit=None,
+                             sigma_min=0.1, sigma_max=45, num_steps=18, rho=7):
+    """Run joint model inference over all timesteps.
+
+    Returns
+    -------
+    joint_preds_flat : ndarray  (n_time*ncol, n_output)  — det + diffusion
+    det_preds_flat   : ndarray  (n_time*ncol, n_output)  — deterministic only
+    """
+    device     = next(joint_model.parameters()).device
+    batch_size = diff_data.num_latlon
+    joint_model.eval()
+
+    det_list, joint_list = [], []
+    n_done = 0
+
+    with torch.no_grad():
+        for i in tqdm(range(0, torch_input.shape[0], batch_size), desc='Diffusion inference'):
+            if n_batches_limit is not None and n_done >= n_batches_limit:
+                break
+
+            input_batch = torch_input[i : i + batch_size].to(device)
+            input_batch = joint_model.reshape_input(input_batch)
+
+            # deterministic forward
+            output, _ = joint_model.deterministic_model(input_batch)
+
+            # build conditioning (mirrors inference_joint_model in notebook)
+            safe_std       = torch.clamp(joint_model.res_std, min=1e-2)
+            cond_out       = ((output - joint_model.preds_mean) /
+                              (joint_model.preds_std + 1e-8)) * 0.5
+            loc = joint_model.condition_location
+            if loc == 'front' and joint_model.condition_type == 'input_output':
+                condition_data = torch.cat((input_batch, cond_out), dim=1)
+            if loc == 'embedding' and joint_model.condition_type == 'input_output':
+                lc = torch.cat((input_batch, cond_out), dim=1)
+                condition_data = lc.reshape(lc.shape[0], -1)
+            elif loc in ('middle', 'cross') and joint_model.condition_type == 'input_output':
+                condition_data = torch.cat((input_batch, cond_out), dim=1)
+
+            # diffusion sampling
+            latents = torch.randn(
+                (batch_size, diff_data.target_profile_num + diff_data.target_scalar_num, 64),
+                device=device)
+            res = joint_model.res_model.edm_sampler(
+                latents, condition_input=condition_data,
+                sigma_min=sigma_min, sigma_max=sigma_max,
+                rho=rho, num_steps=num_steps)
+
+            denorm_res  = (res / 0.5) * (safe_std + 1e-8)
+            reshaped_res = joint_model.reverse_reshape_target(denorm_res)
+            reshaped_out = joint_model.reverse_reshape_target(output)
+
+            joint_pred = reshaped_out + reshaped_res
+            joint_pred[:, 300:] = torch.nn.functional.relu(joint_pred[:, 300:])
+
+            det_list.append(  (reshaped_out.cpu().numpy()  / out_scale_np))
+            joint_list.append((joint_pred.cpu().numpy()    / out_scale_np))
+            n_done += 1
+
+    det_preds_flat   = np.concatenate(det_list,   axis=0)   # (n*ncol, 308)
+    joint_preds_flat = np.concatenate(joint_list, axis=0)
+    return joint_preds_flat, det_preds_flat
+
+
 # --- Open h5 files and keep them open for lazy per-variable loading ---
 n_batches_to_load = args.n_batches
 
@@ -416,3 +611,85 @@ with h5py.File(preds_path, 'r') as preds_f, h5py.File(targets_path, 'r') as targ
                              out_dir=save_path)
 
 print('Done.', flush=True)
+
+# ---------------------------------------------------------------------------
+# Optional: diffusion model inference + same visualisations
+# ---------------------------------------------------------------------------
+if args.diff_config_path:
+    if not args.diff_input_npy or not args.diff_target_npy:
+        raise ValueError('--diff_input_npy and --diff_target_npy are required '
+                         'when --diff_config_path is provided.')
+
+    print('\n=== Diffusion model ===', flush=True)
+    print('Loading joint model...', flush=True)
+    joint_model, torch_input_diff, targets_flat_diff, n_time_diff, diff_data, out_scale_diff = \
+        load_joint_model(
+            config_path      = args.diff_config_path,
+            checkpoint_path  = args.diff_checkpoint_path,
+            input_npy_path   = args.diff_input_npy,
+            target_npy_path  = args.diff_target_npy,
+        )
+
+    print('Running inference...', flush=True)
+    joint_preds_flat, det_preds_flat = run_diffusion_inference(
+        joint_model, diff_data, torch_input_diff, out_scale_diff,
+        n_batches_limit = args.diff_n_batches,
+    )
+
+    # n_time may be truncated if --diff_n_batches was set
+    ncol_diff   = diff_data.num_latlon
+    n_time_used = joint_preds_flat.shape[0] // ncol_diff
+    n_rows_diff = n_time_used * ncol_diff
+
+    # Build seasonal masks using the same calendar logic
+    diff_start_doy = args.diff_start_doy if args.diff_start_doy is not None else START_DOY
+
+    def _diff_timestep_month(t):
+        doy = (diff_start_doy + t * TIMESTEP_MINUTES // (60 * 24)) % 365
+        for m in range(11, -1, -1):
+            if doy >= _MONTH_DOY_START[m]:
+                return m + 1
+        return 1
+
+    diff_months = np.array([_diff_timestep_month(t) for t in range(n_time_used)])
+    diff_season_masks = {
+        key: np.where(np.isin(diff_months, list(info['months'])))[0]
+        for key, info in SEASONS.items()
+    }
+
+    diff_save_path = os.path.join(save_path, 'diffusion')
+    os.makedirs(diff_save_path, exist_ok=True)
+
+    # numpy arrays support the same [:n_rows, sl] slicing as h5py datasets,
+    # so all existing plot functions work unchanged.
+    print('Plotting diffusion annual zonal means...', flush=True)
+    plot_all_residual_zonal_means(
+        joint_preds_flat, targets_flat_diff, n_rows_diff, n_time_used,
+        title = 'Zonal Mean Residuals — Joint Diffusion Model',
+        fname = 'residual_zonal_means_all.png',
+        show  = False, out_dir = diff_save_path,
+    )
+
+    print('Plotting diffusion seasonal zonal means...', flush=True)
+    for key, info in SEASONS.items():
+        mask = diff_season_masks[key]
+        if len(mask) == 0:
+            print(f'  No timesteps for {key}, skipping.', flush=True)
+            continue
+        print(f'  {info["label"]} ({len(mask)} timesteps)...', flush=True)
+        plot_all_residual_zonal_means(
+            joint_preds_flat, targets_flat_diff, n_rows_diff, n_time_used,
+            time_mask = mask,
+            title     = f'Zonal Mean Residuals — Joint Diffusion Model — {info["label"]}',
+            fname     = f'residual_zonal_means_{key.lower()}.png',
+            show      = False, out_dir = diff_save_path,
+        )
+
+    print('Plotting diffusion seasonal bias maps...', flush=True)
+    plot_seasonal_bias_maps(
+        joint_preds_flat, targets_flat_diff, n_rows_diff, n_time_used,
+        diff_season_masks, lat, lon,
+        out_dir = diff_save_path,
+    )
+
+print('All done.', flush=True)

@@ -826,7 +826,14 @@ if args.diff_config_path:
 
     diff_save_path = os.path.join(save_path, 'diffusion')
     os.makedirs(diff_save_path, exist_ok=True)
-
+    
+    print('Plotting seasonal comparison bias maps...', flush=True)
+    plot_seasonal_bias_maps_comparison(
+        det_preds_flat, targets_flat_diff, diff_preds_flat, n_rows_diff, n_time_used,
+        diff_season_masks, lat, lon,
+        out_dir = diff_save_path,
+    )
+    
     # --- Annual comparison: true vs predicted residual ---
     print('Plotting annual comparison zonal means...', flush=True)
     plot_comparison_zonal_means(
@@ -852,11 +859,6 @@ if args.diff_config_path:
             show      = False, out_dir = diff_save_path,
         )
 
-    print('Plotting seasonal comparison bias maps...', flush=True)
-    plot_seasonal_bias_maps_comparison(
-        det_preds_flat, targets_flat_diff, diff_preds_flat, n_rows_diff, n_time_used,
-        diff_season_masks, lat, lon,
-        out_dir = diff_save_path,
-    )
+   
 
 print('All done.', flush=True)

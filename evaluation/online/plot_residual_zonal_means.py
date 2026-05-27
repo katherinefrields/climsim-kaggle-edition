@@ -602,8 +602,11 @@ def load_joint_model(config_path, checkpoint_path, input_npy_path, target_npy_pa
     out_scale_np = out_scale[None, :]          # (1, n_output)
 
     # --- preprocess npy inputs (mirrors preprocessing_v2_rh_mc in notebook) ---
+    print(f'  np.load input  ({input_npy_path})...', flush=True)
     npy_input  = np.load(input_npy_path)
+    print(f'  np.load target ({target_npy_path})...', flush=True)
     npy_target = np.load(target_npy_path)
+    print(f'  Preprocessing input array (shape {npy_input.shape})...', flush=True)
 
     npy_input[:, 120:180] = 1 - np.exp(-npy_input[:, 120:180] * qn_lbd)
     npy_input = (npy_input - input_sub) / input_div
@@ -611,6 +614,7 @@ def load_joint_model(config_path, checkpoint_path, input_npy_path, target_npy_pa
     npy_input = np.where(np.isinf(npy_input), 0, npy_input)
     npy_input[:, 120:135]  = 0
     npy_input[:, 60:120]   = np.clip(npy_input[:, 60:120], 0, 1.2)
+    print('  Converting to torch tensor...', flush=True)
     torch_input = torch.tensor(npy_input).float()
 
     ncol_diff    = diff_data.num_latlon
@@ -619,15 +623,19 @@ def load_joint_model(config_path, checkpoint_path, input_npy_path, target_npy_pa
 
     # --- deterministic model ---
     base = os.path.join(cfg.save_path, cfg.expname)
+    print(f'  Loading deterministic model ({os.path.join(base, "unet_model.pt")})...', flush=True)
     det_model = torch.jit.load(os.path.join(base, 'unet_model.pt')).to(device)
     det_model.eval()
 
     # --- diffusion model ---
     if checkpoint_path:
+        print(f'  Loading diffusion model from checkpoint ({checkpoint_path})...', flush=True)
         diff_model = Module.from_checkpoint(checkpoint_path).to(device)
     else:
+        print(f'  Loading diffusion model ({os.path.join(base, "diff_model.pt")})...', flush=True)
         diff_model = torch.load(os.path.join(base, 'diff_model.pt')).to(device)
     diff_model.eval()
+    print('  Models loaded.', flush=True)
 
     # --- condition channel count (mirrors notebook logic exactly) ---
     loc   = cfg.diffusion_model.condition_location

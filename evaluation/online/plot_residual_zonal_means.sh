@@ -15,9 +15,9 @@
 module load conda
 conda activate myenv
 
-pip install cartopy omegaconf --quiet
-# nvidia-modulus provides `from modulus import Module` (same package used in training)
-pip install nvidia-modulus --quiet
+# Dependencies expected to be pre-installed in myenv:
+#   pip install cartopy omegaconf nvidia-modulus
+# Run those on the login node once; don't install at job time.
 
 
 N_BATCHES=${N_BATCHES:-26280}

@@ -15,7 +15,9 @@
 module load conda
 conda activate myenv
 
-pip install cartopy --quiet
+pip install cartopy omegaconf --quiet
+# nvidia-modulus provides `from modulus import Module` (same package used in training)
+pip install nvidia-modulus --quiet
 
 
 N_BATCHES=${N_BATCHES:-26280}

@@ -6,11 +6,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os, sys, string
 import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-import matplotlib.tri as mtri
+
+import matplotlib.ticker as ticker
 import torch
 from tqdm import tqdm
 from climsim_utils.data_utils import *
+
+from omegaconf import OmegaConf
+from modulus import Module
+from baseline_models.unet.training_default.joint_model import JointModel
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_batches',          type=int,   default=None)
@@ -38,8 +42,8 @@ input_max_v2_rh_mc_file  = 'input_max_v2_rh_mc_pervar.nc'
 input_min_v2_rh_mc_file  = 'input_min_v2_rh_mc_pervar.nc'
 output_scale_v2_rh_mc_file = 'output_scale_std_lowerthred_v2_rh_mc.nc'
 
-preds_path   = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_preds.h5'
-targets_path = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/train_targets.h5'
+preds_path   = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/val_preds.h5'
+targets_path = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/val_targets.h5'
 
 save_path = '/global/homes/k/kfrields/climsim-kaggle-edition/figures/offline/residual_zonal_means'
 
@@ -76,13 +80,40 @@ ncol         = grid_area.shape[0]
 
 # --- Variable settings ---
 # Each 3D output variable has 60 pressure levels; var_index is the first column in the flat output array.
-var_settings = {
-    'DTPHYS':  {'var_title': 'Heating Tendency',          'scaling': 1.,   'unit': 'K/s',      'var_index': 0,   'vmax': 5e-7,  'vmin': -5e-7},
-    'DQ1PHYS': {'var_title': 'RH Tendency',               'scaling': 1.,   'unit': '',         'var_index': 60,  'vmax': 1e-6,  'vmin': -1e-6},
-    'DQnPHYS': {'var_title': 'Liquid+Ice Cloud Tendency', 'scaling': 1e6,  'unit': 'mg/kg/s',  'var_index': 120, 'vmax': 1e-3,  'vmin': -1e-3},
-    'DUPHYS':  {'var_title': 'Zonal Wind Tendency',       'scaling': 1.,   'unit': 'm/s²',     'var_index': 180, 'vmax': 5e-7,  'vmin': -5e-7},
-    'DVPHYS':  {'var_title': 'Meridional Wind Tendency',  'scaling': 1.,   'unit': 'm/s²',     'var_index': 240, 'vmax': 5e-7,  'vmin': -5e-7},
-}
+vars_list = ['DTPHYS', 'DQ1PHYS', 'DQnPHYS', 'DUPHYS', 'DVPHYS']
+
+def get_var_settings(var):
+    if var == 'DTPHYS':
+        var_title = 'Heating Tendency'
+        unit      = 'K/s'
+        var_index = 0
+        vmin      = -5e-7
+        vmax      =  5e-7
+    elif var == 'DQ1PHYS':
+        var_title = 'RH Tendency'
+        unit      = ''
+        var_index = 60
+        vmin      = -1e-6
+        vmax      =  1e-6
+    elif var == 'DQnPHYS':
+        var_title = 'Liquid+Ice Cloud Tendency'
+        unit      = 'mg/kg/s'
+        var_index = 120
+        vmin      = -1e-3
+        vmax      =  1e-3
+    elif var == 'DUPHYS':
+        var_title = 'Zonal Wind Tendency'
+        unit      = 'm/s²'
+        var_index = 180
+        vmin      = -5e-7
+        vmax      =  5e-7
+    elif var == 'DVPHYS':
+        var_title = 'Meridional Wind Tendency'
+        unit      = 'm/s²'
+        var_index = 240
+        vmin      = -5e-7
+        vmax      =  5e-7
+    return var_title, unit, var_index, vmin, vmax
 
 n_levels = 60
 
@@ -130,10 +161,8 @@ def compute_zonal_stats(var, preds_ds, targets_ds, n_rows, n_time, time_mask=Non
     Allocates (n_t, ncol, 60) per array instead of (n_t, ncol, n_output_vars),
     so memory scales with one variable at a time regardless of dataset width.
     """
-    s   = var_settings[var]
-    sc  = s['scaling']
-    idx = s['var_index']
-    sl  = slice(idx, idx + n_levels)
+    var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+    sl = slice(var_index, var_index + n_levels)
 
     pred_var   = preds_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
     target_var = targets_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
@@ -144,18 +173,16 @@ def compute_zonal_stats(var, preds_ds, targets_ds, n_rows, n_time, time_mask=Non
 
     residual = target_var - pred_var
     del pred_var, target_var
-    bias_da = sc * zonal_mean_da(residual)
-    mae_da  = sc * zonal_mean_da(np.abs(residual))
+    bias_da = zonal_mean_da(residual)
+    mae_da  = zonal_mean_da(np.abs(residual))
     del residual
     return bias_da, mae_da
 
 
 def compute_diurnal_stats(var, preds_ds, targets_ds, n_rows, n_time):
     """Return (bias, mae) of shape (24, n_levels): area-weighted global mean per hour of day."""
-    s   = var_settings[var]
-    sc  = s['scaling']
-    idx = s['var_index']
-    sl  = slice(idx, idx + n_levels)
+    var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+    sl = slice(var_index, var_index + n_levels)
 
     pred_var   = preds_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
     target_var = targets_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
@@ -174,14 +201,15 @@ def compute_diurnal_stats(var, preds_ds, targets_ds, n_rows, n_time):
     mae_d  = np.stack([ares_gm[hour_of_day == h].mean(axis=0) for h in range(24)])
     del res_gm, ares_gm
 
-    return sc * bias_d, sc * mae_d
+    return bias_d, mae_d
 
 
 def compute_column_mean_residual(var, preds_ds, targets_ds, n_rows, n_time, time_mask=None):
-    """Vertical mean of residual (target - pred) → (n_t, ncol)."""
-    s   = var_settings[var]
-    idx = s['var_index']
-    sl  = slice(idx, idx + n_levels)
+    """Vertical mean of residual (target - pred) → (n_t, ncol).
+        n_rows is batch size * number of batches
+    """
+    var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+    sl = slice(var_index, var_index + n_levels)
 
     pred_var   = preds_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
     target_var = targets_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
@@ -190,27 +218,27 @@ def compute_column_mean_residual(var, preds_ds, targets_ds, n_rows, n_time, time
         target_var = target_var[time_mask]
     residual = (target_var - pred_var).mean(axis=2)
     del pred_var, target_var
-    return s['scaling'] * residual
+    return residual
 
 
 def compute_zonal_mean_direct(var, arr_flat, n_rows, n_time, time_mask=None):
     """Zonal mean of arr_flat directly (no target subtraction) → xr.DataArray (lev, lat)."""
-    s  = var_settings[var]
-    sl = slice(s['var_index'], s['var_index'] + n_levels)
+    var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+    sl = slice(var_index, var_index + n_levels)
     data = arr_flat[:n_rows, sl].reshape(n_time, ncol, n_levels)
     if time_mask is not None:
         data = data[time_mask]
-    return s['scaling'] * zonal_mean_da(data)
+    return zonal_mean_da(data)
 
 
 def compute_column_mean_direct(var, arr_flat, n_rows, n_time, time_mask=None):
     """Vertical mean of arr_flat directly (no target subtraction) → (n_t, ncol)."""
-    s  = var_settings[var]
-    sl = slice(s['var_index'], s['var_index'] + n_levels)
+    var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+    sl = slice(var_index, var_index + n_levels)
     data = arr_flat[:n_rows, sl].reshape(n_time, ncol, n_levels)
     if time_mask is not None:
         data = data[time_mask]
-    return s['scaling'] * data.mean(axis=2)
+    return data.mean(axis=2)
 
 
 def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
@@ -223,14 +251,13 @@ def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
     Col 3 True MAE       : zonal mean of |target − det_pred|
     Cols 1 & 2 share a symmetric colorscale; col 3 uses viridis.
     """
-    vars_list = list(var_settings.keys())
-    n_vars    = len(vars_list)
-    labels    = [f'({l})' for l in string.ascii_lowercase[:n_vars * 3]]
+    n_vars = len(vars_list)
+    labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 3]]
 
     fig, axs = plt.subplots(n_vars, 3, figsize=(15, 2.8 * n_vars), constrained_layout=True)
 
     for row, var in enumerate(vars_list):
-        s = var_settings[var]
+        var_title, unit, var_index, vmin, vmax = get_var_settings(var)
 
         true_da, mae_da = compute_zonal_stats(var, det_preds, targets, n_rows, n_time, time_mask)
         diff_da          = compute_zonal_mean_direct(var, diff_preds, n_rows, n_time, time_mask)
@@ -244,11 +271,11 @@ def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
             (diff_da, 'Diff Predicted Residual',       'RdBu_r',  -bias_max, bias_max),
             (mae_da,  'True MAE (Det)',                 'viridis',  0,        mae_max),
         ]
-        for col, (da, col_title, cmap, vmin, vmax) in enumerate(cols):
+        for col, (da, col_title, cmap, c_vmin, c_vmax) in enumerate(cols):
             ax = axs[row, col]
-            im = da.plot(ax=ax, add_colorbar=False, cmap=cmap, vmin=vmin, vmax=vmax)
-            fig.colorbar(im, ax=ax, label=s['unit'], pad=0.02)
-            ax.set_title(f"{labels[row*3+col]} {s['var_title']} — {col_title}", fontsize=8)
+            im = da.plot(ax=ax, add_colorbar=False, cmap=cmap, vmin=c_vmin, vmax=c_vmax)
+            fig.colorbar(im, ax=ax, label=unit, pad=0.02)
+            ax.set_title(f"{labels[row*3+col]} {var_title} — {col_title}", fontsize=8)
             ax.invert_yaxis()
             ax.set_xlabel('Latitude', fontsize=7)
             ax.set_ylabel('Hybrid pressure (hPa)' if col == 0 else '', fontsize=7)
@@ -277,11 +304,8 @@ def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n
     Col 3 True MAE       : column-mean of |target − det_pred|
     Cols 1 & 2 share a symmetric colorscale; col 3 uses viridis.
     """
-    vars_list    = list(var_settings.keys())
     n_vars       = len(vars_list)
     panel_labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 3]]
-
-    tri = _make_triangulation(lon, lat)
 
     # Shared bias colorscale for cols 1 & 2 across all seasons; MAE scale separate
     print('  Computing shared color limits...', flush=True)
@@ -289,20 +313,21 @@ def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n
     var_mae_max  = {}
     for var in vars_list:
         bias_vals, mae_vals = [], []
-        s  = var_settings[var]
-        sl = slice(s['var_index'], s['var_index'] + n_levels)
+        var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+        sl = slice(var_index, var_index + n_levels)
         for mask in season_masks.values():
             if len(mask) == 0:
                 continue
             true_res = compute_column_mean_residual(var, det_preds, targets,
                                                     n_rows, n_time, mask).mean(axis=0)
             diff_res = compute_column_mean_direct(var, diff_preds, n_rows, n_time, mask).mean(axis=0)
-            # MAE = |target - det_pred| column mean
             pred_v   = det_preds[:n_rows, sl].reshape(n_time, ncol, n_levels)
             targ_v   = targets  [:n_rows, sl].reshape(n_time, ncol, n_levels)
-            mae_res  = (s['scaling'] * np.abs(targ_v[mask] - pred_v[mask]).mean(axis=2)).mean(axis=0)
+            mae_res  = np.abs(targ_v[mask] - pred_v[mask]).mean(axis=2).mean(axis=0)
             bias_vals += [true_res, diff_res]
             mae_vals.append(mae_res)
+            
+        #calculate the 99th percentile of the absolute values of the biases and mae for color scaling
         var_bias_max[var] = float(np.nanpercentile(np.abs(np.concatenate(bias_vals)), 99))
         var_mae_max[var]  = float(np.nanpercentile(np.concatenate(mae_vals), 99))
 
@@ -321,8 +346,8 @@ def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n
             axs = axs[np.newaxis, :]
 
         for row, var in enumerate(vars_list):
-            s        = var_settings[var]
-            sl       = slice(s['var_index'], s['var_index'] + n_levels)
+            var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+            sl       = slice(var_index, var_index + n_levels)
             bias_max = var_bias_max[var]
             mae_max  = var_mae_max[var]
 
@@ -331,23 +356,26 @@ def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n
             diff_res = compute_column_mean_direct(var, diff_preds, n_rows, n_time, mask).mean(axis=0)
             pred_v   = det_preds[:n_rows, sl].reshape(n_time, ncol, n_levels)
             targ_v   = targets  [:n_rows, sl].reshape(n_time, ncol, n_levels)
-            mae_res  = (s['scaling'] * np.abs(targ_v[mask] - pred_v[mask]).mean(axis=2)).mean(axis=0)
+            mae_res  = np.abs(targ_v[mask] - pred_v[mask]).mean(axis=2).mean(axis=0)
 
             cols = [
                 (true_res, 'True Residual (Target − Det)', 'RdBu_r',  -bias_max, bias_max),
                 (diff_res, 'Diff Predicted Residual',       'RdBu_r',  -bias_max, bias_max),
                 (mae_res,  'True MAE (Det)',                 'viridis',  0,        mae_max),
             ]
-            for col, (data, col_title, cmap, vmin, vmax) in enumerate(cols):
+            for col, (data, col_title, cmap, c_vmin, c_vmax) in enumerate(cols):
                 ax = axs[row, col]
-                ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
+                levels_c = np.linspace(c_vmin, c_vmax, 20)
+                tc = ax.tricontourf(lon, lat, data, transform=ccrs.PlateCarree(),
+                                    cmap=cmap, levels=levels_c, extend='both',
+                                    vmin=c_vmin, vmax=c_vmax)
+                ax.coastlines(linewidth=0.5, color='black')
                 ax.set_global()
-                tc = ax.tripcolor(tri, data, cmap=cmap, vmin=vmin, vmax=vmax,
-                                   transform=ccrs.PlateCarree(), rasterized=True)
-                fig.colorbar(tc, ax=ax, orientation='horizontal',
-                              pad=0.04, shrink=0.7, label=s['unit'])
-                ax.set_title(f"{panel_labels[row*3+col]} {s['var_title']} — {col_title}",
-                              fontsize=9)
+                ax.gridlines(draw_labels=True, linewidth=0.5, color='gray', alpha=0.5, linestyle='--')
+                ax.set_title(f"{panel_labels[row*3+col]} {var_title} — {col_title}", fontsize=9)
+                cbar = fig.colorbar(tc, ax=ax, orientation='horizontal', pad=0.05, shrink=0.8)
+                cbar.set_label(unit, fontsize=9)
+                cbar.locator = ticker.MaxNLocator(nbins=4)
 
         fig.suptitle(f'True vs Predicted Residual — {info["label"]}', fontsize=11)
         if out_dir:
@@ -358,24 +386,11 @@ def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n
         plt.close()
 
 
-def _make_triangulation(lon, lat):
-    """Delaunay triangulation with antimeridian-spanning triangles masked out."""
-    tri = mtri.Triangulation(lon, lat)
-    # mask triangles whose vertices straddle the antimeridian (lon gap > 180°)
-    lons = lon[tri.triangles]
-    mask = (lons.max(axis=1) - lons.min(axis=1)) > 180
-    tri.set_mask(mask)
-    return tri
-
-
 def plot_seasonal_bias_maps(preds_ds, targets_ds, n_rows, n_time, season_masks, lat, lon,
                              out_dir=None):
     """One figure per season; rows = variables, map = tiled column-mean bias."""
-    vars_list    = list(var_settings.keys())
     n_vars       = len(vars_list)
     panel_labels = [f'({l})' for l in string.ascii_lowercase[:n_vars]]
-
-    tri = _make_triangulation(lon, lat)
 
     # Compute shared color limits per variable across all seasons
     print('  Computing shared color limits across seasons...', flush=True)
@@ -406,22 +421,24 @@ def plot_seasonal_bias_maps(preds_ds, targets_ds, n_rows, n_time, season_masks, 
             axs = [axs]
 
         for row, var in enumerate(vars_list):
-            s         = var_settings[var]
+            var_title, unit, var_index, vmin, vmax = get_var_settings(var)
             col_bias  = compute_column_mean_residual(var, preds_ds, targets_ds,
                                                      n_rows, n_time, time_mask=mask)
             mean_bias = col_bias.mean(axis=0)  # (ncol,)
             abs_max   = var_abs_max[var]
 
             ax = axs[row]
-            ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
+            levels_c = np.linspace(-abs_max, abs_max, 20)
+            tc = ax.tricontourf(lon, lat, mean_bias, transform=ccrs.PlateCarree(),
+                                cmap='RdBu_r', levels=levels_c, extend='both',
+                                vmin=-abs_max, vmax=abs_max)
+            ax.coastlines(linewidth=0.5, color='black')
             ax.set_global()
-            tc = ax.tripcolor(tri, mean_bias,
-                              cmap='RdBu_r', vmin=-abs_max, vmax=abs_max,
-                              transform=ccrs.PlateCarree(), rasterized=True)
-            fig.colorbar(tc, ax=ax, orientation='horizontal', pad=0.04,
-                         shrink=0.7, label=s['unit'])
-            ax.set_title(f"{panel_labels[row]} {s['var_title']} — Mean Bias (Target − Pred)",
-                         fontsize=9)
+            ax.gridlines(draw_labels=True, linewidth=0.5, color='gray', alpha=0.5, linestyle='--')
+            ax.set_title(f"{panel_labels[row]} {var_title} — Mean Bias (Target − Pred)", fontsize=9)
+            cbar = fig.colorbar(tc, ax=ax, orientation='horizontal', pad=0.05, shrink=0.8)
+            cbar.set_label(unit, fontsize=9)
+            cbar.locator = ticker.MaxNLocator(nbins=4)
 
         fig.suptitle(f'Seasonal Mean Column Bias — {info["label"]}', fontsize=11)
 
@@ -437,15 +454,14 @@ def plot_diurnal_cycle(preds_ds, targets_ds, n_rows, n_time,
                         title='Diurnal Cycle of Residuals',
                         fname='residual_diurnal_cycle.png', show=True, out_dir=None):
     """Rows=variables, cols=(bias, MAE). x=hour of day (UTC), y=pressure level."""
-    vars_list = list(var_settings.keys())
-    n_vars    = len(vars_list)
-    hours     = np.arange(24)
-    labels    = [f'({l})' for l in string.ascii_lowercase[:n_vars * 2]]
+    n_vars = len(vars_list)
+    hours  = np.arange(24)
+    labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 2]]
 
     fig, axs = plt.subplots(n_vars, 2, figsize=(9, 2.8 * n_vars), constrained_layout=True)
 
     for row, var in enumerate(vars_list):
-        s = var_settings[var]
+        var_title, unit, *_ = get_var_settings(var)
         bias_d, mae_d = compute_diurnal_stats(var, preds_ds, targets_ds, n_rows, n_time)
 
         bias_abs_max = float(np.nanmax(np.abs(bias_d)))
@@ -458,8 +474,8 @@ def plot_diurnal_cycle(preds_ds, targets_ds, n_rows, n_time,
         ax0 = axs[row, 0]
         im0 = bias_da.plot(ax=ax0, add_colorbar=False, cmap='RdBu_r',
                            vmin=-bias_abs_max, vmax=bias_abs_max)
-        fig.colorbar(im0, ax=ax0, label=s['unit'], pad=0.02)
-        ax0.set_title(f"{labels[row*2]} {s['var_title']} — Mean Bias (Target − Pred)", fontsize=8)
+        fig.colorbar(im0, ax=ax0, label=unit, pad=0.02)
+        ax0.set_title(f"{labels[row*2]} {var_title} — Mean Bias (Target − Pred)", fontsize=8)
         ax0.invert_yaxis()
         ax0.set_xlabel('Hour of Day (UTC)', fontsize=7)
         ax0.set_ylabel('Hybrid pressure (hPa)', fontsize=7)
@@ -468,8 +484,8 @@ def plot_diurnal_cycle(preds_ds, targets_ds, n_rows, n_time,
 
         ax1 = axs[row, 1]
         im1 = mae_da.plot(ax=ax1, add_colorbar=False, cmap='viridis')
-        fig.colorbar(im1, ax=ax1, label=s['unit'], pad=0.02)
-        ax1.set_title(f"{labels[row*2+1]} {s['var_title']} — MAE", fontsize=8)
+        fig.colorbar(im1, ax=ax1, label=unit, pad=0.02)
+        ax1.set_title(f"{labels[row*2+1]} {var_title} — MAE", fontsize=8)
         ax1.invert_yaxis()
         ax1.set_xlabel('Hour of Day (UTC)', fontsize=7)
         ax1.set_ylabel('', fontsize=7)
@@ -493,15 +509,14 @@ def plot_all_residual_zonal_means(preds_ds, targets_ds, n_rows, n_time, time_mas
                                    title='Zonal Mean Residuals',
                                    fname='residual_zonal_means_all.png', show=True, out_dir=None):
     """Single figure with all variables; rows=variables, cols=(bias, MAE)."""
-    vars_list = list(var_settings.keys())
-    n_vars    = len(vars_list)
-    labels    = [f'({l})' for l in string.ascii_lowercase[:n_vars * 2]]
+    n_vars = len(vars_list)
+    labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 2]]
 
     fig, axs = plt.subplots(n_vars, 2, figsize=(9, 2.8 * n_vars),
                             constrained_layout=True)
 
     for row, var in enumerate(vars_list):
-        s = var_settings[var]
+        var_title, unit, *_ = get_var_settings(var)
         bias_da, mae_da = compute_zonal_stats(var, preds_ds, targets_ds, n_rows, n_time,
                                               time_mask=time_mask)
 
@@ -511,8 +526,8 @@ def plot_all_residual_zonal_means(preds_ds, targets_ds, n_rows, n_time, time_mas
         ax0 = axs[row, 0]
         im0 = bias_da.plot(ax=ax0, add_colorbar=False, cmap='RdBu_r',
                            vmin=-bias_abs_max, vmax=bias_abs_max)
-        fig.colorbar(im0, ax=ax0, label=f"{s['unit']}", pad=0.02)
-        ax0.set_title(f"{labels[row*2]} {s['var_title']} — Mean Bias (Target − Pred)", fontsize=8)
+        fig.colorbar(im0, ax=ax0, label=unit, pad=0.02)
+        ax0.set_title(f"{labels[row*2]} {var_title} — Mean Bias (Target − Pred)", fontsize=8)
         ax0.invert_yaxis()
         ax0.set_xlabel('Latitude', fontsize=7)
         ax0.set_ylabel('Hybrid pressure (hPa)', fontsize=7)
@@ -523,8 +538,8 @@ def plot_all_residual_zonal_means(preds_ds, targets_ds, n_rows, n_time, time_mas
         # MAE
         ax1 = axs[row, 1]
         im1 = mae_da.plot(ax=ax1, add_colorbar=False, cmap='viridis')
-        fig.colorbar(im1, ax=ax1, label=f"{s['unit']}", pad=0.02)
-        ax1.set_title(f"{labels[row*2+1]} {s['var_title']} — MAE", fontsize=8)
+        fig.colorbar(im1, ax=ax1, label=unit, pad=0.02)
+        ax1.set_title(f"{labels[row*2+1]} {var_title} — MAE", fontsize=8)
         ax1.invert_yaxis()
         ax1.set_xlabel('Latitude', fontsize=7)
         ax1.set_ylabel('', fontsize=7)
@@ -566,9 +581,7 @@ def load_joint_model(config_path, checkpoint_path, input_npy_path, target_npy_pa
     if project_root not in sys.path:
         sys.path.insert(0, project_root)
 
-    from omegaconf import OmegaConf
-    from modulus import Module
-    from baseline_models.unet.training_default.joint_model import JointModel
+    
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -821,7 +834,7 @@ n_batches_to_load = args.n_batches
 
 print('Opening h5 files...', flush=True)
 with h5py.File(preds_path, 'r') as preds_f, h5py.File(targets_path, 'r') as targets_f:
-    preds_ds   = preds_f['data']
+    preds_ds   = preds_f['data'] #shape (time*batches, features)
     targets_ds = targets_f['data']
 
     n_output_vars = preds_ds.shape[1]

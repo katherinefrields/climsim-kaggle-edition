@@ -193,6 +193,144 @@ def compute_column_mean_residual(var, preds_ds, targets_ds, n_rows, n_time, time
     return s['scaling'] * residual
 
 
+def compute_zonal_mean_direct(var, arr_flat, n_rows, n_time, time_mask=None):
+    """Zonal mean of arr_flat directly (no target subtraction) → xr.DataArray (lev, lat)."""
+    s  = var_settings[var]
+    sl = slice(s['var_index'], s['var_index'] + n_levels)
+    data = arr_flat[:n_rows, sl].reshape(n_time, ncol, n_levels)
+    if time_mask is not None:
+        data = data[time_mask]
+    return s['scaling'] * zonal_mean_da(data)
+
+
+def compute_column_mean_direct(var, arr_flat, n_rows, n_time, time_mask=None):
+    """Vertical mean of arr_flat directly (no target subtraction) → (n_t, ncol)."""
+    s  = var_settings[var]
+    sl = slice(s['var_index'], s['var_index'] + n_levels)
+    data = arr_flat[:n_rows, sl].reshape(n_time, ncol, n_levels)
+    if time_mask is not None:
+        data = data[time_mask]
+    return s['scaling'] * data.mean(axis=2)
+
+
+def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
+                                 time_mask=None, title='True vs Predicted Residual',
+                                 fname='comparison_zonal_means.png', show=True, out_dir=None):
+    """Rows = variables, cols = (true residual, diff predicted residual) — shared colorscale."""
+    vars_list = list(var_settings.keys())
+    n_vars    = len(vars_list)
+    labels    = [f'({l})' for l in string.ascii_lowercase[:n_vars * 2]]
+
+    fig, axs = plt.subplots(n_vars, 2, figsize=(11, 2.8 * n_vars), constrained_layout=True)
+
+    for row, var in enumerate(vars_list):
+        s = var_settings[var]
+
+        true_da, _ = compute_zonal_stats(var, det_preds, targets, n_rows, n_time, time_mask)
+        diff_da     = compute_zonal_mean_direct(var, diff_preds, n_rows, n_time, time_mask)
+
+        abs_max = max(float(np.nanmax(np.abs(true_da.values))),
+                      float(np.nanmax(np.abs(diff_da.values))))
+
+        for col, (da, col_title) in enumerate([
+            (true_da, 'True Residual (Target − Det)'),
+            (diff_da, 'Diff Predicted Residual'),
+        ]):
+            ax = axs[row, col]
+            im = da.plot(ax=ax, add_colorbar=False, cmap='RdBu_r',
+                         vmin=-abs_max, vmax=abs_max)
+            fig.colorbar(im, ax=ax, label=s['unit'], pad=0.02)
+            ax.set_title(f"{labels[row*2+col]} {s['var_title']} — {col_title}", fontsize=8)
+            ax.invert_yaxis()
+            ax.set_xlabel('Latitude', fontsize=7)
+            ax.set_ylabel('Hybrid pressure (hPa)' if col == 0 else '', fontsize=7)
+            ax.set_xticks(latitude_ticks)
+            ax.set_xticklabels(latitude_labels, fontsize=7)
+            ax.tick_params(axis='y', labelsize=7)
+
+    fig.suptitle(title, fontsize=11)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+        fpath = os.path.join(out_dir, fname)
+        plt.savefig(fpath, dpi=200, bbox_inches='tight')
+        print(f'Saved: {fpath}', flush=True)
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n_time,
+                                        season_masks, lat, lon, out_dir=None):
+    """One figure per season; rows = variables, cols = (true residual, diff predicted) maps."""
+    vars_list    = list(var_settings.keys())
+    n_vars       = len(vars_list)
+    panel_labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 2]]
+
+    tri = _make_triangulation(lon, lat)
+
+    # Shared colorscale per variable across all seasons AND both columns
+    print('  Computing shared color limits...', flush=True)
+    var_abs_max = {}
+    for var in vars_list:
+        all_vals = []
+        for mask in season_masks.values():
+            if len(mask) == 0:
+                continue
+            true_res = compute_column_mean_residual(var, det_preds, targets,
+                                                    n_rows, n_time, mask)
+            diff_res = compute_column_mean_direct(var, diff_preds, n_rows, n_time, mask)
+            all_vals.append(true_res.mean(axis=0))
+            all_vals.append(diff_res.mean(axis=0))
+        var_abs_max[var] = float(np.nanpercentile(np.abs(np.concatenate(all_vals)), 99))
+
+    for key, info in SEASONS.items():
+        mask = season_masks[key]
+        if len(mask) == 0:
+            continue
+
+        fig, axs = plt.subplots(
+            n_vars, 2,
+            figsize=(18, 3.5 * n_vars),
+            subplot_kw={'projection': ccrs.Robinson()},
+            constrained_layout=True,
+        )
+        if n_vars == 1:
+            axs = axs[np.newaxis, :]
+
+        for row, var in enumerate(vars_list):
+            s       = var_settings[var]
+            abs_max = var_abs_max[var]
+
+            true_res = compute_column_mean_residual(var, det_preds, targets,
+                                                    n_rows, n_time, mask).mean(axis=0)
+            diff_res = compute_column_mean_direct(var, diff_preds,
+                                                  n_rows, n_time, mask).mean(axis=0)
+
+            for col, (data, col_title) in enumerate([
+                (true_res, 'True Residual (Target − Det)'),
+                (diff_res, 'Diff Predicted Residual'),
+            ]):
+                ax = axs[row, col]
+                ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
+                ax.set_global()
+                tc = ax.tripcolor(tri, data, cmap='RdBu_r',
+                                   vmin=-abs_max, vmax=abs_max,
+                                   transform=ccrs.PlateCarree(), rasterized=True)
+                fig.colorbar(tc, ax=ax, orientation='horizontal',
+                              pad=0.04, shrink=0.7, label=s['unit'])
+                ax.set_title(f"{panel_labels[row*2+col]} {s['var_title']} — {col_title}",
+                              fontsize=9)
+
+        fig.suptitle(f'True vs Predicted Residual — {info["label"]}', fontsize=11)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+            fpath = os.path.join(out_dir, f'comparison_bias_map_{key.lower()}.png')
+            plt.savefig(fpath, dpi=150, bbox_inches='tight')
+            print(f'Saved: {fpath}', flush=True)
+        plt.close()
+
+
 def _make_triangulation(lon, lat):
     """Delaunay triangulation with antimeridian-spanning triangles masked out."""
     tri = mtri.Triangulation(lon, lat)
@@ -507,7 +645,7 @@ def run_diffusion_inference(joint_model, diff_data, torch_input, out_scale_np,
     batch_size = diff_data.num_latlon
     joint_model.eval()
 
-    det_list, joint_list = [], []
+    det_list, joint_list, diff_list = [], [], []
     n_done = 0
 
     with torch.no_grad():
@@ -552,11 +690,13 @@ def run_diffusion_inference(joint_model, diff_data, torch_input, out_scale_np,
 
             det_list.append(  (reshaped_out.cpu().numpy()  / out_scale_np))
             joint_list.append((joint_pred.cpu().numpy()    / out_scale_np))
+            diff_list.append( (reshaped_res.cpu().numpy()  / out_scale_np))
             n_done += 1
 
     det_preds_flat   = np.concatenate(det_list,   axis=0)   # (n*ncol, 308)
     joint_preds_flat = np.concatenate(joint_list, axis=0)
-    return joint_preds_flat, det_preds_flat
+    diff_preds_flat  = np.concatenate(diff_list,  axis=0)   # raw diffusion residual
+    return joint_preds_flat, det_preds_flat, diff_preds_flat
 
 
 # --- Open h5 files and keep them open for lazy per-variable loading ---
@@ -631,7 +771,7 @@ if args.diff_config_path:
         )
 
     print('Running inference...', flush=True)
-    joint_preds_flat, det_preds_flat = run_diffusion_inference(
+    joint_preds_flat, det_preds_flat, diff_preds_flat = run_diffusion_inference(
         joint_model, diff_data, torch_input_diff, out_scale_diff,
         n_batches_limit = args.diff_n_batches,
     )
@@ -660,34 +800,34 @@ if args.diff_config_path:
     diff_save_path = os.path.join(save_path, 'diffusion')
     os.makedirs(diff_save_path, exist_ok=True)
 
-    # numpy arrays support the same [:n_rows, sl] slicing as h5py datasets,
-    # so all existing plot functions work unchanged.
-    print('Plotting diffusion annual zonal means...', flush=True)
-    plot_all_residual_zonal_means(
-        joint_preds_flat, targets_flat_diff, n_rows_diff, n_time_used,
-        title = 'Zonal Mean Residuals — Joint Diffusion Model',
-        fname = 'residual_zonal_means_all.png',
-        show  = False, out_dir = diff_save_path,
+    # --- Annual comparison: true vs predicted residual ---
+    print('Plotting annual comparison zonal means...', flush=True)
+    plot_comparison_zonal_means(
+        det_preds_flat, targets_flat_diff, diff_preds_flat, n_rows_diff, n_time_used,
+        title   = 'True vs Predicted Residual — Annual',
+        fname   = 'comparison_zonal_means_annual.png',
+        show    = False, out_dir = diff_save_path,
     )
 
-    print('Plotting diffusion seasonal zonal means...', flush=True)
+    # --- Seasonal comparisons ---
+    print('Plotting seasonal comparison zonal means...', flush=True)
     for key, info in SEASONS.items():
         mask = diff_season_masks[key]
         if len(mask) == 0:
             print(f'  No timesteps for {key}, skipping.', flush=True)
             continue
         print(f'  {info["label"]} ({len(mask)} timesteps)...', flush=True)
-        plot_all_residual_zonal_means(
-            joint_preds_flat, targets_flat_diff, n_rows_diff, n_time_used,
+        plot_comparison_zonal_means(
+            det_preds_flat, targets_flat_diff, diff_preds_flat, n_rows_diff, n_time_used,
             time_mask = mask,
-            title     = f'Zonal Mean Residuals — Joint Diffusion Model — {info["label"]}',
-            fname     = f'residual_zonal_means_{key.lower()}.png',
+            title     = f'True vs Predicted Residual — {info["label"]}',
+            fname     = f'comparison_zonal_means_{key.lower()}.png',
             show      = False, out_dir = diff_save_path,
         )
 
-    print('Plotting diffusion seasonal bias maps...', flush=True)
-    plot_seasonal_bias_maps(
-        joint_preds_flat, targets_flat_diff, n_rows_diff, n_time_used,
+    print('Plotting seasonal comparison bias maps...', flush=True)
+    plot_seasonal_bias_maps_comparison(
+        det_preds_flat, targets_flat_diff, diff_preds_flat, n_rows_diff, n_time_used,
         diff_season_masks, lat, lon,
         out_dir = diff_save_path,
     )

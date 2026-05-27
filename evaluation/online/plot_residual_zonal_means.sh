@@ -29,7 +29,7 @@ DIFF_CONFIG_PATH=${DIFF_CONFIG_PATH:-"${DIFF_BASE}/saved_config.yaml"}
 DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-""}
 DIFF_INPUT_NPY=${DIFF_INPUT_NPY:-"/pscratch/sd/j/jerrylin/hugging/E3SM-MMF_ne4/preprocessing/v2_rh_mc/val_set/val_input.npy"}
 DIFF_TARGET_NPY=${DIFF_TARGET_NPY:-"/pscratch/sd/j/jerrylin/hugging/E3SM-MMF_ne4/preprocessing/v2_rh_mc/val_set/val_target.npy"}
-DIFF_N_BATCHES=${DIFF_N_BATCHES:-1000}
+DIFF_N_BATCHES=${DIFF_N_BATCHES:-100}
 DIFF_START_DOY=${DIFF_START_DOY:-""}
 
 echo "Files in precomputed_preds dir:"

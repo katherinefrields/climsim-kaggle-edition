@@ -244,44 +244,58 @@ def compute_column_mean_direct(var, arr_flat, n_rows, n_time, time_mask=None):
 def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
                                  time_mask=None, title='True vs Predicted Residual',
                                  fname='comparison_zonal_means.png', show=True, out_dir=None):
-    """Rows = variables, 3 cols = (true residual bias | diff predicted residual | det MAE).
+    """Rows = variables, 3 cols = Robinson maps of (true residual | diff predicted | true MAE)."""
+    n_vars       = len(vars_list)
+    panel_labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 3]]
 
-    Col 1 True residual  : zonal mean of (target − det_pred)
-    Col 2 Diff predicted : zonal mean of diff_pred directly
-    Col 3 True MAE       : zonal mean of |target − det_pred|
-    Cols 1 & 2 share a symmetric colorscale; col 3 uses viridis.
-    """
-    n_vars = len(vars_list)
-    labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 3]]
-
-    fig, axs = plt.subplots(n_vars, 3, figsize=(15, 2.8 * n_vars), constrained_layout=True)
+    fig, axs = plt.subplots(
+        n_vars, 3,
+        figsize=(24, 3.5 * n_vars),
+        subplot_kw={'projection': ccrs.Robinson()},
+        constrained_layout=True,
+    )
+    if n_vars == 1:
+        axs = axs[np.newaxis, :]
 
     for row, var in enumerate(vars_list):
-        var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+        var_title, unit, var_index, _, _ = get_var_settings(var)
+        sl = slice(var_index, var_index + n_levels)
 
-        true_da, mae_da = compute_zonal_stats(var, det_preds, targets, n_rows, n_time, time_mask)
-        diff_da          = compute_zonal_mean_direct(var, diff_preds, n_rows, n_time, time_mask)
+        pred_var = det_preds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+        targ_var = targets  [:n_rows, sl].reshape(n_time, ncol, n_levels)
+        diff_var = diff_preds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+        if time_mask is not None:
+            pred_var = pred_var[time_mask]
+            targ_var = targ_var[time_mask]
+            diff_var = diff_var[time_mask]
 
-        bias_max = max(float(np.nanmax(np.abs(true_da.values))),
-                       float(np.nanmax(np.abs(diff_da.values))))
-        mae_max  = float(np.nanmax(mae_da.values))
+        residual = targ_var - pred_var
+        true_map = residual.mean(axis=2).mean(axis=0)
+        diff_map = diff_var.mean(axis=2).mean(axis=0)
+        mae_map  = np.abs(residual).mean(axis=2).mean(axis=0)
+        del pred_var, targ_var, diff_var, residual
+
+        bias_max = float(np.nanpercentile(np.abs(np.concatenate([true_map, diff_map])), 99))
+        mae_max  = float(np.nanpercentile(mae_map, 99))
 
         cols = [
-            (true_da, 'True Residual (Target − Det)', 'RdBu_r',  -bias_max, bias_max),
-            (diff_da, 'Diff Predicted Residual',       'RdBu_r',  -bias_max, bias_max),
-            (mae_da,  'True MAE (Det)',                 'viridis',  0,        mae_max),
+            (true_map, 'True Residual (Target − Det)', 'RdBu_r',  -bias_max, bias_max),
+            (diff_map, 'Diff Predicted Residual',       'RdBu_r',  -bias_max, bias_max),
+            (mae_map,  'True MAE (Det)',                 'viridis',  0,        mae_max),
         ]
-        for col, (da, col_title, cmap, c_vmin, c_vmax) in enumerate(cols):
+        for col, (data, col_title, cmap, c_vmin, c_vmax) in enumerate(cols):
             ax = axs[row, col]
-            im = da.plot(ax=ax, add_colorbar=False, cmap=cmap, vmin=c_vmin, vmax=c_vmax)
-            fig.colorbar(im, ax=ax, label=unit, pad=0.02)
-            ax.set_title(f"{labels[row*3+col]} {var_title} — {col_title}", fontsize=8)
-            ax.invert_yaxis()
-            ax.set_xlabel('Latitude', fontsize=7)
-            ax.set_ylabel('Hybrid pressure (hPa)' if col == 0 else '', fontsize=7)
-            ax.set_xticks(latitude_ticks)
-            ax.set_xticklabels(latitude_labels, fontsize=7)
-            ax.tick_params(axis='y', labelsize=7)
+            levels_c = np.linspace(c_vmin, c_vmax, 20)
+            tc = ax.tricontourf(lon, lat, data, transform=ccrs.PlateCarree(),
+                                cmap=cmap, levels=levels_c, extend='both',
+                                vmin=c_vmin, vmax=c_vmax)
+            ax.coastlines(linewidth=0.5, color='black')
+            ax.set_global()
+            ax.gridlines(draw_labels=True, linewidth=0.5, color='gray', alpha=0.5, linestyle='--')
+            ax.set_title(f"{panel_labels[row*3+col]} {var_title} — {col_title}", fontsize=9)
+            cbar = fig.colorbar(tc, ax=ax, orientation='horizontal', pad=0.05, shrink=0.8)
+            cbar.set_label(unit, fontsize=9)
+            cbar.locator = ticker.MaxNLocator(nbins=4)
 
     fig.suptitle(title, fontsize=11)
     if out_dir:
@@ -828,7 +842,7 @@ if args.diff_config_path:
     )
 
     print('=== Diffusion model done ===\n', flush=True)
-
+'''
 # --- Open h5 files and keep them open for lazy per-variable loading ---
 n_batches_to_load = args.n_batches
 
@@ -878,6 +892,6 @@ with h5py.File(preds_path, 'r') as preds_f, h5py.File(targets_path, 'r') as targ
     # --- Plot seasonal bias maps ---
     print('Plotting seasonal bias maps...', flush=True)
     plot_seasonal_bias_maps(preds_ds, targets_ds, n_rows, n_time, season_masks, lat, lon,
-                             out_dir=save_path)
+                             out_dir=save_path)'''
 
 print('All done.', flush=True)

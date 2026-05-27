@@ -275,7 +275,7 @@ def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
         mae_map  = np.abs(residual).mean(axis=2).mean(axis=0)
         del pred_var, targ_var, diff_var, residual
 
-        bias_max = float(np.nanpercentile(np.abs(np.concatenate([true_map, diff_map])), 99))
+        bias_max = float(np.nanpercentile(np.abs(true_map), 99))
         mae_max  = float(np.nanpercentile(mae_map, 99))
 
         cols = [
@@ -338,7 +338,7 @@ def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n
             pred_v   = det_preds[:n_rows, sl].reshape(n_time, ncol, n_levels)
             targ_v   = targets  [:n_rows, sl].reshape(n_time, ncol, n_levels)
             mae_res  = np.abs(targ_v[mask] - pred_v[mask]).mean(axis=2).mean(axis=0)
-            bias_vals += [true_res, diff_res]
+            bias_vals.append(true_res)
             mae_vals.append(mae_res)
             
         #calculate the 99th percentile of the absolute values of the biases and mae for color scaling

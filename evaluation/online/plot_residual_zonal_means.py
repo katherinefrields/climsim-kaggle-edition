@@ -216,31 +216,39 @@ def compute_column_mean_direct(var, arr_flat, n_rows, n_time, time_mask=None):
 def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
                                  time_mask=None, title='True vs Predicted Residual',
                                  fname='comparison_zonal_means.png', show=True, out_dir=None):
-    """Rows = variables, cols = (true residual, diff predicted residual) — shared colorscale."""
+    """Rows = variables, 3 cols = (true residual bias | diff predicted residual | det MAE).
+
+    Col 1 True residual  : zonal mean of (target − det_pred)
+    Col 2 Diff predicted : zonal mean of diff_pred directly
+    Col 3 True MAE       : zonal mean of |target − det_pred|
+    Cols 1 & 2 share a symmetric colorscale; col 3 uses viridis.
+    """
     vars_list = list(var_settings.keys())
     n_vars    = len(vars_list)
-    labels    = [f'({l})' for l in string.ascii_lowercase[:n_vars * 2]]
+    labels    = [f'({l})' for l in string.ascii_lowercase[:n_vars * 3]]
 
-    fig, axs = plt.subplots(n_vars, 2, figsize=(11, 2.8 * n_vars), constrained_layout=True)
+    fig, axs = plt.subplots(n_vars, 3, figsize=(15, 2.8 * n_vars), constrained_layout=True)
 
     for row, var in enumerate(vars_list):
         s = var_settings[var]
 
-        true_da, _ = compute_zonal_stats(var, det_preds, targets, n_rows, n_time, time_mask)
-        diff_da     = compute_zonal_mean_direct(var, diff_preds, n_rows, n_time, time_mask)
+        true_da, mae_da = compute_zonal_stats(var, det_preds, targets, n_rows, n_time, time_mask)
+        diff_da          = compute_zonal_mean_direct(var, diff_preds, n_rows, n_time, time_mask)
 
-        abs_max = max(float(np.nanmax(np.abs(true_da.values))),
-                      float(np.nanmax(np.abs(diff_da.values))))
+        bias_max = max(float(np.nanmax(np.abs(true_da.values))),
+                       float(np.nanmax(np.abs(diff_da.values))))
+        mae_max  = float(np.nanmax(mae_da.values))
 
-        for col, (da, col_title) in enumerate([
-            (true_da, 'True Residual (Target − Det)'),
-            (diff_da, 'Diff Predicted Residual'),
-        ]):
+        cols = [
+            (true_da, 'True Residual (Target − Det)', 'RdBu_r',  -bias_max, bias_max),
+            (diff_da, 'Diff Predicted Residual',       'RdBu_r',  -bias_max, bias_max),
+            (mae_da,  'True MAE (Det)',                 'viridis',  0,        mae_max),
+        ]
+        for col, (da, col_title, cmap, vmin, vmax) in enumerate(cols):
             ax = axs[row, col]
-            im = da.plot(ax=ax, add_colorbar=False, cmap='RdBu_r',
-                         vmin=-abs_max, vmax=abs_max)
+            im = da.plot(ax=ax, add_colorbar=False, cmap=cmap, vmin=vmin, vmax=vmax)
             fig.colorbar(im, ax=ax, label=s['unit'], pad=0.02)
-            ax.set_title(f"{labels[row*2+col]} {s['var_title']} — {col_title}", fontsize=8)
+            ax.set_title(f"{labels[row*3+col]} {s['var_title']} — {col_title}", fontsize=8)
             ax.invert_yaxis()
             ax.set_xlabel('Latitude', fontsize=7)
             ax.set_ylabel('Hybrid pressure (hPa)' if col == 0 else '', fontsize=7)
@@ -262,27 +270,41 @@ def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
 
 def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n_time,
                                         season_masks, lat, lon, out_dir=None):
-    """One figure per season; rows = variables, cols = (true residual, diff predicted) maps."""
+    """One figure per season; rows = variables, 3 cols = (true residual | diff predicted | det MAE).
+
+    Col 1 True residual  : column-mean of (target − det_pred)
+    Col 2 Diff predicted : column-mean of diff_pred directly
+    Col 3 True MAE       : column-mean of |target − det_pred|
+    Cols 1 & 2 share a symmetric colorscale; col 3 uses viridis.
+    """
     vars_list    = list(var_settings.keys())
     n_vars       = len(vars_list)
-    panel_labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 2]]
+    panel_labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 3]]
 
     tri = _make_triangulation(lon, lat)
 
-    # Shared colorscale per variable across all seasons AND both columns
+    # Shared bias colorscale for cols 1 & 2 across all seasons; MAE scale separate
     print('  Computing shared color limits...', flush=True)
-    var_abs_max = {}
+    var_bias_max = {}
+    var_mae_max  = {}
     for var in vars_list:
-        all_vals = []
+        bias_vals, mae_vals = [], []
+        s  = var_settings[var]
+        sl = slice(s['var_index'], s['var_index'] + n_levels)
         for mask in season_masks.values():
             if len(mask) == 0:
                 continue
             true_res = compute_column_mean_residual(var, det_preds, targets,
-                                                    n_rows, n_time, mask)
-            diff_res = compute_column_mean_direct(var, diff_preds, n_rows, n_time, mask)
-            all_vals.append(true_res.mean(axis=0))
-            all_vals.append(diff_res.mean(axis=0))
-        var_abs_max[var] = float(np.nanpercentile(np.abs(np.concatenate(all_vals)), 99))
+                                                    n_rows, n_time, mask).mean(axis=0)
+            diff_res = compute_column_mean_direct(var, diff_preds, n_rows, n_time, mask).mean(axis=0)
+            # MAE = |target - det_pred| column mean
+            pred_v   = det_preds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+            targ_v   = targets  [:n_rows, sl].reshape(n_time, ncol, n_levels)
+            mae_res  = (s['scaling'] * np.abs(targ_v[mask] - pred_v[mask]).mean(axis=2)).mean(axis=0)
+            bias_vals += [true_res, diff_res]
+            mae_vals.append(mae_res)
+        var_bias_max[var] = float(np.nanpercentile(np.abs(np.concatenate(bias_vals)), 99))
+        var_mae_max[var]  = float(np.nanpercentile(np.concatenate(mae_vals), 99))
 
     for key, info in SEASONS.items():
         mask = season_masks[key]
@@ -290,8 +312,8 @@ def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n
             continue
 
         fig, axs = plt.subplots(
-            n_vars, 2,
-            figsize=(18, 3.5 * n_vars),
+            n_vars, 3,
+            figsize=(24, 3.5 * n_vars),
             subplot_kw={'projection': ccrs.Robinson()},
             constrained_layout=True,
         )
@@ -299,27 +321,32 @@ def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n
             axs = axs[np.newaxis, :]
 
         for row, var in enumerate(vars_list):
-            s       = var_settings[var]
-            abs_max = var_abs_max[var]
+            s        = var_settings[var]
+            sl       = slice(s['var_index'], s['var_index'] + n_levels)
+            bias_max = var_bias_max[var]
+            mae_max  = var_mae_max[var]
 
             true_res = compute_column_mean_residual(var, det_preds, targets,
                                                     n_rows, n_time, mask).mean(axis=0)
-            diff_res = compute_column_mean_direct(var, diff_preds,
-                                                  n_rows, n_time, mask).mean(axis=0)
+            diff_res = compute_column_mean_direct(var, diff_preds, n_rows, n_time, mask).mean(axis=0)
+            pred_v   = det_preds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+            targ_v   = targets  [:n_rows, sl].reshape(n_time, ncol, n_levels)
+            mae_res  = (s['scaling'] * np.abs(targ_v[mask] - pred_v[mask]).mean(axis=2)).mean(axis=0)
 
-            for col, (data, col_title) in enumerate([
-                (true_res, 'True Residual (Target − Det)'),
-                (diff_res, 'Diff Predicted Residual'),
-            ]):
+            cols = [
+                (true_res, 'True Residual (Target − Det)', 'RdBu_r',  -bias_max, bias_max),
+                (diff_res, 'Diff Predicted Residual',       'RdBu_r',  -bias_max, bias_max),
+                (mae_res,  'True MAE (Det)',                 'viridis',  0,        mae_max),
+            ]
+            for col, (data, col_title, cmap, vmin, vmax) in enumerate(cols):
                 ax = axs[row, col]
                 ax.add_feature(cfeature.COASTLINE, linewidth=0.5)
                 ax.set_global()
-                tc = ax.tripcolor(tri, data, cmap='RdBu_r',
-                                   vmin=-abs_max, vmax=abs_max,
+                tc = ax.tripcolor(tri, data, cmap=cmap, vmin=vmin, vmax=vmax,
                                    transform=ccrs.PlateCarree(), rasterized=True)
                 fig.colorbar(tc, ax=ax, orientation='horizontal',
                               pad=0.04, shrink=0.7, label=s['unit'])
-                ax.set_title(f"{panel_labels[row*2+col]} {s['var_title']} — {col_title}",
+                ax.set_title(f"{panel_labels[row*3+col]} {s['var_title']} — {col_title}",
                               fontsize=9)
 
         fig.suptitle(f'True vs Predicted Residual — {info["label"]}', fontsize=11)

@@ -9,16 +9,16 @@
 #SBATCH -n 1
 #SBATCH --mail-user=frieldskatherine@uci.edu
 #SBATCH --mail-type=ALL
+#SBATCH --image=nvcr.io/nvidia/modulus/modulus:24.09
 #SBATCH --output=out_%j.out
 #SBATCH --error=eo_%j.err
 
-module load conda
-conda activate myenv
-
-# Dependencies expected to be pre-installed in myenv:
-#   pip install cartopy omegaconf nvidia-modulus
-# Run those on the login node once; don't install at job time.
-
+# Extra Python packages installed once on login node into a writable dir:
+#   shifter --image=nvcr.io/nvidia/modulus/modulus:24.09 \
+#       pip install --target=/pscratch/sd/k/kfrields/shifter_packages cartopy omegaconf netCDF4 h5py
+REPO_ROOT=/global/u2/k/kfrields/climsim-kaggle-edition
+EXTRA_PKGS=/pscratch/sd/k/kfrields/shifter_packages
+export PYTHONPATH=${EXTRA_PKGS}:${REPO_ROOT}:${PYTHONPATH}
 
 N_BATCHES=${N_BATCHES:-26280}
 
@@ -48,4 +48,4 @@ if [ -n "$DIFF_CONFIG_PATH" ]; then
 fi
 
 echo "Running: $CMD"
-$CMD
+shifter $CMD

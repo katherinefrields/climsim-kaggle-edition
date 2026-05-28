@@ -842,7 +842,7 @@ if args.diff_config_path:
     )
 
     print('=== Diffusion model done ===\n', flush=True)
-'''
+
 # --- Open h5 files and keep them open for lazy per-variable loading ---
 n_batches_to_load = args.n_batches
 
@@ -892,6 +892,6 @@ with h5py.File(preds_path, 'r') as preds_f, h5py.File(targets_path, 'r') as targ
     # --- Plot seasonal bias maps ---
     print('Plotting seasonal bias maps...', flush=True)
     plot_seasonal_bias_maps(preds_ds, targets_ds, n_rows, n_time, season_masks, lat, lon,
-                             out_dir=save_path)'''
+                             out_dir=save_path)
 
 print('All done.', flush=True)

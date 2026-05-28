@@ -2,7 +2,7 @@
 #SBATCH -A m4334
 #SBATCH -C gpu
 #SBATCH -q debug
-#SBATCH -t 00:30:00
+#SBATCH -t 00:10:00
 #SBATCH --ntasks-per-node 1
 #SBATCH --cpus-per-task 32
 #SBATCH --gpus-per-node 1
@@ -20,10 +20,10 @@ REPO_ROOT=/global/u2/k/kfrields/climsim-kaggle-edition
 EXTRA_PKGS=/pscratch/sd/k/kfrields/shifter_packages
 export PYTHONPATH=${EXTRA_PKGS}:${REPO_ROOT}:${PYTHONPATH}
 
-N_BATCHES=${N_BATCHES:-1000} #26280 = 1 year
+N_BATCHES=${N_BATCHES:-26280} #26280 = 1 year
 
 # --- Diffusion model ---
-DIFF_BASE=/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_run #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
+DIFF_BASE= #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_run #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
 
 DIFF_CONFIG_PATH=${DIFF_CONFIG_PATH:-"${DIFF_BASE}/saved_config.yaml"}
 DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-""}
@@ -38,7 +38,7 @@ ls /pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/
 # Build the python command
 CMD="python plot_residual_zonal_means.py --n_batches $N_BATCHES"
 
-if [ -n "$DIFF_CONFIG_PATH" ]; then
+if [ -n "$DIFF_BASE" ]; then
     CMD="$CMD --diff_config_path $DIFF_CONFIG_PATH"
     CMD="$CMD --diff_input_npy $DIFF_INPUT_NPY"
     CMD="$CMD --diff_target_npy $DIFF_TARGET_NPY"

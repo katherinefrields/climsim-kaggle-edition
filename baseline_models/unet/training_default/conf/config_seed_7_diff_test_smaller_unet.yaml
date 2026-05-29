@@ -85,12 +85,12 @@ input_clip_rhonly: True
 seed: 7
 restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus'
 #diffusion_restart_path: '' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/input_output_cond_embedding_3_epoch_fixed_zeroing_z_dist_continued/diff_model/ckpt/ckpt_epoch_2_metric_0.2441.mdlus' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/dynamic_normalization_1_epoch/diff_model/ckpt/ckpt_epoch_1_metric_0.0023.mdlus' 
-diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch/diff_model/diff_model.mdlus' #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/plateau_run_fixed/diff_model/ckpt/ckpt_epoch_3_metric_0.2423.mdlus  #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/save_LR_state_test_5/diff_model/diff_model.mdlus'
+diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_mse_run/diff_model/ckpt/ckpt_epoch_19_metric_0.2426.mdlus' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch/diff_model/diff_model.mdlus' #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/plateau_run_fixed/diff_model/ckpt/ckpt_epoch_3_metric_0.2423.mdlus  #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/save_LR_state_test_5/diff_model/diff_model.mdlus'
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models'
-expname: '24_hour_mse_run' # 'diff_test_smaller_unet' # 'dynamic_normalization_1_epoch' # 'plateau_run_fixed' # 'save_LR_state_test_5' # '2_epoch_no_precompute_preds_full_precision_crps_fixed'
+expname: '24_hour_mse_run_continued' # 'diff_test_smaller_unet' # 'dynamic_normalization_1_epoch' # 'plateau_run_fixed' # 'save_LR_state_test_5' # '2_epoch_no_precompute_preds_full_precision_crps_fixed'
 num_workers: 32
 batch_size: 4096
-epochs: 36
+epochs: 17
 learning_rate: .0001 #0.0001 #0.0001 #0.00005 # temporarily changed 0.0001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'

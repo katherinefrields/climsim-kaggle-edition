@@ -20,10 +20,10 @@ REPO_ROOT=/global/u2/k/kfrields/climsim-kaggle-edition
 EXTRA_PKGS=/pscratch/sd/k/kfrields/shifter_packages
 export PYTHONPATH=${EXTRA_PKGS}:${REPO_ROOT}:${PYTHONPATH}
 
-N_BATCHES=${N_BATCHES:-26280} #26280 = 1 year
+N_BATCHES=${N_BATCHES:-1000} #26280 = 1 year
 
 # --- Diffusion model ---
-DIFF_BASE= #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_run #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
+DIFF_BASE= /pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_mse_run_continued #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
 
 DIFF_CONFIG_PATH=${DIFF_CONFIG_PATH:-"${DIFF_BASE}/saved_config.yaml"}
 DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-""}

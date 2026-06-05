@@ -122,7 +122,7 @@ use_crps_loss: False
 crps_num_members: 2
 crps_eps: .50
 gradient_checkpointing: True
-use_sign_penalty: False
+use_sign_penalty: True
 sign_penalty_lambda: 1.0
 # Channel indices into (B,C,L) target for diffusion residual prediction. null = all channels.
 diffusion_channel_indices: null

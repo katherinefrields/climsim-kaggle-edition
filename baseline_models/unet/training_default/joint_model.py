@@ -593,19 +593,25 @@ class JointModel(modulus.Module):
 
         return torch.stack(samples, dim=1)  # (B, num_samples, C*L)
 
-    def compute_loss(self, criterion, output, target, x, D_x, weight):
+    def compute_loss(self, criterion, output, target, x, D_x, weight,
+                     use_sign_penalty: bool = False, sign_penalty_lambda: float = 1.0):
         """
-        Customize loss combination here.
+        L(y, ŷ) = |y - ŷ|² + (λ · MSE) · max(0, -y · ŷ)
+
+        The sign penalty fires when y and ŷ disagree in sign. Scaling λ by the
+        MSE keeps the penalty proportional to how wrong the model already is.
         """
-        
-        
         deterministic_loss = criterion(output, target)
-        res_loss =  (weight*((x - D_x) ** 2)).mean() # calculate over C and L features
-        #print(f'predicted value is {D_x}')
-        #print(f'true value is {x}')
-        #res_loss = (unweighted_res_loss * weight).mean()  # weighted residual loss
-        #print(f'deterministic loss: {deterministic_loss.item()}, residual loss: {res_loss.item()}')
-        # Example weighted sum
+
+        errors = x - D_x
+        mse = (weight * errors ** 2).mean()
+
+        if use_sign_penalty:
+            sign_penalty = (weight * torch.clamp(-x * D_x, min=0.0)).mean()
+            res_loss = mse + sign_penalty_lambda * mse.detach() * sign_penalty
+        else:
+            res_loss = mse
+
         return deterministic_loss, res_loss
 
     def backward(self,res_loss, joint_optimizer):

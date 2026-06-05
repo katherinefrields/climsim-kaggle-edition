@@ -614,10 +614,10 @@ def main(cfg: DictConfig) -> float:
                     deterministic_loss, res_loss = joint_model.module.compute_crps_training_loss(criterion, ensemble, target_flat, det_pred, weight, eps=cfg.crps_eps)
                     joint_model.module.backward(res_loss, joint_optimizer)
                 elif joint_training_enabled:
-                    deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
+                    deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
                     joint_model.module.joint_backward(deterministic_loss, res_loss, joint_optimizer)
                 else:
-                    deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
+                    deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
                     joint_model.module.backward(res_loss, joint_optimizer)
 
                 if torch.isnan(res_loss):
@@ -744,10 +744,10 @@ def main(cfg: DictConfig) -> float:
                 if cfg.use_crps_loss:
                     deterministic_loss, res_loss = joint_model.module.compute_crps_training_loss(criterion, ensemble, target_flat, det_pred, weight, eps=cfg.crps_eps)
                 else:
-                    deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight)
+                    deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
                 nvtx.range_pop()
-                
-               
+
+
                 #output, residual, predicted_residual = joint_model(data_input, target)
                 #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
                 

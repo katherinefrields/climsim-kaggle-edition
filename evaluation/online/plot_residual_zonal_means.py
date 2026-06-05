@@ -695,7 +695,7 @@ def load_joint_model(config_path, checkpoint_path, input_npy_path, target_npy_pa
 
 def run_diffusion_inference(joint_model, diff_data, torch_input, out_scale_np,
                              n_batches_limit=None,
-                             sigma_min=0.1, sigma_max=45, num_steps=18, rho=7):
+                             sigma_min=0.1, sigma_max=30, num_steps=18, rho=7):
     """Run joint model inference over all timesteps.
 
     Returns

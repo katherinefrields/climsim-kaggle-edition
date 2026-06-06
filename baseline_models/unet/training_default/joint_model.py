@@ -610,9 +610,10 @@ class JointModel(modulus.Module):
             sign_penalty = (weight * torch.clamp(-x * D_x, min=0.0)).mean()
             res_loss = mse + sign_penalty_lambda * mse.detach() * sign_penalty
         else:
+            sign_penalty = torch.zeros(1, device=x.device)
             res_loss = mse
 
-        return deterministic_loss, res_loss
+        return deterministic_loss, res_loss, mse, sign_penalty
 
     def backward(self,res_loss, joint_optimizer):
          # 1. Zero all grads

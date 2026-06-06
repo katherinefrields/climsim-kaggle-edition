@@ -614,10 +614,10 @@ def main(cfg: DictConfig) -> float:
                     deterministic_loss, res_loss = joint_model.module.compute_crps_training_loss(criterion, ensemble, target_flat, det_pred, weight, eps=cfg.crps_eps)
                     joint_model.module.backward(res_loss, joint_optimizer)
                 elif joint_training_enabled:
-                    deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
+                    deterministic_loss, res_loss, _, _ = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
                     joint_model.module.joint_backward(deterministic_loss, res_loss, joint_optimizer)
                 else:
-                    deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
+                    deterministic_loss, res_loss, _, _ = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
                     joint_model.module.backward(res_loss, joint_optimizer)
 
                 if torch.isnan(res_loss):
@@ -693,6 +693,8 @@ def main(cfg: DictConfig) -> float:
             nvtx.range_push(f"validation_epoch_{epoch}")
             deterministic_val_loss = 0.0
             residual_val_loss = 0.0
+            residual_val_mse = 0.0
+            residual_val_sign_penalty = 0.0
             num_samples_processed = 0
             val_loop = tqdm(val_loader, desc=f'Epoch {epoch+1}/1 [Validation]', disable=not dist.rank == 0)
             current_step = 0
@@ -743,20 +745,23 @@ def main(cfg: DictConfig) -> float:
                 nvtx.range_push("val_loss")
                 if cfg.use_crps_loss:
                     deterministic_loss, res_loss = joint_model.module.compute_crps_training_loss(criterion, ensemble, target_flat, det_pred, weight, eps=cfg.crps_eps)
+                    val_mse, val_sign_pen = res_loss, torch.zeros(1, device=device)
                 else:
-                    deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
+                    deterministic_loss, res_loss, val_mse, val_sign_pen = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
                 nvtx.range_pop()
 
 
                 #output, residual, predicted_residual = joint_model(data_input, target)
                 #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
-                
-                
+
+
                 #val_targets.append(target.cpu().numpy())
                 #val_preds.append(output.cpu().numpy())
-                
+
                 deterministic_val_loss += deterministic_loss.item() * data_input.size(0)
                 residual_val_loss += res_loss.item() * data_input.size(0)
+                residual_val_mse += val_mse.item() * data_input.size(0)
+                residual_val_sign_penalty += val_sign_pen.item() * data_input.size(0)
                 num_samples_processed += data_input.size(0)
 
                 # Calculate and update the current average loss
@@ -788,8 +793,11 @@ def main(cfg: DictConfig) -> float:
                 torch.distributed.all_reduce(current_residual_val_loss_avg)
                 current_residual_val_loss_avg = current_residual_val_loss_avg.item() / dist.world_size
 
+            current_residual_val_mse_avg = residual_val_mse / num_samples_processed
+            current_residual_val_sign_penalty_avg = residual_val_sign_penalty / num_samples_processed
+
             if dist.rank == 0:
-                launchlog.log_epoch({"loss_det_valid": current_deterministic_val_loss_avg, "los_res_valid": current_residual_val_loss_avg})
+                launchlog.log_epoch({"loss_det_valid": current_deterministic_val_loss_avg, "los_res_valid": current_residual_val_loss_avg, "val_res_mse": current_residual_val_mse_avg, "val_res_sign_penalty": current_residual_val_sign_penalty_avg})
 
                 #currently saving the model with the best deterministic performance
                 current_metric = current_residual_val_loss_avg

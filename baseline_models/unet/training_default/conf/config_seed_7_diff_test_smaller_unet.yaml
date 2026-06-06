@@ -90,7 +90,7 @@ save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_mode
 expname: 'sign_aware_loss_test_loss' # 'diff_test_smaller_unet' # 'dynamic_normalization_1_epoch' # 'plateau_run_fixed' # 'save_LR_state_test_5' # '2_epoch_no_precompute_preds_full_precision_crps_fixed'
 num_workers: 32
 batch_size: 4096
-epochs: 1
+epochs: 4
 learning_rate: .0001 #0.0001 #0.0001 #0.00005 # temporarily changed 0.0001
 save_top_ckpts: 15
 top_ckpt_mode: 'min'

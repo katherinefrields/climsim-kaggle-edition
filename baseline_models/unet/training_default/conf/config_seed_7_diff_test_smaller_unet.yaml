@@ -87,7 +87,7 @@ restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models
 diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/sign_aware_loss_continued/diff_model/diff_model.mdlus' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/dynamic_normalization_1_epoch/diff_model/ckpt/ckpt_epoch_1_metric_0.0023.mdlus' 
 #diffusion_restart_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_mse_run/diff_model/ckpt/ckpt_epoch_19_metric_0.2426.mdlus' #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch/diff_model/diff_model.mdlus' #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/plateau_run_fixed/diff_model/ckpt/ckpt_epoch_3_metric_0.2423.mdlus  #'/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/save_LR_state_test_5/diff_model/diff_model.mdlus'
 save_path: '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models'
-expname: 'sign_aware_loss_test_loss' # 'diff_test_smaller_unet' # 'dynamic_normalization_1_epoch' # 'plateau_run_fixed' # 'save_LR_state_test_5' # '2_epoch_no_precompute_preds_full_precision_crps_fixed'
+expname: 'sign_aware_loss_4_continued' # 'diff_test_smaller_unet' # 'dynamic_normalization_1_epoch' # 'plateau_run_fixed' # 'save_LR_state_test_5' # '2_epoch_no_precompute_preds_full_precision_crps_fixed'
 num_workers: 32
 batch_size: 4096
 epochs: 4
@@ -116,7 +116,7 @@ scheduler_warmup:
    warmup_steps: 20
    warmup_strategy: 'cos'
    init_lr: 1e-7
-early_stop_step: 100
+early_stop_step: -1
 use_bf16: True
 use_crps_loss: False
 crps_num_members: 2

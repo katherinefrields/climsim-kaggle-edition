@@ -23,10 +23,10 @@ export PYTHONPATH=${EXTRA_PKGS}:${REPO_ROOT}:${PYTHONPATH}
 N_BATCHES=${N_BATCHES:-100} #26280 = 1 year
 
 # --- Diffusion model ---
-DIFF_BASE=/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_mse_run_continued/ #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
+DIFF_BASE=/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_mse_run_continueds/ #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
 
 DIFF_CONFIG_PATH=${DIFF_CONFIG_PATH:-"${DIFF_BASE}/saved_config.yaml"}
-DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-"/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_mse_run/diff_model/ckpt/ckpt_epoch_5_metric_0.2470.mdlus"}
+DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-"/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/sign_aware_loss_continued/diff_model/diff_model.mdlus"}
 DIFF_INPUT_NPY=${DIFF_INPUT_NPY:-"/pscratch/sd/j/jerrylin/hugging/E3SM-MMF_ne4/preprocessing/v2_rh_mc/val_set/val_input.npy"}
 DIFF_TARGET_NPY=${DIFF_TARGET_NPY:-"/pscratch/sd/j/jerrylin/hugging/E3SM-MMF_ne4/preprocessing/v2_rh_mc/val_set/val_target.npy"}
 DIFF_N_BATCHES=${DIFF_N_BATCHES:-100}

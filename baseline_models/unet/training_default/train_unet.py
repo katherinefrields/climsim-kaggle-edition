@@ -617,7 +617,7 @@ def main(cfg: DictConfig) -> float:
                     deterministic_loss, res_loss, _, _ = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
                     joint_model.module.joint_backward(deterministic_loss, res_loss, joint_optimizer)
                 else:
-                    deterministic_loss, res_loss, _, _ = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
+                    deterministic_loss, res_loss, train_mse, train_sign_pen = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
                     joint_model.module.backward(res_loss, joint_optimizer)
 
                 if torch.isnan(res_loss):
@@ -668,7 +668,7 @@ def main(cfg: DictConfig) -> float:
                 # scheduler.step()
                 #launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy()})
                 #if dist.rank == 0:
-                launchlog.log_minibatch({"loss_det_train": deterministic_loss.detach().float().cpu().numpy(),"loss_res_train": res_loss.detach().float().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"]})
+                launchlog.log_minibatch({"loss_det_train": deterministic_loss.detach().float().cpu().numpy(),"loss_res_train": res_loss.detach().float().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"], "train_mse": train_mse.detach().float().cpu().numpy() if not cfg.use_crps_loss else None, "train_sign_pen": train_sign_pen.detach().float().cpu().numpy() if not cfg.use_crps_loss else None})
                 # Update the progress bar description with the current loss
                 train_loop.set_description(f'Epoch {epoch+1}')
                 train_loop.set_postfix(det_loss=deterministic_loss.item(), res_loss=res_loss.item())
@@ -712,67 +712,68 @@ def main(cfg: DictConfig) -> float:
             #val_targets = []
             
             
-            for batch in val_loop:
-                val_input, val_target = batch[0], batch[1]
-                val_precomputed_output = batch[2].to(device) if len(batch) == 3 else None
-                if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
-                    break
-                # if cfg.output_prune:
-                #     # the following code only works for the v2/v3 output cases!
-                #     target[:,60:60+cfg.strato_lev] = 0
-                #     target[:,120:120+cfg.strato_lev] = 0
-                #     target[:,180:180+cfg.strato_lev] = 0
-                # Move data to the device
-                nvtx.range_push("val_data_to_device")
-                data_input, target = val_input.to(device), val_target.to(device)
-                nvtx.range_pop()
+            with torch.no_grad():
+                for batch in val_loop:
+                    val_input, val_target = batch[0], batch[1]
+                    val_precomputed_output = batch[2].to(device) if len(batch) == 3 else None
+                    if cfg.early_stop_step > 0 and current_step > cfg.early_stop_step:
+                        break
+                    # if cfg.output_prune:
+                    #     # the following code only works for the v2/v3 output cases!
+                    #     target[:,60:60+cfg.strato_lev] = 0
+                    #     target[:,120:120+cfg.strato_lev] = 0
+                    #     target[:,180:180+cfg.strato_lev] = 0
+                    # Move data to the device
+                    nvtx.range_push("val_data_to_device")
+                    data_input, target = val_input.to(device), val_target.to(device)
+                    nvtx.range_pop()
 
-                nvtx.range_push("val_forward")
-                with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
+                    nvtx.range_push("val_forward")
+                    with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=cfg.use_bf16):
+                        if cfg.use_crps_loss:
+                            val_sigma = val_sigma_seq[current_step % len(val_sigma_seq)].reshape(1, 1, 1).expand(data_input.shape[0], 1, 1)
+                            if val_precomputed_output is not None:
+                                ensemble, target_flat, det_pred, weight = joint_model.module.forward_crps_precomputed(data_input, target, val_precomputed_output, num_members=cfg.crps_num_members, sigma=val_sigma)
+                            else:
+                                ensemble, target_flat, det_pred, weight = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members, sigma=val_sigma)
+                        else:
+                            if val_precomputed_output is not None:
+                                output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model.module.forward_precomputed(data_input, target, val_precomputed_output)
+                            else:
+                                output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
+                    nvtx.range_pop()
+
+                    nvtx.range_push("val_loss")
                     if cfg.use_crps_loss:
-                        val_sigma = val_sigma_seq[current_step % len(val_sigma_seq)].reshape(1, 1, 1).expand(data_input.shape[0], 1, 1)
-                        if val_precomputed_output is not None:
-                            ensemble, target_flat, det_pred, weight = joint_model.module.forward_crps_precomputed(data_input, target, val_precomputed_output, num_members=cfg.crps_num_members, sigma=val_sigma)
-                        else:
-                            ensemble, target_flat, det_pred, weight = joint_model.module.forward_crps(data_input, target, num_members=cfg.crps_num_members, sigma=val_sigma)
+                        deterministic_loss, res_loss = joint_model.module.compute_crps_training_loss(criterion, ensemble, target_flat, det_pred, weight, eps=cfg.crps_eps)
+                        val_mse, val_sign_pen = res_loss, torch.zeros(1, device=device)
                     else:
-                        if val_precomputed_output is not None:
-                            output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model.module.forward_precomputed(data_input, target, val_precomputed_output)
-                        else:
-                            output, target, denormalized_predicted_residual, denormalized_residual, normalized_predicted_residual, normalized_residual, weight = joint_model(data_input, target)
-                nvtx.range_pop()
-
-                nvtx.range_push("val_loss")
-                if cfg.use_crps_loss:
-                    deterministic_loss, res_loss = joint_model.module.compute_crps_training_loss(criterion, ensemble, target_flat, det_pred, weight, eps=cfg.crps_eps)
-                    val_mse, val_sign_pen = res_loss, torch.zeros(1, device=device)
-                else:
-                    deterministic_loss, res_loss, val_mse, val_sign_pen = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
-                nvtx.range_pop()
+                        deterministic_loss, res_loss, val_mse, val_sign_pen = joint_model.module.compute_loss(criterion, output, target, denormalized_residual, denormalized_predicted_residual, weight, use_sign_penalty=cfg.use_sign_penalty, sign_penalty_lambda=cfg.sign_penalty_lambda)
+                    nvtx.range_pop()
 
 
-                #output, residual, predicted_residual = joint_model(data_input, target)
-                #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
+                    #output, residual, predicted_residual = joint_model(data_input, target)
+                    #deterministic_loss, res_loss = joint_model.module.compute_loss(criterion, output, target, predicted_residual, residual)
 
 
-                #val_targets.append(target.cpu().numpy())
-                #val_preds.append(output.cpu().numpy())
+                    #val_targets.append(target.cpu().numpy())
+                    #val_preds.append(output.cpu().numpy())
 
-                deterministic_val_loss += deterministic_loss.item() * data_input.size(0)
-                residual_val_loss += res_loss.item() * data_input.size(0)
-                residual_val_mse += val_mse.item() * data_input.size(0)
-                residual_val_sign_penalty += val_sign_pen.item() * data_input.size(0)
-                num_samples_processed += data_input.size(0)
+                    deterministic_val_loss += deterministic_loss.item() * data_input.size(0)
+                    residual_val_loss += res_loss.item() * data_input.size(0)
+                    residual_val_mse += val_mse.item() * data_input.size(0)
+                    residual_val_sign_penalty += val_sign_pen.item() * data_input.size(0)
+                    num_samples_processed += data_input.size(0)
 
-                # Calculate and update the current average loss
-                current_deterministic_val_loss_avg = deterministic_val_loss / num_samples_processed
-                current_residual_val_loss_avg = residual_val_loss / num_samples_processed
-                val_loop.set_postfix(det_loss=current_deterministic_val_loss_avg, res_loss = current_residual_val_loss_avg)
-                current_step += 1
-                if cfg.use_crps_loss:
-                    del data_input, target_flat, ensemble, det_pred
-                else:
-                    del data_input, target, output, normalized_residual, normalized_predicted_residual, denormalized_predicted_residual, denormalized_residual
+                    # Calculate and update the current average loss
+                    current_deterministic_val_loss_avg = deterministic_val_loss / num_samples_processed
+                    current_residual_val_loss_avg = residual_val_loss / num_samples_processed
+                    val_loop.set_postfix(det_loss=current_deterministic_val_loss_avg, res_loss = current_residual_val_loss_avg)
+                    current_step += 1
+                    if cfg.use_crps_loss:
+                        del data_input, target_flat, ensemble, det_pred
+                    else:
+                        del data_input, target, output, normalized_residual, normalized_predicted_residual, denormalized_predicted_residual, denormalized_residual
 
             #debugging purposes
             #val_preds = np.concatenate(val_preds, axis=0)

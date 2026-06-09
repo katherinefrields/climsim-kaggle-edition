@@ -421,16 +421,16 @@ def main(cfg: DictConfig) -> float:
     else:
         raise ValueError('Scheduler not implemented')
 
-    # Load optimizer/scheduler state from checkpoint companion file if available
-    for restart_path in [cfg.restart_path, cfg.diffusion_restart_path]:
-        if len(restart_path) > 0:
-            optim_path = restart_path.replace('.mdlus', '_optim.pt')
-            if os.path.exists(optim_path):
-                print(f"Loading optimizer/scheduler state from: {optim_path}")
-                optim_ckpt = torch.load(optim_path, map_location=dist.device)
-                joint_optimizer.load_state_dict(optim_ckpt['optimizer_state_dict'])
-                joint_scheduler.load_state_dict(optim_ckpt['scheduler_state_dict'])
-                break  # only load once (prefer restart_path over diffusion_restart_path)
+    # Load optimizer/scheduler state from the diffusion checkpoint's companion optim file only
+    if len(cfg.diffusion_restart_path) > 0:
+        optim_path = cfg.diffusion_restart_path.replace('.mdlus', '_optim.pt')
+        if os.path.exists(optim_path):
+            print(f"Loading optimizer/scheduler state from: {optim_path}")
+            optim_ckpt = torch.load(optim_path, map_location=dist.device)
+            joint_optimizer.load_state_dict(optim_ckpt['optimizer_state_dict'])
+            joint_scheduler.load_state_dict(optim_ckpt['scheduler_state_dict'])
+        else:
+            print(f"No optimizer state found at {optim_path}, starting optimizer fresh")
 
     # create loss function
     if cfg.loss == 'MSE':
@@ -557,7 +557,7 @@ def main(cfg: DictConfig) -> float:
         #                           num_workers=cfg.num_workers)
         # wrap the epoch in launch logger to control frequency of output for console logs
         with LaunchLogger("train", epoch=epoch, mini_batch_log_freq=10) as launchlog:
-            # model.train()
+            joint_model.train()
             # Wrap train_loader with tqdm for a progress bar
             train_loop = tqdm(train_loader, desc=f'Epoch {epoch+1}', disable=not dist.rank == 0)
             current_step = 0
@@ -823,7 +823,7 @@ def main(cfg: DictConfig) -> float:
                         model.save(ckpt_path)
                         res_model.save(ckpt_res_path)
 
-                    optim_path = ckpt_path.replace('.mdlus', '_optim.pt')
+                    optim_path = ckpt_res_path.replace('.mdlus', '_optim.pt')
                     torch.save({
                         'optimizer_state_dict': joint_optimizer.state_dict(),
                         'scheduler_state_dict': joint_scheduler.state_dict(),

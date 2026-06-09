@@ -668,7 +668,11 @@ def main(cfg: DictConfig) -> float:
                 # scheduler.step()
                 #launchlog.log_minibatch({"loss_train": loss.detach().cpu().numpy()})
                 #if dist.rank == 0:
-                launchlog.log_minibatch({"loss_det_train": deterministic_loss.detach().float().cpu().numpy(),"loss_res_train": res_loss.detach().float().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"], "train_mse": train_mse.detach().float().cpu().numpy() if not cfg.use_crps_loss else None, "train_sign_pen": train_sign_pen.detach().float().cpu().numpy() if not cfg.use_crps_loss else None})
+                
+                if cfg.use_sign_penalty:
+                    launchlog.log_minibatch({"loss_det_train": deterministic_loss.detach().float().cpu().numpy(),"loss_res_train": res_loss.detach().float().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"], "train_mse": train_mse.detach().float().cpu().numpy() if not cfg.use_crps_loss else None, "train_sign_pen": train_sign_pen.detach().float().cpu().numpy() if not cfg.use_crps_loss else None})
+                else:
+                    launchlog.log_minibatch({"loss_det_train": deterministic_loss.detach().float().cpu().numpy(),"loss_res_train": res_loss.detach().float().cpu().numpy(), "lr": joint_optimizer.param_groups[0]["lr"], "train_mse": train_mse.detach().float().cpu().numpy() if not cfg.use_crps_loss else None})
                 # Update the progress bar description with the current loss
                 train_loop.set_description(f'Epoch {epoch+1}')
                 train_loop.set_postfix(det_loss=deterministic_loss.item(), res_loss=res_loss.item())

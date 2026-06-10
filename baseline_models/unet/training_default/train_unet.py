@@ -215,8 +215,6 @@ def main(cfg: DictConfig) -> float:
                             batch_size=cfg.batch_size,
                             shuffle=False,
                             sampler=val_sampler,
-                            persistent_workers=cfg.num_workers > 0,
-                            pin_memory=torch.cuda.is_available(),
                             num_workers=cfg.num_workers)
     # Create dataloaders
     # train_loader = DataLoader(train_dataset, batch_size=cfg.batch_size, shuffle=True)

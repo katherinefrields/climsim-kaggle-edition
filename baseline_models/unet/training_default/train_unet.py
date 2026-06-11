@@ -216,6 +216,10 @@ def main(cfg: DictConfig) -> float:
                             shuffle=False,
                             sampler=val_sampler,
                             num_workers=cfg.num_workers)
+    # persistent_workers=cfg.num_workers > 0,
+    #pin_memory=torch.cuda.is_available(), DONT SET THESE, it causes the validation sigmas to be received out of order
+    
+    
     # Create dataloaders
     # train_loader = DataLoader(train_dataset, batch_size=cfg.batch_size, shuffle=True)
     #val_loader = DataLoader(val_dataset, batch_size=cfg.batch_size, shuffle=False)

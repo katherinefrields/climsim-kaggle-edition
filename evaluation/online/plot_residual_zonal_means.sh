@@ -26,7 +26,7 @@ N_BATCHES=${N_BATCHES:-100} #26280 = 1 year
 DIFF_BASE=/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/fixed_validation_large_sign_penalty/ #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
 
 DIFF_CONFIG_PATH=${DIFF_CONFIG_PATH:-"${DIFF_BASE}/saved_config.yaml"}
-DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-""}
+DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-"/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/fixed_validation_large_sign_penalty/diff_model/ckpt/ckpt_epoch_1_metric_0.3710.mdlus"}
 DIFF_N_BATCHES=${DIFF_N_BATCHES:-100}
 DIFF_START_DOY=${DIFF_START_DOY:-""}
 

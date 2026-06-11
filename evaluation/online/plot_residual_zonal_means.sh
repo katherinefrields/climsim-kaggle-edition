@@ -38,8 +38,6 @@ CMD="python plot_residual_zonal_means.py --n_batches $N_BATCHES"
 
 if [ -n "$DIFF_BASE" ]; then
     CMD="$CMD --diff_config_path $DIFF_CONFIG_PATH"
-    CMD="$CMD --diff_input_npy $DIFF_INPUT_NPY"
-    CMD="$CMD --diff_target_npy $DIFF_TARGET_NPY"
     [ -n "$DIFF_CHECKPOINT_PATH" ] && CMD="$CMD --diff_checkpoint_path $DIFF_CHECKPOINT_PATH"
     [ -n "$DIFF_N_BATCHES" ]       && CMD="$CMD --diff_n_batches $DIFF_N_BATCHES"
     [ -n "$DIFF_START_DOY" ]       && CMD="$CMD --diff_start_doy $DIFF_START_DOY"

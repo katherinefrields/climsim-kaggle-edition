@@ -241,7 +241,7 @@ def compute_column_mean_direct(var, arr_flat, n_rows, n_time, time_mask=None):
 
 
 def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
-                                 time_mask=None, title = 'True vs Predicted Residual',  show=True, out_dir=None):
+                                 time_mask=None,fname = 'comparison_zonal_means.png', title = 'True vs Predicted Residual',  show=True, out_dir=None):
     """Rows = variables, 3 cols = Robinson maps of (true residual | diff predicted | true MAE)."""
     n_vars       = len(vars_list)
     panel_labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 3]]
@@ -299,7 +299,7 @@ def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
     fig.suptitle(title, fontsize=11)
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
-        fpath = os.path.join(out_dir, 'comparison_zonal_means.png')
+        fpath = os.path.join(out_dir, fname)
         plt.savefig(fpath, dpi=200, bbox_inches='tight')
         print(f'Saved: {fpath}', flush=True)
     if show:

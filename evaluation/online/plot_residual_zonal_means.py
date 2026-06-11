@@ -23,10 +23,6 @@ parser.add_argument('--diff_config_path',   type=str,   default=None,
                     help='Path to saved_config.yaml for the joint diffusion model.')
 parser.add_argument('--diff_checkpoint_path', type=str, default='',
                     help='Optional .mdlus checkpoint path (overrides diff_model.pt in config).')
-parser.add_argument('--diff_input_npy',     type=str,   default=None,
-                    help='Path to input .npy file for diffusion inference.')
-parser.add_argument('--diff_target_npy',    type=str,   default=None,
-                    help='Path to target .npy file for diffusion inference.')
 parser.add_argument('--diff_n_batches',     type=int,   default=None,
                     help='Limit number of timestep batches for diffusion inference.')
 parser.add_argument('--diff_start_doy',     type=int,   default=None,
@@ -41,6 +37,9 @@ input_mean_v2_rh_mc_file = 'input_mean_v2_rh_mc_pervar.nc'
 input_max_v2_rh_mc_file  = 'input_max_v2_rh_mc_pervar.nc'
 input_min_v2_rh_mc_file  = 'input_min_v2_rh_mc_pervar.nc'
 output_scale_v2_rh_mc_file = 'output_scale_std_lowerthred_v2_rh_mc.nc'
+
+input_npy_path = "/pscratch/sd/j/jerrylin/hugging/E3SM-MMF_ne4/preprocessing/v2_rh_mc/val_set/val_input.npy"
+target_npy_path = "/pscratch/sd/j/jerrylin/hugging/E3SM-MMF_ne4/preprocessing/v2_rh_mc/val_set/val_target.npy"
 
 preds_path   = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/val_preds.h5'
 targets_path = '/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/val_targets.h5'
@@ -113,7 +112,7 @@ def get_var_settings(var):
         var_index = 240
         vmin      = -5e-7
         vmax      =  5e-7
-    return var_title, unit, var_index, vmin, vmax
+    return var_title, unit, var_index
 
 n_levels = 60
 
@@ -161,7 +160,7 @@ def compute_zonal_stats(var, preds_ds, targets_ds, n_rows, n_time, time_mask=Non
     Allocates (n_t, ncol, 60) per array instead of (n_t, ncol, n_output_vars),
     so memory scales with one variable at a time regardless of dataset width.
     """
-    var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+    var_title, unit, var_index = get_var_settings(var)
     sl = slice(var_index, var_index + n_levels)
 
     pred_var   = preds_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
@@ -242,8 +241,7 @@ def compute_column_mean_direct(var, arr_flat, n_rows, n_time, time_mask=None):
 
 
 def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
-                                 time_mask=None, title='True vs Predicted Residual',
-                                 fname='comparison_zonal_means.png', show=True, out_dir=None):
+                                 time_mask=None, show=True, out_dir=None):
     """Rows = variables, 3 cols = Robinson maps of (true residual | diff predicted | true MAE)."""
     n_vars       = len(vars_list)
     panel_labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 3]]
@@ -270,11 +268,12 @@ def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
             diff_var = diff_var[time_mask]
 
         residual = targ_var - pred_var
-        true_map = residual.mean(axis=2).mean(axis=0)
-        diff_map = diff_var.mean(axis=2).mean(axis=0)
-        mae_map  = np.abs(residual).mean(axis=2).mean(axis=0)
+        true_map = residual.mean(axis=(0,2))
+        diff_map = diff_var.mean(axis=(0,2))
+        mae_map  = np.abs(residual).mean(axis=(0,2))
         del pred_var, targ_var, diff_var, residual
 
+        #calculate top percentiles to use for scaling
         bias_max = float(np.nanpercentile(np.abs(true_map), 99))
         mae_max  = float(np.nanpercentile(mae_map, 99))
 
@@ -297,10 +296,10 @@ def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
             cbar.set_label(unit, fontsize=9)
             cbar.locator = ticker.MaxNLocator(nbins=4)
 
-    fig.suptitle(title, fontsize=11)
+    fig.suptitle('True vs Predicted Residual', fontsize=11)
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
-        fpath = os.path.join(out_dir, fname)
+        fpath = os.path.join(out_dir, 'comparison_zonal_means.png')
         plt.savefig(fpath, dpi=200, bbox_inches='tight')
         print(f'Saved: {fpath}', flush=True)
     if show:
@@ -578,7 +577,7 @@ def plot_all_residual_zonal_means(preds_ds, targets_ds, n_rows, n_time, time_mas
 # Diffusion model loading and inference
 # ---------------------------------------------------------------------------
 
-def load_joint_model(config_path, checkpoint_path, input_npy_path, target_npy_path):
+def load_joint_model(config_path, checkpoint_path):
     """Load joint (deterministic + diffusion) model and preprocess npy data.
 
     Returns
@@ -591,9 +590,9 @@ def load_joint_model(config_path, checkpoint_path, input_npy_path, target_npy_pa
     out_scale_np  : ndarray  (1, n_output)  — output std for denormalisation
     """
     # Project root needs to be on sys.path for physicsnemo + baseline_models
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
+    #project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    #if project_root not in sys.path:
+    #    sys.path.insert(0, project_root)
 
     
 
@@ -765,9 +764,6 @@ def run_diffusion_inference(joint_model, diff_data, torch_input, out_scale_np,
 # Optional: diffusion model inference + comparison visualisations (runs first)
 # ---------------------------------------------------------------------------
 if args.diff_config_path:
-    if not args.diff_input_npy or not args.diff_target_npy:
-        raise ValueError('--diff_input_npy and --diff_target_npy are required '
-                         'when --diff_config_path is provided.')
 
     print('\n=== Diffusion model ===', flush=True)
     print('Loading joint model...', flush=True)
@@ -775,8 +771,6 @@ if args.diff_config_path:
         load_joint_model(
             config_path      = args.diff_config_path,
             checkpoint_path  = args.diff_checkpoint_path,
-            input_npy_path   = args.diff_input_npy,
-            target_npy_path  = args.diff_target_npy,
         )
 
     print('Running inference...', flush=True)

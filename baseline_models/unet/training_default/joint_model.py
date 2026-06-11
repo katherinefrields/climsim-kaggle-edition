@@ -607,11 +607,10 @@ class JointModel(modulus.Module):
         mse = (weight * errors ** 2).mean()
 
         if use_sign_penalty:
-            wrong_sign = (x * D_x < 0).float()
-            sign_penalty = (weight * errors ** 2 * wrong_sign).mean()
-            res_loss = mse + sign_penalty_lambda * sign_penalty
-            #sign_penalty = (weight * torch.clamp(-x * D_x, min=0.0)).mean()
-            #res_loss = mse + sign_penalty_lambda * mse.detach() * sign_penalty
+            #sign_penalty = (weight * torch.clamp(-x * D_x, min=0.0)**2).mean()
+            #res_loss = mse + sign_penalty_lambda * sign_penalty
+            sign_penalty = (weight * torch.clamp(-x * D_x, min=0.0)).mean()
+            res_loss = mse + sign_penalty_lambda * mse.detach() * sign_penalty
         else:
             sign_penalty = torch.zeros(1, device=x.device)
             res_loss = mse

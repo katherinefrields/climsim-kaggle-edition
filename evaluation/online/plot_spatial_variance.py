@@ -165,39 +165,51 @@ def global_variance_profile(arr_3d):
     return wv.mean(axis=0)                                                     # (n_lev,)
 
 
-def compute_zonal_variance(var, preds_ds, targets_ds, n_rows, n_time, time_mask=None):
-    """Return (true_da, pred_da) area-weighted zonal variance DataArrays for `var`."""
+def compute_zonal_variance(var, targets_ds, det_preds_ds, diff_preds_ds, n_rows, n_time, time_mask=None):
+    """Return (true_da, pred_da) zonal variance DataArrays for the residuals of `var`.
+
+    true_da : zonal variance of (target - det_pred)   — true residual
+    pred_da : zonal variance of diff_pred             — predicted residual
+    """
     _, _, var_index = get_var_settings(var)
     sl = slice(var_index, var_index + n_levels)
 
-    pred_var   = preds_ds  [:n_rows, sl].reshape(n_time, ncol, n_levels)
-    target_var = targets_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+    target_var    = targets_ds   [:n_rows, sl].reshape(n_time, ncol, n_levels)
+    det_pred_var  = det_preds_ds [:n_rows, sl].reshape(n_time, ncol, n_levels)
+    diff_pred_var = diff_preds_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
 
     if time_mask is not None:
-        pred_var   = pred_var  [time_mask]
-        target_var = target_var[time_mask]
+        target_var    = target_var   [time_mask]
+        det_pred_var  = det_pred_var [time_mask]
+        diff_pred_var = diff_pred_var[time_mask]
 
-    true_da = zonal_variance_da(target_var)
-    pred_da = zonal_variance_da(pred_var)
-    del pred_var, target_var
+    true_da = zonal_variance_da(target_var - det_pred_var)
+    pred_da = zonal_variance_da(diff_pred_var)
+    del target_var, det_pred_var, diff_pred_var
     return true_da, pred_da
 
 
-def compute_global_variance(var, preds_ds, targets_ds, n_rows, n_time, time_mask=None):
-    """Return (true_prof, pred_prof) global spatial variance profiles, shape (n_levels,)."""
+def compute_global_variance(var, targets_ds, det_preds_ds, diff_preds_ds, n_rows, n_time, time_mask=None):
+    """Return (true_prof, pred_prof) global residual variance profiles, shape (n_levels,).
+
+    true_prof : var(target - det_pred)   — true residual
+    pred_prof : var(diff_pred)           — predicted residual
+    """
     _, _, var_index = get_var_settings(var)
     sl = slice(var_index, var_index + n_levels)
 
-    pred_var   = preds_ds  [:n_rows, sl].reshape(n_time, ncol, n_levels)
-    target_var = targets_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+    target_var    = targets_ds   [:n_rows, sl].reshape(n_time, ncol, n_levels)
+    det_pred_var  = det_preds_ds [:n_rows, sl].reshape(n_time, ncol, n_levels)
+    diff_pred_var = diff_preds_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
 
     if time_mask is not None:
-        pred_var   = pred_var  [time_mask]
-        target_var = target_var[time_mask]
+        target_var    = target_var   [time_mask]
+        det_pred_var  = det_pred_var [time_mask]
+        diff_pred_var = diff_pred_var[time_mask]
 
-    true_prof = global_variance_profile(target_var)
-    pred_prof = global_variance_profile(pred_var)
-    del pred_var, target_var
+    true_prof = global_variance_profile(target_var - det_pred_var)
+    pred_prof = global_variance_profile(diff_pred_var)
+    del target_var, det_pred_var, diff_pred_var
     return true_prof, pred_prof
 
 
@@ -205,10 +217,10 @@ def compute_global_variance(var, preds_ds, targets_ds, n_rows, n_time, time_mask
 # Plot functions
 # ---------------------------------------------------------------------------
 
-def plot_all_spatial_variances(preds_ds, targets_ds, n_rows, n_time, time_mask=None,
-                                title='True vs Predicted Spatial Variance',
+def plot_all_spatial_variances(targets, det_preds, diff_preds, n_rows, n_time, time_mask=None,
+                                title='True vs Predicted Residual Variance',
                                 fname='spatial_variance_all.png', show=True, out_dir=None):
-    """Rows = variables; 3 cols = (true variance | predicted variance | ratio pred/true)."""
+    """Rows = variables; 3 cols = (true residual variance | predicted residual variance | ratio)."""
     n_vars = len(vars_list)
     labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 3]]
 
@@ -218,15 +230,15 @@ def plot_all_spatial_variances(preds_ds, targets_ds, n_rows, n_time, time_mask=N
 
     for row, var in enumerate(vars_list):
         var_title, unit, _ = get_var_settings(var)
-        true_da, pred_da   = compute_zonal_variance(var, preds_ds, targets_ds,
+        true_da, pred_da   = compute_zonal_variance(var, targets, det_preds, diff_preds,
                                                      n_rows, n_time, time_mask)
         ratio_da = pred_da / true_da.where(true_da != 0)
 
         vmax_var = float(np.nanpercentile(true_da.values, 99))
 
         cols = [
-            (true_da,  'True Variance',       'viridis', 0,   vmax_var),
-            (pred_da,  'Predicted Variance',   'viridis', 0,   vmax_var),
+            (true_da,  'Var(True Residual)',  'viridis', 0,   vmax_var),
+            (pred_da,  'Var(Pred Residual)',   'viridis', 0,   vmax_var),
             (ratio_da, 'Ratio (Pred / True)',  'RdBu_r',  0.5, 1.5),
         ]
         for col, (da, col_title, cmap, c_vmin, c_vmax) in enumerate(cols):
@@ -254,10 +266,10 @@ def plot_all_spatial_variances(preds_ds, targets_ds, n_rows, n_time, time_mask=N
         plt.close()
 
 
-def plot_global_variance_profiles(preds_ds, targets_ds, n_rows, n_time, time_mask=None,
-                                   title='Global Spatial Variance Profile',
+def plot_global_variance_profiles(targets, det_preds, diff_preds, n_rows, n_time, time_mask=None,
+                                   title='Global Residual Variance Profile',
                                    fname='global_variance_profiles.png', show=True, out_dir=None):
-    """One panel per variable: true vs predicted global spatial variance vs pressure level."""
+    """One panel per variable: true vs predicted residual variance vs pressure level."""
     n_vars = len(vars_list)
     labels = [f'({l})' for l in string.ascii_lowercase[:n_vars]]
 
@@ -267,11 +279,11 @@ def plot_global_variance_profiles(preds_ds, targets_ds, n_rows, n_time, time_mas
 
     for col, var in enumerate(vars_list):
         var_title, unit, _ = get_var_settings(var)
-        true_prof, pred_prof = compute_global_variance(var, preds_ds, targets_ds,
+        true_prof, pred_prof = compute_global_variance(var, targets, det_preds, diff_preds,
                                                         n_rows, n_time, time_mask)
         ax = axs[col]
-        ax.plot(true_prof, level, label='True',      color='black',    linewidth=1.5)
-        ax.plot(pred_prof, level, label='Predicted', color='tab:blue', linewidth=1.5, linestyle='--')
+        ax.plot(true_prof, level, label='True Residual', color='black',    linewidth=1.5)
+        ax.plot(pred_prof, level, label='Pred Residual', color='tab:blue', linewidth=1.5, linestyle='--')
         ax.invert_yaxis()
         ax.set_xlabel(f'Spatial Variance [{unit}²]', fontsize=8)
         ax.set_ylabel('Hybrid pressure (hPa)' if col == 0 else '', fontsize=8)
@@ -365,9 +377,9 @@ def plot_column_variance_map(targets, det_preds, diff_preds, n_rows, n_time, tim
         plt.close()
 
 
-def plot_seasonal_spatial_variances(preds_ds, targets_ds, n_rows, n_time,
+def plot_seasonal_spatial_variances(targets, det_preds, diff_preds, n_rows, n_time,
                                      season_masks, out_dir=None):
-    """Zonal variance, global profile, and column map plots, one set per season."""
+    """Zonal residual variance, global residual profile, and column map — one set per season."""
     for key, info in SEASONS.items():
         mask = season_masks[key]
         if len(mask) == 0:
@@ -375,17 +387,24 @@ def plot_seasonal_spatial_variances(preds_ds, targets_ds, n_rows, n_time,
             continue
         print(f'  {info["label"]} ({len(mask)} timesteps)...', flush=True)
         plot_all_spatial_variances(
-            preds_ds, targets_ds, n_rows, n_time,
+            targets, det_preds, diff_preds, n_rows, n_time,
             time_mask = mask,
-            title     = f'True vs Predicted Spatial Variance — {info["label"]}',
+            title     = f'True vs Predicted Residual Variance — {info["label"]}',
             fname     = f'spatial_variance_{key.lower()}.png',
             show      = False, out_dir = out_dir,
         )
         plot_global_variance_profiles(
-            preds_ds, targets_ds, n_rows, n_time,
+            targets, det_preds, diff_preds, n_rows, n_time,
             time_mask = mask,
-            title     = f'Global Spatial Variance — {info["label"]}',
+            title     = f'Global Residual Variance — {info["label"]}',
             fname     = f'global_variance_profiles_{key.lower()}.png',
+            show      = False, out_dir = out_dir,
+        )
+        plot_column_variance_map(
+            targets, det_preds, diff_preds, n_rows, n_time,
+            time_mask = mask,
+            title     = f'Column Residual Variance — {info["label"]}',
+            fname     = f'column_residual_variance_map_{key.lower()}.png',
             show      = False, out_dir = out_dir,
         )
 
@@ -589,7 +608,19 @@ if args.diff_config_path:
 
     diff_save_path = os.path.join(save_path, 'diffusion')
 
-    print('Plotting annual column residual variance map...', flush=True)
+    print('Plotting annual residual variance (zonal, global profile, column map)...', flush=True)
+    plot_all_spatial_variances(
+        targets_flat_diff, det_preds_flat, diff_preds_flat, n_rows_diff, n_time_used,
+        title   = 'True vs Predicted Residual Variance — Annual',
+        fname   = 'spatial_variance_annual.png',
+        show    = False, out_dir = diff_save_path,
+    )
+    plot_global_variance_profiles(
+        targets_flat_diff, det_preds_flat, diff_preds_flat, n_rows_diff, n_time_used,
+        title   = 'Global Residual Variance — Annual',
+        fname   = 'global_variance_profiles_annual.png',
+        show    = False, out_dir = diff_save_path,
+    )
     plot_column_variance_map(
         targets_flat_diff, det_preds_flat, diff_preds_flat, n_rows_diff, n_time_used,
         title   = 'Column Residual Variance — Annual',
@@ -597,20 +628,11 @@ if args.diff_config_path:
         show    = False, out_dir = diff_save_path,
     )
 
-    print('Plotting seasonal column residual variance maps...', flush=True)
-    for key, info in SEASONS.items():
-        mask = diff_season_masks[key]
-        if len(mask) == 0:
-            print(f'  No timesteps for {key}, skipping.', flush=True)
-            continue
-        print(f'  {info["label"]} ({len(mask)} timesteps)...', flush=True)
-        plot_column_variance_map(
-            targets_flat_diff, det_preds_flat, diff_preds_flat, n_rows_diff, n_time_used,
-            time_mask = mask,
-            title     = f'Column Residual Variance — {info["label"]}',
-            fname     = f'column_residual_variance_map_{key.lower()}.png',
-            show      = False, out_dir = diff_save_path,
-        )
+    print('Plotting seasonal residual variance...', flush=True)
+    plot_seasonal_spatial_variances(
+        targets_flat_diff, det_preds_flat, diff_preds_flat, n_rows_diff, n_time_used,
+        diff_season_masks, out_dir = diff_save_path,
+    )
 
     print('=== Diffusion model done ===\n', flush=True)
 
@@ -631,16 +653,6 @@ with h5py.File(preds_path, 'r') as preds_f, h5py.File(targets_path, 'r') as targ
         for key, info in SEASONS.items()
     }
 
-    print('Plotting annual zonal spatial variances...', flush=True)
-    plot_all_spatial_variances(preds_ds, targets_ds, n_rows, n_time,
-                                show=False, out_dir=save_path)
-
-    print('Plotting annual global variance profiles...', flush=True)
-    plot_global_variance_profiles(preds_ds, targets_ds, n_rows, n_time,
-                                   show=False, out_dir=save_path)
-
-    '''print('Plotting seasonal spatial variances...', flush=True)
-    plot_seasonal_spatial_variances(preds_ds, targets_ds, n_rows, n_time, season_masks,
-                                     out_dir=save_path)'''
+    # Residual variance plots require diff_preds and run in the diffusion section above.
 
 print('All done.', flush=True)

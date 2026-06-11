@@ -180,7 +180,7 @@ def compute_zonal_stats(var, preds_ds, targets_ds, n_rows, n_time, time_mask=Non
 
 def compute_diurnal_stats(var, preds_ds, targets_ds, n_rows, n_time):
     """Return (bias, mae) of shape (24, n_levels): area-weighted global mean per hour of day."""
-    var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+    var_title, unit, var_index = get_var_settings(var)
     sl = slice(var_index, var_index + n_levels)
 
     pred_var   = preds_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
@@ -207,7 +207,7 @@ def compute_column_mean_residual(var, preds_ds, targets_ds, n_rows, n_time, time
     """Vertical mean of residual (target - pred) → (n_t, ncol).
         n_rows is batch size * number of batches
     """
-    var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+    var_title, unit, var_index = get_var_settings(var)
     sl = slice(var_index, var_index + n_levels)
 
     pred_var   = preds_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
@@ -222,7 +222,7 @@ def compute_column_mean_residual(var, preds_ds, targets_ds, n_rows, n_time, time
 
 def compute_zonal_mean_direct(var, arr_flat, n_rows, n_time, time_mask=None):
     """Zonal mean of arr_flat directly (no target subtraction) → xr.DataArray (lev, lat)."""
-    var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+    var_title, unit, var_index = get_var_settings(var)
     sl = slice(var_index, var_index + n_levels)
     data = arr_flat[:n_rows, sl].reshape(n_time, ncol, n_levels)
     if time_mask is not None:
@@ -232,7 +232,7 @@ def compute_zonal_mean_direct(var, arr_flat, n_rows, n_time, time_mask=None):
 
 def compute_column_mean_direct(var, arr_flat, n_rows, n_time, time_mask=None):
     """Vertical mean of arr_flat directly (no target subtraction) → (n_t, ncol)."""
-    var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+    var_title, unit, var_index = get_var_settings(var)
     sl = slice(var_index, var_index + n_levels)
     data = arr_flat[:n_rows, sl].reshape(n_time, ncol, n_levels)
     if time_mask is not None:
@@ -256,7 +256,7 @@ def plot_comparison_zonal_means(det_preds, targets, diff_preds, n_rows, n_time,
         axs = axs[np.newaxis, :]
 
     for row, var in enumerate(vars_list):
-        var_title, unit, var_index, _, _ = get_var_settings(var)
+        var_title, unit, var_index = get_var_settings(var)
         sl = slice(var_index, var_index + n_levels)
 
         pred_var = det_preds[:n_rows, sl].reshape(n_time, ncol, n_levels)
@@ -326,7 +326,7 @@ def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n
     var_mae_max  = {}
     for var in vars_list:
         bias_vals, mae_vals = [], []
-        var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+        var_title, unit, var_index = get_var_settings(var)
         sl = slice(var_index, var_index + n_levels)
         for mask in season_masks.values():
             if len(mask) == 0:
@@ -359,7 +359,7 @@ def plot_seasonal_bias_maps_comparison(det_preds, targets, diff_preds, n_rows, n
             axs = axs[np.newaxis, :]
 
         for row, var in enumerate(vars_list):
-            var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+            var_title, unit, var_index = get_var_settings(var)
             sl       = slice(var_index, var_index + n_levels)
             bias_max = var_bias_max[var]
             mae_max  = var_mae_max[var]
@@ -434,7 +434,7 @@ def plot_seasonal_bias_maps(preds_ds, targets_ds, n_rows, n_time, season_masks, 
             axs = [axs]
 
         for row, var in enumerate(vars_list):
-            var_title, unit, var_index, vmin, vmax = get_var_settings(var)
+            var_title, unit, var_index = get_var_settings(var)
             col_bias  = compute_column_mean_residual(var, preds_ds, targets_ds,
                                                      n_rows, n_time, time_mask=mask)
             mean_bias = col_bias.mean(axis=0)  # (ncol,)

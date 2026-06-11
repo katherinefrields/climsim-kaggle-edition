@@ -291,13 +291,16 @@ def plot_global_variance_profiles(preds_ds, targets_ds, n_rows, n_time, time_mas
         plt.close()
 
 
-def plot_column_variance_map(preds_ds, targets_ds, n_rows, n_time, time_mask=None,
-                              title='Column Temporal Variance',
-                              fname='column_variance_map.png', show=True, out_dir=None):
-    """Rows = variables; 3 cols = Robinson maps of (true | predicted | ratio pred/true).
+def plot_column_variance_map(targets, det_preds, diff_preds, n_rows, n_time, time_mask=None,
+                              title='Column Residual Variance',
+                              fname='column_residual_variance_map.png', show=True, out_dir=None):
+    """Rows = variables; 3 cols = Robinson maps of:
+       (true residual variance | predicted residual variance | ratio pred/true).
 
-    For each column the variance is computed over the time dimension and then
-    averaged over pressure levels, giving one scalar per (ncol,) grid point.
+    True residual  = target - det_pred    (what the diffusion model should predict)
+    Pred residual  = diff_pred            (what it actually predicted)
+    Variance is computed over the time dimension then averaged over pressure levels,
+    giving one scalar per (ncol,) grid point.
     """
     n_vars       = len(vars_list)
     panel_labels = [f'({l})' for l in string.ascii_lowercase[:n_vars * 3]]
@@ -315,23 +318,25 @@ def plot_column_variance_map(preds_ds, targets_ds, n_rows, n_time, time_mask=Non
         var_title, unit, var_index = get_var_settings(var)
         sl = slice(var_index, var_index + n_levels)
 
-        pred_var   = preds_ds  [:n_rows, sl].reshape(n_time, ncol, n_levels)
-        target_var = targets_ds[:n_rows, sl].reshape(n_time, ncol, n_levels)
+        targ_var = targets   [:n_rows, sl].reshape(n_time, ncol, n_levels)
+        det_var  = det_preds [:n_rows, sl].reshape(n_time, ncol, n_levels)
+        dif_var  = diff_preds[:n_rows, sl].reshape(n_time, ncol, n_levels)
         if time_mask is not None:
-            pred_var   = pred_var  [time_mask]
-            target_var = target_var[time_mask]
+            targ_var = targ_var[time_mask]
+            det_var  = det_var [time_mask]
+            dif_var  = dif_var [time_mask]
 
         # variance over time, averaged over levels → (ncol,)
-        true_map = target_var.var(axis=0).mean(axis=1)
-        pred_map = pred_var.var(axis=0).mean(axis=1)
+        true_map  = (targ_var - det_var).var(axis=0).mean(axis=1)
+        pred_map  = dif_var.var(axis=0).mean(axis=1)
         ratio_map = np.where(true_map > 0, pred_map / true_map, np.nan)
-        del pred_var, target_var
+        del targ_var, det_var, dif_var
 
-        vmax_var  = float(np.nanpercentile(true_map, 99))
+        vmax_var = float(np.nanpercentile(true_map, 99))
         cols = [
-            (true_map,  'True Variance',      'viridis', 0,   vmax_var),
-            (pred_map,  'Predicted Variance',  'viridis', 0,   vmax_var),
-            (ratio_map, 'Ratio (Pred / True)', 'RdBu_r',  0.5, 1.5),
+            (true_map,  'Var(True Residual)',  'viridis', 0,   vmax_var),
+            (pred_map,  'Var(Pred Residual)',   'viridis', 0,   vmax_var),
+            (ratio_map, 'Ratio (Pred / True)',  'RdBu_r',  0.5, 1.5),
         ]
         for col, (data, col_title, cmap, c_vmin, c_vmax) in enumerate(cols):
             ax = axs[row, col]
@@ -381,13 +386,6 @@ def plot_seasonal_spatial_variances(preds_ds, targets_ds, n_rows, n_time,
             time_mask = mask,
             title     = f'Global Spatial Variance — {info["label"]}',
             fname     = f'global_variance_profiles_{key.lower()}.png',
-            show      = False, out_dir = out_dir,
-        )
-        plot_column_variance_map(
-            preds_ds, targets_ds, n_rows, n_time,
-            time_mask = mask,
-            title     = f'Column Temporal Variance — {info["label"]}',
-            fname     = f'column_variance_map_{key.lower()}.png',
             show      = False, out_dir = out_dir,
         )
 
@@ -591,23 +589,15 @@ if args.diff_config_path:
 
     diff_save_path = os.path.join(save_path, 'diffusion')
 
-    print('Plotting annual column variance maps (det)...', flush=True)
+    print('Plotting annual column residual variance map...', flush=True)
     plot_column_variance_map(
-        det_preds_flat, targets_flat_diff, n_rows_diff, n_time_used,
-        title   = 'Column Temporal Variance — Annual (Det vs True)',
-        fname   = 'column_variance_map_det_annual.png',
+        targets_flat_diff, det_preds_flat, diff_preds_flat, n_rows_diff, n_time_used,
+        title   = 'Column Residual Variance — Annual',
+        fname   = 'column_residual_variance_map_annual.png',
         show    = False, out_dir = diff_save_path,
     )
 
-    print('Plotting annual column variance maps (joint)...', flush=True)
-    plot_column_variance_map(
-        joint_preds_flat, targets_flat_diff, n_rows_diff, n_time_used,
-        title   = 'Column Temporal Variance — Annual (Joint vs True)',
-        fname   = 'column_variance_map_joint_annual.png',
-        show    = False, out_dir = diff_save_path,
-    )
-
-    print('Plotting seasonal column variance maps...', flush=True)
+    print('Plotting seasonal column residual variance maps...', flush=True)
     for key, info in SEASONS.items():
         mask = diff_season_masks[key]
         if len(mask) == 0:
@@ -615,17 +605,10 @@ if args.diff_config_path:
             continue
         print(f'  {info["label"]} ({len(mask)} timesteps)...', flush=True)
         plot_column_variance_map(
-            det_preds_flat, targets_flat_diff, n_rows_diff, n_time_used,
+            targets_flat_diff, det_preds_flat, diff_preds_flat, n_rows_diff, n_time_used,
             time_mask = mask,
-            title     = f'Column Temporal Variance — {info["label"]} (Det vs True)',
-            fname     = f'column_variance_map_det_{key.lower()}.png',
-            show      = False, out_dir = diff_save_path,
-        )
-        plot_column_variance_map(
-            joint_preds_flat, targets_flat_diff, n_rows_diff, n_time_used,
-            time_mask = mask,
-            title     = f'Column Temporal Variance — {info["label"]} (Joint vs True)',
-            fname     = f'column_variance_map_joint_{key.lower()}.png',
+            title     = f'Column Residual Variance — {info["label"]}',
+            fname     = f'column_residual_variance_map_{key.lower()}.png',
             show      = False, out_dir = diff_save_path,
         )
 
@@ -655,10 +638,6 @@ with h5py.File(preds_path, 'r') as preds_f, h5py.File(targets_path, 'r') as targ
     print('Plotting annual global variance profiles...', flush=True)
     plot_global_variance_profiles(preds_ds, targets_ds, n_rows, n_time,
                                    show=False, out_dir=save_path)
-
-    print('Plotting annual column variance map...', flush=True)
-    plot_column_variance_map(preds_ds, targets_ds, n_rows, n_time,
-                              show=False, out_dir=save_path)
 
     '''print('Plotting seasonal spatial variances...', flush=True)
     plot_seasonal_spatial_variances(preds_ds, targets_ds, n_rows, n_time, season_masks,

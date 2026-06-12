@@ -274,7 +274,7 @@ def main(cfg: DictConfig) -> float:
         if cfg.diffusion_model.condition_type == 'input_output':
             cond_channels = (data.target_profile_num  + data.target_scalar_num + data.input_profile_num + data.input_scalar_num)
     if cfg.diffusion_model.condition_location == 'embedding':
-        if cfg.diffusion_model.condition_type == 'input_output':
+        if cfg.diffusion_model.condition_type == 'input_output' or cfg.diffusion_model.condition_type == 'cross':
             cond_channels = (data.target_profile_num  + data.target_scalar_num + data.input_profile_num + data.input_scalar_num)*64
         else:
             cond_channels = 8192

@@ -156,7 +156,7 @@ class JointModel(modulus.Module):
             if self.condition_type == 'input_output':
                 condition_data = latent_condition
         elif self.condition_location == 'embedding':
-            if self.condition_type == 'input_output':
+            if self.condition_type == 'input_output' or self.condition_type == 'cross':
                 latent_condition = torch.cat((input, condition_output), dim=1)
             else:
                 latent_condition = latent_output
@@ -166,7 +166,7 @@ class JointModel(modulus.Module):
                 latent_condition = torch.cat((input, condition_output), dim=1)
             condition_data = latent_condition
             #print(latent_condition.shape)
-        
+
         B, C, L = normalized_residual.shape
         
         #use a seperate sigma for each batch element, but the same sigma across all features in the batch element
@@ -248,7 +248,7 @@ class JointModel(modulus.Module):
             if self.condition_type == 'input_output':
                 condition_data = latent_condition
         elif self.condition_location == 'embedding':
-            if self.condition_type == 'input_output':
+            if self.condition_type == 'input_output' or self.condition_type == 'cross':
                 latent_condition = torch.cat((input, condition_output), dim=1)
             else:
                 latent_condition = latent_output
@@ -355,7 +355,7 @@ class JointModel(modulus.Module):
             if self.condition_type == 'input_output':
                 condition_data = latent_condition
         elif self.condition_location == 'embedding':
-            if self.condition_type == 'input_output':
+            if self.condition_type == 'input_output' or self.condition_type == 'cross':
                 latent_condition = torch.cat((input, condition_output), dim=1)
             else:
                 latent_condition = latent_output

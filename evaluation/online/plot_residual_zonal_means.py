@@ -28,6 +28,9 @@ parser.add_argument('--diff_n_batches',     type=int,   default=None,
 parser.add_argument('--diff_start_doy',     type=int,   default=None,
                     help='Start day-of-year (0-indexed) for the diffusion npy data '
                          '(defaults to START_DOY used by the h5 data).')
+parser.add_argument('--unet_model_path',    type=str,   default=None,
+                    help='Optional path to a unet_model.pt to use instead of the one '
+                         'derived from the diff config (cfg.save_path / cfg.expname).')
 args = parser.parse_args()
 
 # --- Paths ---
@@ -577,7 +580,7 @@ def plot_all_residual_zonal_means(preds_ds, targets_ds, n_rows, n_time, time_mas
 # Diffusion model loading and inference
 # ---------------------------------------------------------------------------
 
-def load_joint_model(config_path, checkpoint_path):
+def load_joint_model(config_path, checkpoint_path, unet_model_path=None):
     """Load joint (deterministic + diffusion) model and preprocess npy data.
 
     Returns
@@ -649,8 +652,12 @@ def load_joint_model(config_path, checkpoint_path):
 
     # --- deterministic model ---
     base = os.path.join(cfg.save_path, cfg.expname)
-    print(f'  Loading deterministic model ({os.path.join(base, "unet_model.pt")})...', flush=True)
-    det_model = torch.jit.load(os.path.join(base, 'unet_model.pt')).to(device)
+    unet_path = unet_model_path if unet_model_path else os.path.join(base, 'unet_model.pt')
+    print(f'  Loading deterministic model ({unet_path})...', flush=True)
+    if unet_path.endswith('.mdlus'):
+        det_model = Module.from_checkpoint(unet_path).to(device)
+    else:
+        det_model = torch.jit.load(unet_path).to(device)
     det_model.eval()
 
     # --- diffusion model ---
@@ -778,6 +785,7 @@ if args.diff_config_path:
         load_joint_model(
             config_path      = args.diff_config_path,
             checkpoint_path  = args.diff_checkpoint_path,
+            unet_model_path  = args.unet_model_path,
         )
 
     print('Running inference...', flush=True)

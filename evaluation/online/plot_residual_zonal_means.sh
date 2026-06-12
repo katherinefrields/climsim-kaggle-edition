@@ -29,6 +29,7 @@ DIFF_CONFIG_PATH=${DIFF_CONFIG_PATH:-"${DIFF_BASE}/saved_config.yaml"}
 DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-"/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/cross_attention_10_epochs/diff_model/ckpt/ckpt_epoch_2_metric_0.2263.mdlus"}
 DIFF_N_BATCHES=${DIFF_N_BATCHES:-100}
 DIFF_START_DOY=${DIFF_START_DOY:-""}
+UNET_MODEL_PATH=${UNET_MODEL_PATH:-"/pscratch/sd/k/kfrields/hugging/E3SM-MMF-climsim3_original_models/unet_seed_7/model.mdlus"}
 
 echo "Files in precomputed_preds dir:"
 ls /pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/precomputed_preds/
@@ -41,6 +42,7 @@ if [ -n "$DIFF_BASE" ]; then
     [ -n "$DIFF_CHECKPOINT_PATH" ] && CMD="$CMD --diff_checkpoint_path $DIFF_CHECKPOINT_PATH"
     [ -n "$DIFF_N_BATCHES" ]       && CMD="$CMD --diff_n_batches $DIFF_N_BATCHES"
     [ -n "$DIFF_START_DOY" ]       && CMD="$CMD --diff_start_doy $DIFF_START_DOY"
+    [ -n "$UNET_MODEL_PATH" ]      && CMD="$CMD --unet_model_path $UNET_MODEL_PATH"
 fi
 
 echo "Running: $CMD"

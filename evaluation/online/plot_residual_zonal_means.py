@@ -718,20 +718,27 @@ def run_diffusion_inference(joint_model, diff_data, torch_input, out_scale_np,
             input_batch = joint_model.reshape_input(input_batch)
 
             # deterministic forward
-            output, _ = joint_model.deterministic_model(input_batch)
+            output, latent_condition = joint_model.deterministic_model(input_batch)
 
-            # build conditioning (mirrors inference_joint_model in notebook)
-            safe_std       = torch.clamp(joint_model.res_std, min=1e-2)
-            cond_out       = ((output - joint_model.preds_mean) /
-                              (joint_model.preds_std + 1e-8)) * 0.5
-            loc = joint_model.condition_location
-            if loc == 'front' and joint_model.condition_type == 'input_output':
+            # build conditioning
+            safe_std = torch.clamp(joint_model.res_std, min=1e-2)
+            cond_out = ((output - joint_model.preds_mean) /
+                        (joint_model.preds_std + 1e-8)) * 0.5
+            loc   = joint_model.condition_location
+            ctype = joint_model.condition_type
+            if loc == 'front':
                 condition_data = torch.cat((input_batch, cond_out), dim=1)
-            if loc == 'embedding' and joint_model.condition_type == 'input_output':
-                lc = torch.cat((input_batch, cond_out), dim=1)
+            elif loc == 'embedding':
+                if ctype == 'input_output':
+                    lc = torch.cat((input_batch, cond_out), dim=1)
+                else:  # 'cross': use latent from deterministic model
+                    lc = latent_condition
                 condition_data = lc.reshape(lc.shape[0], -1)
-            elif loc in ('middle', 'cross') and joint_model.condition_type == 'input_output':
-                condition_data = torch.cat((input_batch, cond_out), dim=1)
+            elif loc in ('middle', 'cross'):
+                if ctype == 'input_output':
+                    condition_data = torch.cat((input_batch, cond_out), dim=1)
+                else:  # 'cross': use latent from deterministic model
+                    condition_data = latent_condition
 
             # diffusion sampling
             latents = torch.randn(

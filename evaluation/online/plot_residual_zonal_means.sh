@@ -23,10 +23,10 @@ export PYTHONPATH=${EXTRA_PKGS}:${REPO_ROOT}:${PYTHONPATH}
 N_BATCHES=${N_BATCHES:-100} #26280 = 1 year
 
 # --- Diffusion model ---
-DIFF_BASE=/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/fixed_validation_large_sign_penalty/ #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
+DIFF_BASE=/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/cross_attention_10_epochs/ #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
 
 DIFF_CONFIG_PATH=${DIFF_CONFIG_PATH:-"${DIFF_BASE}/saved_config.yaml"}
-DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-"/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/fixed_validation_large_sign_penalty/diff_model/ckpt/ckpt_epoch_1_metric_0.3710.mdlus"}
+DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-"/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/cross_attention_10_epochs/diff_model/ckpt/ckpt_epoch_2_metric_0.2263.mdlus"}
 DIFF_N_BATCHES=${DIFF_N_BATCHES:-100}
 DIFF_START_DOY=${DIFF_START_DOY:-""}
 

@@ -736,7 +736,7 @@ def run_diffusion_inference(joint_model, diff_data, torch_input, out_scale_np,
             if loc == 'front':
                 condition_data = torch.cat((input_batch, cond_out), dim=1)
             elif loc == 'embedding':
-                if ctype == 'input_output':
+                if ctype == 'input_output' or ctype == 'cross':
                     lc = torch.cat((input_batch, cond_out), dim=1)
                 else:  # 'cross': use latent from deterministic model
                     lc = latent_condition

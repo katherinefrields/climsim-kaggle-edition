@@ -23,10 +23,10 @@ export PYTHONPATH=${EXTRA_PKGS}:${REPO_ROOT}:${PYTHONPATH}
 N_BATCHES=${N_BATCHES:-1000} #26280 = 1 year
 
 # --- Diffusion model ---
-DIFF_BASE=/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_mse_run/ #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
+DIFF_BASE=/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_run/ #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
 
 DIFF_CONFIG_PATH=${DIFF_CONFIG_PATH:-"${DIFF_BASE}/saved_config.yaml"}
-DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-"/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_mse_run/diff_model/ckpt/ckpt_epoch_19_metric_0.2426.mdlus"}
+DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-""}
 DIFF_N_BATCHES=${DIFF_N_BATCHES:-1000}
 DIFF_START_DOY=${DIFF_START_DOY:-""}
 UNET_MODEL_PATH=${UNET_MODEL_PATH:-"/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/cond_embeddings_5000_steps/unet_model.pt"}

@@ -2,7 +2,7 @@
 #SBATCH -A m4334
 #SBATCH -C gpu
 #SBATCH -q debug
-#SBATCH -t 00:30:00
+#SBATCH -t 00:10:00
 #SBATCH --ntasks-per-node 1
 #SBATCH --cpus-per-task 32
 #SBATCH --gpus-per-node 1
@@ -20,14 +20,14 @@ REPO_ROOT=/global/u2/k/kfrields/climsim-kaggle-edition
 EXTRA_PKGS=/pscratch/sd/k/kfrields/shifter_packages
 export PYTHONPATH=${EXTRA_PKGS}:${REPO_ROOT}:${PYTHONPATH}
 
-N_BATCHES=${N_BATCHES:-1000} #26280 = 1 year
+N_BATCHES=${N_BATCHES:-100} #26280 = 1 year
 
 # --- Diffusion model ---
-DIFF_BASE=/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/24_hour_run/ #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
+DIFF_BASE=/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/fixed_cross_attention_test/ #/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/improved_mse_1_epoch #
 
 DIFF_CONFIG_PATH=${DIFF_CONFIG_PATH:-"${DIFF_BASE}/saved_config.yaml"}
 DIFF_CHECKPOINT_PATH=${DIFF_CHECKPOINT_PATH:-""}
-DIFF_N_BATCHES=${DIFF_N_BATCHES:-1000}
+DIFF_N_BATCHES=${DIFF_N_BATCHES:-100}
 DIFF_START_DOY=${DIFF_START_DOY:-""}
 UNET_MODEL_PATH=${UNET_MODEL_PATH:-"/pscratch/sd/k/kfrields/hugging/E3SM-MMF_saved_models/diffusion_models/cond_embeddings_5000_steps/unet_model.pt"}
 
